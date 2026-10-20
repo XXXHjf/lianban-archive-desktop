@@ -2,6 +2,8 @@
 
 本目录是供他人从 GitHub 下载使用的独立共享项目，目标仓库为 `https://github.com/x107108/lianban-archive-desktop.git`，分支 `main`。不要向私有开发仓库或 `server-deploy` 分支推送本项目。
 
+使用者只要求下载安装、启动或自用时，先遵循 `AI_INSTALL.md`。这是安装任务，不适用下文维护者的提交、推送和发布流程，不要求 GitHub 登录或发布权限。README 中的可复制安装指令是统一入口；修改安装流程时同步维护 `README.md` 与 `AI_INSTALL.md`，核对现有启动器和最新正式安装包。
+
 应用和全部网页资源的发布基线见 `SOURCE_BASELINE.json`。修改后保留完整本地功能，验证字体、图片、数据初始化与干净安装；安装封装和业务代码分别维护。发布前运行 `tools/build_manifest.py` 重建分发校验清单，验证实际安装时文件散列一致。
 
 共享版新增功能由独立扩展维护，保留原应用与 UI 基线文件。发布可供用户安装的新版本时，按 `updates/README.md` 增加版本号、打包并发布 Release，确认下载可用后再更新 `updates/latest.json` 通知已安装用户。普通代码备份不发送尚未发布的版本通知。更新检查不得使用发布者凭据、上传个人数据或自动覆盖数据库。
