@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.runtime/
+.build/
+data/
+dist/
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.lnk
+tests/test-data/

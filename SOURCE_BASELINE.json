@@ -1,0 +1,32 @@
+{
+  "project": "lianban-archive-desktop",
+  "source_commit": "2a05e3eed775d5daac48690ddfe320a4b262865f",
+  "source_date": "2026-10-20",
+  "identity_sha256": {
+    "app.py": "6f8703e6dfbc2451ffee8ea750dfbc30d4f198b948d728f4e9413b1e50768ba6",
+    "backup_db.py": "541b45b764d721fbaed7a2ad6ca39d7936ef7c115d33f154967c1e054c71a914",
+    "database.py": "a198dd7e49789b076da5d98c8570e2e390c4df79581065f6705dd7a90c7d41b6",
+    "import_manual.py": "f7ad15f1d39c0c2c6adff769a987290594c5f9348c770aa61b571e6f75635c77",
+    "industry.py": "e91b852b4c6839a660dd1fa28c87431c5117eabeb971e46a28c5ba6fc6b37728",
+    "live_update.py": "698d3b94aa964905b7c8afccc29f6c6cb88f301283ce42826c0192b669d962c2",
+    "provider.py": "3bcb0ad45df49776b71c0117a5017a27e5b83c400a713b30247b43a25b055c3f",
+    "provinces.py": "e3fc2108bd9ddea86f3c081a40cfc524ed58b1cdfd07a308d5e857348757b02c",
+    "registration.py": "b5cb6dd531aedc3ea92a92270649e1861559d36cc240fb35fa70e21a02e48f4c",
+    "relationships.py": "7b81a36f2ebb5a681f02a8a95fed483865f971a3d957bf26b1119863d4bca137",
+    "suspension.py": "5b90dcf49f3f33ca0b4347f45fcb521a6571908abd3ff28c4e6dae8114215c12",
+    "sync_data.py": "4bd8517fa82c523573fa667a10f073024c404e20c7eeba9cac3bcbac0855a809",
+    "web/app.js": "282bf01bb143f7c773851cf3e8344be04c1644d8d7e17a1bc6e5edd75ea7649d",
+    "web/fonts/NotoSansSC-VF.woff2": "7fabc1ef45ba1bd4d8dea904f51f408cfb515cf56c5ad813836df34c01171159",
+    "web/fonts/OFL.txt": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+    "web/fonts/SOURCE.md": "59c7342b9060486786ac37f018f9f20d7f6cbf6763aaad1fe439086c02f7503c",
+    "web/images/title-companions.jpg": "c69048e24698593955967ee22f2982235ee2b0fec1df9c67940f27a34f79dc67",
+    "web/index.html": "e41bee6d468ad68ed9c12bddeccfc9a548398317edd6d40ccf70d87766c4b70a",
+    "web/styles.css": "6ed5941058798da68b0504b1896f23e9137e53e0e0067e973d79e406c56032b6"
+  },
+  "excluded_personal_tables": [
+    "stock_tag_overrides",
+    "stock_blacklist",
+    "stock_notes"
+  ],
+  "description": "Application modules and every UI asset are byte-identical to the frozen local source. Installation and launch helpers are separate."
+}

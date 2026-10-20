@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f2">
+  <meta name="description" content="按交易日期与股票检索 A 股历史涨停和连板记录。">
+  <title>连板档案 · A 股复盘</title>
+  <link rel="preload" href="/fonts/NotoSansSC-VF.woff2?v=20261017-1" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css?v=20261019-12">
+  <script src="/app.js?v=20261019-12" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <aside class="sidebar" aria-label="主导航">
+    <a class="brand" href="/" aria-label="连板档案首页"><span class="brand-bars"><i></i><i></i><i></i></span></a>
+    <span class="brand-caption">连板档案</span>
+    <nav class="side-nav" aria-label="查询方式">
+      <button class="nav-item active" id="nav-search" aria-label="历史检索" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>检索</span></button>
+      <button class="nav-item" id="nav-blacklist" aria-label="黑名单" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></svg><span>黑名单</span></button>
+    </nav>
+    <div class="side-bottom"><button class="nav-item" id="method-nav" aria-label="查看数据说明"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><span>说明</span></button><span class="local-indicator" title="本地运行"><i></i>LOCAL</span></div>
+  </aside>
+
+  <main id="main" class="main">
+    <header class="topbar"><div class="breadcrumb">市场研究 <span>/</span> <span id="breadcrumb-page">历史连板</span></div><div class="topbar-right"><button class="text-button" id="announcement-button" type="button" aria-haspopup="dialog" aria-controls="announcement-dialog">公告 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 5V5l-9 5H4Zm4 4 2 6h3l-2-5m9-6v6"/></svg></button><span class="demo-label">实验版 <span>01</span></span></div></header>
+    <section class="intro">
+      <div class="intro-identity"><div class="intro-avatar"><img class="intro-title-image" src="/images/title-companions.jpg" width="1483" height="1279" alt="两位弹吉他的人偶" decoding="async"></div><div class="intro-copy"><div class="intro-title-line"><h1><span id="page-title">连板档案</span><span class="title-dot">.</span></h1></div><p class="intro-description" id="page-description">从交易日看市场高度，从个股看连板轨迹。</p></div></div>
+      <div class="archive-range" id="archive-range"><span class="micro-label">历史数据范围</span><strong id="range-label">正在读取数据</strong><span id="range-detail">历史档案 · 盘后查询</span></div>
+    </section>
+
+    <section class="free-notice" aria-labelledby="free-notice-title"><h2 id="free-notice-title">本人自用网站 · 免责声明</h2><p>本站仅提供数据查询、历史复盘与学习交流工具，所有数据、统计及相关内容仅供参考，不构成任何投资建议或收益承诺。数据可能存在延迟、遗漏或错误，请以官方披露及实际行情为准。历史表现不代表未来收益，投资有风险，请独立判断并自行承担相关风险。</p></section>
+    <div class="error-banner" id="error-banner" role="alert" hidden><div><strong>查询暂时未完成</strong><p id="error-message"></p></div><button class="button secondary small" id="retry-button">重新加载</button></div>
+
+    <div id="stock-sticky" class="stock-sticky">
+    <section class="panel unified-query" id="search-workspace" aria-label="日期与股票检索">
+      <form id="stock-query-form">
+        <div class="query-date"><label for="trade-date" class="sr-only">查询日期</label><div class="date-controls"><button type="button" class="icon-button" id="prev-date" aria-label="上一个有数据的交易日" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><div class="date-input-wrap"><input type="date" id="trade-date" required></div><button type="button" class="icon-button" id="next-date" aria-label="下一个有数据的交易日" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button><button type="button" class="button secondary small" id="latest-date">最新交易日</button></div></div>
+        <div class="stock-picker"><label for="stock-search" class="sr-only">股票名称、代码或首字母</label><div class="stock-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="stock-search" placeholder="名称 / 代码 / 首字母，如 FJSN" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="stock-suggestions" aria-autocomplete="list"></div><ul id="stock-suggestions" class="suggestions" role="listbox" hidden></ul></div>
+        <button class="button primary" type="submit" id="stock-query-button">查询 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button>
+      </form>
+      <nav class="query-context recent-stocks" aria-label="最近查看的股票"><span class="recent-stocks-label">最近查看</span><div id="recent-stock-list" class="recent-stock-list"><span class="recent-stocks-empty">暂无记录</span></div></nav>
+    </section>
+
+    <section id="stock-summary" aria-label="个股信息" hidden>
+        <div class="stock-title-row"><button class="button secondary small" type="button" id="back-to-date"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>返回当日全部股票</button><div class="stock-identity"><h3 id="stock-name-label"></h3><span class="stock-code" id="stock-code-label"></span><span class="stock-profile-initials" id="stock-initials-label" title="股票名称首字母"></span><span class="stock-profile-blacklist" id="stock-blacklist-label" aria-label="黑名单股票" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></svg>黑名单</span><span class="stock-profile-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="stock-province-label"></span></span></div><div class="stock-profile-note" id="stock-profile-note" hidden></div><section class="stock-profile-tags" aria-label="股票行业标签"><span class="stock-profile-tags-label">行业标签</span><div class="stock-tags" id="stock-industry-tags" aria-live="polite"></div><button type="button" class="text-button" id="edit-stock-profile-tags" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15Z"/></svg>编辑标签</button></section></div>
+    </section>
+    </div>
+
+    <section id="date-view" aria-label="当日涨停记录">
+      <div class="section-top"><div><h2>交易日概览</h2><p class="section-subtitle" id="date-subtitle">选择交易日，查看涨停股票明细。</p></div></div>
+      <div class="stats-grid" id="date-stats" aria-label="当日统计"><article class="stat-card"><span>涨停家数</span><strong data-stat="total">—</strong><small>当前筛选结果</small></article><article class="stat-card accent"><span>最高连板</span><strong><span data-stat="max_boards">—</span><em>板</em></strong><small id="date-height-note">当前筛选最高高度</small></article><article class="stat-card"><span>连板家数</span><strong data-stat="consecutive">—</strong><small>连续涨停 ≥ 2 板</small></article><article class="stat-card"><span>首板家数</span><strong data-stat="first_boards">—</strong><small>当前筛选中的首板</small></article></div>
+
+      <div class="panel results-panel" id="date-results-panel"><div class="results-heading"><div><h3>涨停明细 <span class="result-count" id="date-result-count">0</span></h3><p class="muted">点击股票名称，查看全部已收录历史</p></div></div>
+        <div class="results-toolbar"><div class="filter-bar">
+          <div class="board-filter"><span>连板高度</span><div id="board-options" class="board-options" role="group" aria-label="按精确板数筛选"><button type="button" class="board-chip" data-boards="" aria-pressed="true" disabled>全部 <span class="board-chip-count">—</span></button></div></div>
+        </div><div class="results-options"><label class="hide-st-control"><input type="checkbox" id="exclude-st">隐藏ST</label><label class="hide-st-control"><input type="checkbox" id="exclude-gem">隐藏创业板</label><div class="grouping-switch" role="group" aria-label="切换布局"><button type="button" data-grouping="industry" aria-pressed="true">按行业</button><button type="button" data-grouping="region" aria-pressed="false">按地区</button><button type="button" data-grouping="pinyin" aria-pressed="false" title="按 4、3、2、1 个连续首字母匹配，股票可在多个匹配组内展示">按拼音</button><button type="button" data-grouping="code" aria-pressed="false" title="按 6 至 1 位连续数字匹配，股票可在多个匹配组内展示">按代码</button></div></div></div>
+        <div id="date-table-area" class="table-area" aria-live="polite" aria-busy="true"></div><div class="panel-footnote" id="date-coverage-note">仅供参考</div>
+      </div>
+    </section>
+
+    <section id="stock-view" aria-label="个股连板历史" hidden>
+      <div class="section-top"><div><h2>个股连板轨迹</h2><p class="section-subtitle">检索一只股票，回看它的每一轮连板。</p></div><span class="mini-tag stock-view-tag">历史周期 / 梯队竞争</span></div>
+      <div id="stock-results" hidden>
+        <div class="stats-grid stock-stats" id="stock-stats"><article class="stat-card"><span>累计涨停天数</span><strong data-stat="limit_days">—</strong><small>全部已收录涨停记录</small></article><article class="stat-card accent"><span>最高连板</span><strong><span data-stat="max_boards">—</span><em>板</em></strong><small>已收录历史最高高度</small></article><article class="stat-card"><span>涨停周期</span><strong data-stat="cycles">—</strong><small>含首板独立周期</small></article></div>
+        <section class="panel stock-relations" id="stock-relations" aria-labelledby="relations-heading" aria-busy="false">
+          <div class="results-heading relation-heading"><div><h3 id="relations-heading">历史关联</h3></div><div class="relation-view-controls"><div class="relation-filters" role="group" aria-label="历史关联股票筛选"><label class="hide-st-control"><input type="checkbox" id="relation-exclude-st">隐藏ST</label><label class="hide-st-control"><input type="checkbox" id="relation-exclude-gem">隐藏创业板</label><label class="hide-st-control"><input type="checkbox" id="relation-exclude-latest">剔除最新交易日</label></div><label for="relation-height">对比区高度</label><input id="relation-height" type="number" min="600" max="1600" step="20" value="880" inputmode="numeric"><span>像素</span><button type="button" class="text-button" id="reset-relation-height">恢复默认</button></div></div>
+          <p class="relation-scope relation-summary"><span id="relations-range"></span><span id="relations-summary-note" hidden></span></p>
+          <div id="competition-results" aria-live="polite"></div>
+        </section>
+        <div class="panel stock-chart-panel"><div class="panel-heading"><div><h3>涨停高度轨迹</h3><span class="muted">每根柱代表一个涨停日 · 悬停查看完整日期</span></div><span class="chart-legend"><i></i>连板数</span></div><div id="stock-chart" class="stock-chart"></div></div>
+        <section class="stock-cycle-section" aria-labelledby="stock-cycles-heading"><div class="cycles-heading"><h3 id="stock-cycles-heading">连板周期与逐轮竞争</h3><span class="muted">按周期查看晋级与对手记录</span></div><p class="cycle-scope-note" id="cycle-competition-scope"></p><div id="stock-cycles" class="cycle-grid"></div></section>
+      </div>
+    </section>
+
+    <section id="blacklist-view" aria-label="黑名单管理" hidden>
+      <section class="panel blacklist-add-panel" id="blacklist-add-panel" aria-label="加入黑名单">
+        <div class="blacklist-add-heading"><p>搜索已收录的股票，选中后加入黑名单。</p></div>
+        <form id="blacklist-add-form">
+          <div class="stock-picker"><label class="sr-only" for="blacklist-search">要加入黑名单的股票名称、代码或首字母</label><div class="stock-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="blacklist-search" placeholder="名称 / 代码 / 首字母" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="blacklist-suggestions" aria-autocomplete="list" required></div><ul id="blacklist-suggestions" class="suggestions" role="listbox" hidden></ul></div>
+          <button type="submit" class="button primary" id="blacklist-add-button"><span aria-hidden="true">＋</span>加入黑名单</button>
+        </form>
+      </section>
+      <p class="blacklist-readonly" id="blacklist-readonly" hidden>当前为只读浏览，请在本地版本管理黑名单。</p>
+      <p id="blacklist-feedback" class="blacklist-feedback" role="status" aria-live="polite"></p>
+      <p id="blacklist-error" class="blacklist-error" role="alert" hidden></p>
+      <section class="panel results-panel blacklist-list-panel" aria-labelledby="blacklist-list-heading">
+        <div class="results-heading"><div><h2 id="blacklist-list-heading">黑名单股票 <span id="blacklist-count" class="result-count">—</span></h2><p class="muted">在此列表中的股票均属于黑名单，移除后即解除。</p></div><button type="button" class="button secondary small" id="blacklist-refresh">刷新列表</button></div>
+        <div id="blacklist-table-area" class="table-area" aria-live="polite" aria-busy="false"></div>
+        <div class="panel-footnote">黑名单独立保存，切换交易日期后仍然有效。</div>
+      </section>
+    </section>
+
+    <footer class="footer"><span><span class="footer-mark"></span>连板档案 <span class="footer-divider">/</span> A 股历史复盘实验</span><span id="footer-source">公开数据</span></footer>
+  </main>
+
+  <dialog id="announcement-dialog" class="method-dialog announcement-dialog" aria-labelledby="announcement-title"><div class="dialog-heading"><span class="eyebrow">ANNOUNCEMENT</span><button type="button" class="icon-button" id="close-announcement" aria-label="关闭公告"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><h2 id="announcement-title">公告</h2><p class="announcement-updated" id="announcement-updated" hidden></p><div class="announcement-content" id="announcement-content" aria-live="polite">暂无公告</div><div class="announcement-actions"><button type="button" class="button secondary" id="retry-announcement" hidden>重新加载</button><button type="button" class="button primary" id="confirm-announcement">知道了</button></div></dialog>
+  <dialog id="method-dialog" class="method-dialog"><div class="dialog-heading"><div class="eyebrow">ABOUT THE DATA</div><button class="icon-button" id="close-method" aria-label="关闭数据说明"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><h2>数据与统计口径</h2><div class="coverage-banner method-coverage-status" id="coverage-banner" role="status"><div><strong id="coverage-title">连接本地历史数据库</strong><p id="coverage-note">正在读取数据来源和覆盖情况…</p><p id="auto-update-note">正在检查自动更新状态…</p></div><span class="coverage-count" id="coverage-count"></span></div><p id="method-note">正在读取统计口径。</p><p class="method-reference-note" id="industry-note">行业分类正在读取…</p><p class="method-reference-note" id="registration-note">正在自动读取公司注册省份…</p><dl class="method-details"><dt>数据来源</dt><dd id="method-source">—</dd><dt>数据覆盖</dt><dd id="method-coverage">—</dd><dt>最近更新</dt><dd id="method-updated">—</dd></dl><div class="method-notice">本工具用于历史查询与复盘。数据覆盖情况会随免费数据源可用性变化；缺失数据和字段会明确标记。</div><button class="button primary" id="confirm-method">知道了</button></dialog>
+  <div id="stock-note-tooltip" class="stock-note-tooltip" role="tooltip" tabindex="0" hidden></div>
+  <dialog id="stock-note-dialog" class="tag-dialog stock-note-dialog" aria-labelledby="stock-note-title">
+    <div class="tag-dialog-heading"><div><span class="eyebrow">STOCK NOTE</span><h2 id="stock-note-title">编辑股票备注</h2><p id="stock-note-label"></p></div><button type="button" class="icon-button" id="close-stock-note" aria-label="关闭备注"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <form id="stock-note-form"><label class="sr-only" for="stock-note-content">自定义备注</label><textarea id="stock-note-content" maxlength="5000" rows="7" placeholder="输入你的自定义备注…"></textarea><div class="stock-note-help"><p id="stock-note-feedback"></p><span id="stock-note-count">0 / 5000</span></div><p id="stock-note-error" class="tag-editor-error" role="alert" hidden></p><div class="tag-dialog-actions"><button type="button" class="text-button" id="retry-stock-note" hidden>重新读取</button><div><button type="button" class="button secondary" id="cancel-stock-note">取消</button><button type="submit" class="button primary" id="save-stock-note">保存备注</button></div></div></form>
+  </dialog>
+  <dialog id="tag-dialog" class="tag-dialog" aria-labelledby="tag-dialog-title">
+    <div class="tag-dialog-heading"><div><span class="eyebrow">STOCK TAGS</span><h2 id="tag-dialog-title">编辑股票标签</h2><p id="tag-stock-label"></p></div><button type="button" class="icon-button" id="close-tags" aria-label="关闭标签编辑"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <p class="tag-dialog-hint">标签跟随股票保存，切换日期后仍然生效。行业布局会按标签及跨板数关联展示。</p>
+    <form id="tag-editor-form"><div id="tag-editor-list" class="tag-editor-list"></div><div class="tag-add-row"><label class="sr-only" for="tag-new">新标签</label><input type="text" id="tag-new" placeholder="输入新标签" maxlength="30" autocomplete="off"><button type="button" class="button secondary small" id="add-tag">添加</button></div><p class="tag-source-label" id="tag-source-label"></p><p class="tag-editor-error" id="tag-editor-error" role="alert" hidden></p>
+      <div id="tag-blacklist-control" class="tag-blacklist-control"><label class="tag-blacklist-option" for="tag-blacklist"><input type="checkbox" id="tag-blacklist" disabled aria-label="黑名单" aria-describedby="tag-blacklist-hint"><span>黑名单<span id="tag-blacklist-hint" class="tag-blacklist-hint">勾选加入，取消勾选移出 · 立即生效</span></span></label><span id="tag-blacklist-status" class="tag-blacklist-status" role="status"></span></div>
+      <p id="tag-blacklist-error" class="tag-editor-error" role="alert" hidden></p>
+      <div class="tag-dialog-actions"><button type="button" class="text-button" id="restore-source-tags">恢复默认行业</button><div><button type="button" class="button secondary" id="cancel-tags">取消</button><button type="submit" class="button primary" id="save-tags">保存标签</button></div></div></form>
+  </dialog>
+  <noscript><div class="noscript-note">请启用 JavaScript 以使用日期和个股查询。</div></noscript>
+</body>
+</html>

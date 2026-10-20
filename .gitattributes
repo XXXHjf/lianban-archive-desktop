@@ -1,0 +1,9 @@
+* -text
+web/** -text
+*.py -text
+*.ps1 -text
+*.cmd -text
+*.sh text eol=lf
+*.zip binary
+*.whl binary
+*.gz binary
