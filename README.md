@@ -2,30 +2,53 @@
 
 把当前本地测试版完整分享给其他人使用：页面、字体、图片和业务程序对应源版本 **2a05e3e（2026-10-20）**，不是功能较旧的服务器版。无需 Codex、账号、Token、Node.js，也无需预先安装 Python。
 
-## Windows 一条命令安装
+## 简易安装教程
 
-在 **Windows 10/11 x64** 打开 PowerShell，复制这一行并回车，即可自动下载、校验、解压、安装并打开网站：
+支持 **Windows 10/11 x64**，电脑需能访问 GitHub。无需预装 Python、Git，也无需 GitHub 账号。下面两种方式任选一种即可。
 
-```powershell
-irm 'https://raw.githubusercontent.com/x107108/lianban-archive-desktop/main/install-online.ps1' | iex
-```
+### 方式一：交给 AI Agent
 
-命令从本项目的官方公开仓库读取安装器，再获取最新正式发布的完整安装包，核对 SHA-256 后使用随包环境安装。需要能连接 GitHub，无需管理员权限、GitHub 账号、Git、系统 Python 或 AI Agent。
-
-默认安装在当前用户的 `%LOCALAPPDATA%\LianbanArchive`，结束后会显示实际安装目录和网站地址。再次运行同一命令会复用同版本；有新版时另建版本目录，先保留 SQLite 一致性快照，再迁移个人标签、黑名单和备注。旧版本及快照保留；新版启动失败时，会尝试恢复原来正在运行的版本。安装器不会清空目录或自动接管以前手动解压的安装。
-
-以后也可在输出的安装目录双击 `start_demo.cmd` 启动、`stop_demo.cmd` 停止。已有手动解压版的用户需要先按下文“同步更新与备份”迁移个人数据库。
-
-需要指定位置时，可先从仓库下载 `install-online.ps1`，再在 PowerShell 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-online.ps1 -InstallDir 'D:\LianbanArchive'`。执行策略参数只用于本次脚本进程，不修改系统设置。目录应为独立空目录或本安装器已经管理的目录；路径过长时请选择更短的位置。维护者可用 `-NoStart` 仅安装，或用 `-NoBrowser` 验证后台启动。
-
-## 让 AI Agent 帮你安装
-
-复制下面这段无网址简版，发给能操作你电脑文件和终端的 AI Agent 即可。作者和项目名用于准确定位仓库，详细流程由 Agent 阅读 [AI_INSTALL.md](AI_INSTALL.md) 后执行。当前快捷安装支持 **Windows 10/11 x64**。
+把下面这段话发给能操作你电脑的 AI Agent：
 
 ```text
 请在本机安装并启动“连板档案”共享版。GitHub 作者：x107108，项目名：lianban-archive-desktop。
 先按项目的 AI 安装说明安装最新正式版，保留原功能、界面和已有个人数据。验证可用后告诉我访问地址与启停方式；无法操作本机时请如实说明。
 ```
+
+这段指令不含网址。Agent 可通过作者和项目名找到本仓库，按 [AI 安装说明](AI_INSTALL.md) 完成安装与验证。
+
+### 方式二：PowerShell 一行安装
+
+在开始菜单搜索并打开 **PowerShell**，复制下面整行命令，粘贴后按回车：
+
+```powershell
+irm 'https://raw.githubusercontent.com/x107108/lianban-archive-desktop/main/install-online.ps1' | iex
+```
+
+等待程序自动完成 **下载、校验、解压、安装和启动**，浏览器打开网站后即可使用。
+
+### 安装后怎么使用？
+
+记下安装完成时显示的目录和网站地址。
+
+- **启动网站：** 在安装目录双击 `start_demo.cmd`。
+- **停止网站：** 双击 `stop_demo.cmd`。
+- **查看更新：** 点击网站右上角的“站内信”。
+
+个人标签、黑名单和备注保存在自己的电脑上。
+
+<details>
+<summary>安装位置、重复安装与进阶选项</summary>
+
+命令从本项目的官方公开仓库读取安装器，再获取最新正式发布的完整安装包，核对 SHA-256 后使用随包环境安装。需要能连接 GitHub，无需管理员权限、GitHub 账号、Git、系统 Python 或 AI Agent。
+
+默认安装在当前用户的 `%LOCALAPPDATA%\LianbanArchive`，结束后会显示实际安装目录和网站地址。再次运行同一命令会复用同版本；有新版时另建版本目录，先保留 SQLite 一致性快照，再迁移个人标签、黑名单和备注。旧版本及快照保留；新版启动失败时，会尝试恢复原来正在运行的版本。安装器不会清空目录或自动接管以前手动解压的安装。
+
+已有手动解压版的用户需要先按下文“同步更新与备份”迁移个人数据库。
+
+需要指定位置时，可先从仓库下载 `install-online.ps1`，再在 PowerShell 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-online.ps1 -InstallDir 'D:\LianbanArchive'`。执行策略参数只用于本次脚本进程，不修改系统设置。目录应为独立空目录或本安装器已经管理的目录；路径过长时请选择更短的位置。维护者可用 `-NoStart` 仅安装，或用 `-NoBrowser` 验证后台启动。
+
+</details>
 
 ## Windows 下载和启动
 
