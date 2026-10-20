@@ -3,12 +3,15 @@ from pathlib import Path
 import argparse
 import hashlib
 import hmac
+import io
 import json
 import os
 import secrets
 import sys
 import threading
 from urllib.parse import urlsplit
+from http.server import SimpleHTTPRequestHandler
+from update_notices import NoticeService
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -21,11 +24,37 @@ def serve(port, no_updates=False):
                'instance_id': secrets.token_hex(16), 'token': secrets.token_hex(32), 'state': 'starting'}
     session_file.write_text(json.dumps(session), encoding='utf-8')
     original_handler = app.Handler
+    version = json.loads((ROOT/'VERSION.json').read_text(encoding='utf-8'))['version']
+    notices = NoticeService(version, ROOT/'data/update-notice-cache.json')
+    notices.refresh()
 
     class DesktopHandler(original_handler):
+        def send_head(self):
+            path = urlsplit(self.path).path
+            if path in ('/', '/index.html', '/updates.js', '/updates.css'):
+                filename = 'index.html' if path in ('/', '/index.html') else path[1:]
+                raw = (ROOT/'web'/filename).read_bytes()
+                if filename == 'index.html':
+                    extension = ('<link rel="stylesheet" href="/updates.css?v=' + version + '">'
+                                 '<script src="/updates.js?v=' + version + '" defer></script>')
+                    raw = raw.replace(b'</head>', extension.encode('utf-8') + b'</head>', 1)
+                content_type = {'index.html':'text/html', 'updates.js':'text/javascript',
+                                'updates.css':'text/css'}[filename]
+                self.send_response(200)
+                self.send_header('Content-Type', content_type + '; charset=utf-8')
+                self.send_header('Content-Length', str(len(raw)))
+                self.end_headers()
+                return io.BytesIO(raw)
+            return super().send_head()
+
         def do_GET(self):
-            if urlsplit(self.path).path == '/__desktop__/status':
+            parsed = urlsplit(self.path)
+            if parsed.path == '/__desktop__/updates':
+                return self.reply(notices.snapshot(force=parsed.query == 'check=1'))
+            if parsed.path == '/__desktop__/status':
                 return self.reply({k:v for k,v in session.items() if k!='token'})
+            if parsed.path in ('/updates.js', '/updates.css'):
+                return SimpleHTTPRequestHandler.do_GET(self)
             return super().do_GET()
 
         def do_POST(self):

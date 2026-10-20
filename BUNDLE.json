@@ -1,5 +1,5 @@
 {
-  "id": "0a5585c9313ea51f",
+  "id": "e6d6d5e6315eae73",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -25,10 +25,11 @@
   "seed_database_sha256": "f03faebca9ae9d4b5e00cadeef3df9652154b61e8a838b5b9f946b250188d5e7",
   "sha256": {
     "SOURCE_BASELINE.json": "463c0f87341dd03f5ec08c1916f78068f528068d22ec8d25b7a9bb49486da57b",
+    "VERSION.json": "2c4cf60c838abc1d88e101914c4e49e030bd9d08458ee632fcca49ad9530024d",
     "app.py": "6f8703e6dfbc2451ffee8ea750dfbc30d4f198b948d728f4e9413b1e50768ba6",
     "backup_db.py": "541b45b764d721fbaed7a2ad6ca39d7936ef7c115d33f154967c1e054c71a914",
     "database.py": "a198dd7e49789b076da5d98c8570e2e390c4df79581065f6705dd7a90c7d41b6",
-    "desktop.py": "ad5c1c3ec6da02b855037616acddd2913463fbd8256c698cf3e3f0b976de8cb0",
+    "desktop.py": "d15ec87485e1881d0816ecd97454c5a4d491c97046cf263130015dd43f9f607a",
     "import_manual.py": "f7ad15f1d39c0c2c6adff769a987290594c5f9348c770aa61b571e6f75635c77",
     "industry.py": "e91b852b4c6839a660dd1fa28c87431c5117eabeb971e46a28c5ba6fc6b37728",
     "install.cmd": "c50ae59fa210f283a10c9ecfab95510b4d5edf1132104cff0720cfc732e7c9e0",
@@ -46,6 +47,7 @@
     "stop_demo.cmd": "6511fdd8a3bba500ba746c8c2ae88d204cbb011a5276690602ed87c0bd4dee8d",
     "suspension.py": "5b90dcf49f3f33ca0b4347f45fcb521a6571908abd3ff28c4e6dae8114215c12",
     "sync_data.py": "4bd8517fa82c523573fa667a10f073024c404e20c7eeba9cac3bcbac0855a809",
+    "update_notices.py": "a07b6b69695327bde7602d46393e5f613232aca61ce001e821bfa221bd7a9794",
     "vendor/SOURCES.json": "3a8ea342bad95c15de621504bd2e224b94dd30d94958f52d0d2d14614f1c6757",
     "vendor/python-3.13.16-embed-amd64.zip": "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297",
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
@@ -63,6 +65,8 @@
     "web/fonts/SOURCE.md": "59c7342b9060486786ac37f018f9f20d7f6cbf6763aaad1fe439086c02f7503c",
     "web/images/title-companions.jpg": "c69048e24698593955967ee22f2982235ee2b0fec1df9c67940f27a34f79dc67",
     "web/index.html": "e41bee6d468ad68ed9c12bddeccfc9a548398317edd6d40ccf70d87766c4b70a",
-    "web/styles.css": "6ed5941058798da68b0504b1896f23e9137e53e0e0067e973d79e406c56032b6"
+    "web/styles.css": "6ed5941058798da68b0504b1896f23e9137e53e0e0067e973d79e406c56032b6",
+    "web/updates.css": "867c55d57e15768010f7c23c84a160b3bad8ee6122ade8b743783ab6b2065dfc",
+    "web/updates.js": "5c5985c1bae429eded3d88e3199d9fcc9a4bdd9dade32920c93c19018430496c"
   }
 }
