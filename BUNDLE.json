@@ -1,5 +1,5 @@
 {
-  "id": "e6d6d5e6315eae73",
+  "id": "9a2ae43101523047",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -25,11 +25,11 @@
   "seed_database_sha256": "f03faebca9ae9d4b5e00cadeef3df9652154b61e8a838b5b9f946b250188d5e7",
   "sha256": {
     "SOURCE_BASELINE.json": "463c0f87341dd03f5ec08c1916f78068f528068d22ec8d25b7a9bb49486da57b",
-    "VERSION.json": "2c4cf60c838abc1d88e101914c4e49e030bd9d08458ee632fcca49ad9530024d",
+    "VERSION.json": "0187718175594b7a00b0f640676fdc05920b401c2b77330110e1ed3f64ff1634",
     "app.py": "6f8703e6dfbc2451ffee8ea750dfbc30d4f198b948d728f4e9413b1e50768ba6",
     "backup_db.py": "541b45b764d721fbaed7a2ad6ca39d7936ef7c115d33f154967c1e054c71a914",
     "database.py": "a198dd7e49789b076da5d98c8570e2e390c4df79581065f6705dd7a90c7d41b6",
-    "desktop.py": "d15ec87485e1881d0816ecd97454c5a4d491c97046cf263130015dd43f9f607a",
+    "desktop.py": "01fd520e5ffe379a5f45c0d4be866edc5d5015f2092bd358f95284b4d09e4f05",
     "import_manual.py": "f7ad15f1d39c0c2c6adff769a987290594c5f9348c770aa61b571e6f75635c77",
     "industry.py": "e91b852b4c6839a660dd1fa28c87431c5117eabeb971e46a28c5ba6fc6b37728",
     "install.cmd": "c50ae59fa210f283a10c9ecfab95510b4d5edf1132104cff0720cfc732e7c9e0",
@@ -37,6 +37,7 @@
     "live_update.py": "698d3b94aa964905b7c8afccc29f6c6cb88f301283ce42826c0192b669d962c2",
     "provider.py": "3bcb0ad45df49776b71c0117a5017a27e5b83c400a713b30247b43a25b055c3f",
     "provinces.py": "e3fc2108bd9ddea86f3c081a40cfc524ed58b1cdfd07a308d5e857348757b02c",
+    "realtime.py": "f94a5e34455509625cc776b6eae41fa5338a0d724aeecf20ddbe43bbe73b7146",
     "registration.py": "b5cb6dd531aedc3ea92a92270649e1861559d36cc240fb35fa70e21a02e48f4c",
     "relationships.py": "7b81a36f2ebb5a681f02a8a95fed483865f971a3d957bf26b1119863d4bca137",
     "requirements.txt": "2cc8b512bc04a1333f61b677488af9184d6d33a22d7cddaac9aa7195e2feaaaf",
@@ -65,6 +66,7 @@
     "web/fonts/SOURCE.md": "59c7342b9060486786ac37f018f9f20d7f6cbf6763aaad1fe439086c02f7503c",
     "web/images/title-companions.jpg": "c69048e24698593955967ee22f2982235ee2b0fec1df9c67940f27a34f79dc67",
     "web/index.html": "e41bee6d468ad68ed9c12bddeccfc9a548398317edd6d40ccf70d87766c4b70a",
+    "web/realtime.js": "f506190c95af6f64ca05b71f6c1724ec0404fd2fc06ecf9f6da67f0e95d13df7",
     "web/styles.css": "6ed5941058798da68b0504b1896f23e9137e53e0e0067e973d79e406c56032b6",
     "web/updates.css": "867c55d57e15768010f7c23c84a160b3bad8ee6122ade8b743783ab6b2065dfc",
     "web/updates.js": "5c5985c1bae429eded3d88e3199d9fcc9a4bdd9dade32920c93c19018430496c"
