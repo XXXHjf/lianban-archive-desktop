@@ -12,9 +12,13 @@ from urllib.parse import parse_qs, urlparse
 
 import database as db
 import industry
+import concept_tags
 import registration
 import live_update
+import live_pool
 import suspension
+import intraday
+import tag_management
 
 WEB = Path(__file__).resolve().parent / "web"
 FONT_ASSETS = {"/fonts/NotoSansSC-VF.woff2", "/fonts/OFL.txt", "/fonts/SOURCE.md"}
@@ -22,7 +26,7 @@ IMAGE_ASSETS = {"/images/title-companions.jpg"}
 
 
 def valid_day(value):
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         raise ValueError("日期格式应为 YYYY-MM-DD")
     date.fromisoformat(value)
     return value
@@ -33,9 +37,22 @@ def read_api(server, path):
     parsed = urlparse(path)
     args = parse_qs(parsed.query)
     arg = lambda name, default="": args.get(name, [default])[0]
+    editable = not getattr(server, "read_only", False)
+    if parsed.path == "/api/intraday":
+        return intraday.overview(server.db_path, arg("date") or None, include_live=editable)
+    if parsed.path == "/api/intraday/stock":
+        return intraday.stock_view(server.db_path, valid_day(arg("date")), arg("code"), include_live=editable)
+    if parsed.path == "/api/intraday/timeline":
+        import intraday_timeline
+        exclude_gem = arg("exclude_gem", "1")
+        if exclude_gem not in ("0", "1"):
+            raise ValueError("创业板屏蔽选项无效")
+        return intraday_timeline.timeline(server.db_path, valid_day(arg("date")), int(arg("window", "2")), float(arg("multiple", "3")), exclude_gem=exclude_gem == "1", include_live=editable)
     if parsed.path == "/api/meta" and hasattr(server, "industry_refresher"):
         server.industry_refresher.maybe_refresh()
         server.registration_refresher.maybe_refresh()
+        if hasattr(server, "concept_refresher"):
+            server.concept_refresher.maybe_refresh()
     with closing(db.connect(server.db_path)) as conn:
         if parsed.path == "/api/announcement":
             return db.get_announcement(conn)
@@ -43,12 +60,23 @@ def read_api(server, path):
             return db.get_site_links(conn)
         if parsed.path == "/api/blacklist":
             return db.get_blacklist(conn)
+        if parsed.path == "/api/tags":
+            return tag_management.catalog(conn)
+        if parsed.path == "/api/tag-stocks":
+            return tag_management.members(conn, arg("tag"))
         if parsed.path == "/api/stock-note":
             return db.get_stock_note(conn, arg("code"))
         metadata = db.meta(conn)
         editable = not getattr(server, "read_only", False)
-        metadata["capabilities"] = {"edit_tags": editable, "edit_blacklist": editable, "edit_notes": editable}
+        metadata["capabilities"] = {"edit_tags": editable, "edit_blacklist": editable, "edit_notes": editable, "manage_tags": editable}
+        metadata["tag_alias_revision"] = db.tag_alias_revision(conn)
         if parsed.path == "/api/meta":
+            if editable:
+                metadata["live"] = live_pool.metadata(conn)
+            catalog = tag_management.catalog(conn)
+            metadata["tag_order"] = [tag["name"] for tag in catalog["tags"]]
+            metadata["tag_hierarchy"] = catalog["hierarchy"]
+            metadata["tag_catalog_revision"] = catalog["revision"]
             if hasattr(server, "suspension_refresher"):
                 server.suspension_refresher.maybe_refresh(metadata["latest_date"])
             return metadata
@@ -82,7 +110,8 @@ def read_api(server, path):
             result = db.stock_view(conn, code, start, end)
             result["range_mode"] = "archive"
         elif parsed.path == "/api/date":
-            day = valid_day(arg("date", metadata["latest_date"] or metadata["range_end"]))
+            live = live_pool.metadata(conn) if editable else {}
+            day = valid_day(arg("date", max(filter(None, [live.get("date"), metadata["latest_date"]]), default=metadata["range_end"])))
             if hasattr(server, "suspension_refresher"):
                 server.suspension_refresher.maybe_refresh(day)
             minimum = int(arg("min_boards", "1"))
@@ -101,7 +130,12 @@ def read_api(server, path):
                     raise ValueError("连板数应为 1 至 100 的整数")
                 boards = int(selected)
             result = db.date_view(conn, day, minimum, arg("market", "all"), arg("q")[:100],
-                                  exclude_st == "1", boards, exclude_gem=exclude_gem == "1")
+                                  exclude_st == "1", boards, exclude_gem=exclude_gem == "1",
+                                  snapshot=live_pool.snapshot(conn, day) if editable else None)
+            if editable and day in live.get("dates", []):
+                result["live"] = live
+                if not result["provisional"] and result["data_status"] != "ok":
+                    result["coverage_note"] = "当天盘中数据尚未取得，每分钟自动重试；空返回不代表没有涨停。"
         else:
             return None
         return result
@@ -149,11 +183,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/api/stock-tags", "/api/blacklist", "/api/stock-note"):
+        if path not in ("/api/stock-tags", "/api/blacklist", "/api/stock-note", "/api/tag-rename", "/api/tag-stocks", "/api/tag-delete", "/api/tag-node", "/api/intraday/collect", "/api/intraday/timeline/times"):
             return self.reply({"error": "接口不存在"}, 404)
         if getattr(self.server, "read_only", False):
             return self.reply({"error": "公开版本仅供查询"}, 403)
-        subject = "黑名单" if path == "/api/blacklist" else "备注" if path == "/api/stock-note" else "标签"
+        subject = "分时" if path in ("/api/intraday/collect", "/api/intraday/timeline/times") else "黑名单" if path == "/api/blacklist" else "备注" if path == "/api/stock-note" else "标签"
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip() != "application/json":
             return self.reply({"error": f"请使用 JSON 提交{subject}"}, 415)
         try:
@@ -163,14 +197,38 @@ class Handler(SimpleHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError(f"{subject}内容格式无效")
+            if path == "/api/intraday/collect":
+                import intraday_sources
+                return self.reply(intraday_sources.collect_requested(self.server.db_path, valid_day(data.get("date", "")), data.get("code", ""), force=data.get("force") is True))
+            if path == "/api/intraday/timeline/times":
+                import intraday_timeline
+                return self.reply(intraday_timeline.collect_seal_times(self.server.db_path, valid_day(data.get("date", "")), force=data.get("force") is True))
             with closing(db.connect(self.server.db_path)) as conn:
                 if path == "/api/blacklist":
                     result = db.save_blacklist(conn, data.get("code"), data.get("action"))
                 elif path == "/api/stock-note":
-                    result = db.save_stock_note(conn, data.get("code"), data.get("content"), data.get("revision"))
+                    if data.get("action", "save") == "save":
+                        result = db.save_stock_note(conn, data.get("code"), data.get("content"), data.get("revision"),
+                                                    entry_id=data.get("entry_id"), occurred_at=data.get("occurred_at"),
+                                                    new_entry=data.get("new_entry", False), note_date=data.get("note_date", db.NOTE_DATE_UNSET))
+                    else:
+                        result = db.change_stock_note_entry(conn, data.get("code"), data.get("entry_id"), data.get("revision"), data.get("action"))
+                elif path == "/api/tag-node":
+                    result = tag_management.save_node(conn, data.get("name"), data.get("parent"), data.get("revision"), data.get("action", "create"))
+                elif path == "/api/tag-rename":
+                    result = tag_management.rename(conn, data.get("source"), data.get("target"), data.get("revision"), data.get("merge", False))
+                elif path == "/api/tag-stocks":
+                    if "codes" in data:
+                        if data.get("action", "add") != "add":
+                            raise ValueError("批量操作仅支持添加股票")
+                        result = tag_management.add_stocks(conn, data.get("tag"), data.get("codes"), data.get("revision"))
+                    else:
+                        result = tag_management.change_stock(conn, data.get("tag"), data.get("code"), data.get("revision"), data.get("action", "add"))
+                elif path == "/api/tag-delete":
+                    result = tag_management.delete_tag(conn, data.get("tag"), data.get("revision"), data.get("confirm", False))
                 else:
-                    result = db.save_stock_tags(conn, data.get("code"), data.get("tags"),
-                                                data.get("revision"), data.get("use_source", False))
+                    result = tag_management.save_stock_tag_paths(conn, data.get("code"), data.get("tags"),
+                                                data.get("revision"), data.get("use_source", False), data.get("tag_alias_revision"))
             return self.reply(result)
         except (db.TagConflictError, db.NoteConflictError) as exc:
             return self.reply({"error": str(exc)}, 409)
@@ -192,17 +250,22 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.db_path = args.db
     server.industry_refresher = industry.Refresher(args.db)
+    server.concept_refresher = concept_tags.Refresher(args.db)
     server.registration_refresher = registration.Refresher(args.db)
     server.suspension_refresher = suspension.Refresher(args.db)
     server.industry_refresher.maybe_refresh()
+    server.concept_refresher.maybe_refresh()
     server.registration_refresher.maybe_refresh()
     def after_archive_update():
         server.registration_refresher.maybe_refresh()
+        server.concept_refresher.maybe_refresh()
         with closing(db.connect(args.db)) as conn:
             server.suspension_refresher.maybe_refresh(db.meta(conn)["latest_date"])
     after_archive_update()
     server.archive_refresher = live_update.Refresher(args.db, on_update=after_archive_update)
     server.archive_refresher.start()
+    server.live_refresher = live_pool.Refresher(args.db)
+    server.live_refresher.start()
     print(f"连板档案已启动：http://127.0.0.1:{args.port}", flush=True)
     try:
         server.serve_forever()
@@ -210,6 +273,7 @@ def main():
         pass
     finally:
         server.archive_refresher.stop()
+        server.live_refresher.stop()
         server.suspension_refresher.stop()
         server.server_close()
 

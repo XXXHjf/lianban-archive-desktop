@@ -1,0 +1,505 @@
+// Protect minute viewing from stale responses, wrong routes and unsafe labels.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+const elements = new Map();
+const htmlWrites = new Map(), failures = [];
+let listNodes = [], compareNodes = [], volumeNodes = [], stockRequests = 0;
+const requestLog = [], peerDetails = new Map(), needsCollection = new Set();
+function $(id) {
+  if (!elements.has(id)) {
+    const element = {value: "", textContent: "", hidden: false, scrollTop: 0,
+    append(...nodes) {nodes.forEach(node => {node.parentElement = this;});},
+    classList: {toggle() {}}, setAttribute(k,v) {this[k] = v;}, removeAttribute(k) {delete this[k];},
+    setCustomValidity() {}, querySelector() {return null;}, querySelectorAll(selector) {
+      if (id === "minute-stock-list" && selector === "[data-minute-code]") return listNodes;
+      if (id === "minute-chart" && selector === "[data-minute-volume-row]") return volumeNodes;
+      return id === "minute-compare-list" && selector === "[data-compare-row]" ? compareNodes : [];
+    }};
+    let markup = "";
+    Object.defineProperty(element, "innerHTML", {get() {return markup;}, set(value) {
+      markup = value;
+      htmlWrites.set(id, (htmlWrites.get(id) || 0) + 1);
+      if (id === "minute-stock-list") listNodes = [...value.matchAll(/data-minute-code="([0-9]+)"/g)].map(match => ({
+        dataset: {minuteCode: match[1]}, classes: new Set(), classList: {toggle(name, active) {this[name] = active;}},
+        setAttribute(k,v) {this[k] = v;}
+      }));
+      if (id === "minute-compare-list") compareNodes = [...value.matchAll(/data-compare-row="([0-9]+)"/g)].map(match => {
+        const input = {}, status = {};
+        return {dataset: {compareRow: match[1]}, classList: {toggle() {}}, style: {setProperty() {}},
+          querySelector(selector) {return selector === "input" ? input : status;}};
+      });
+    }});
+    elements.set(id, element);
+  }
+  return elements.get(id);
+}
+const rows = [
+  {code: "600001", name: "甲<测试>", initials: "JCS", boards: 3, status: "ok", tags: ["<行业>"], note: "<script>备注</script>", registered_province: "浙江省"},
+  {code: "600002", name: "乙测试", initials: "YCS", boards: 1, status: "partial", tags: ["标签乙"], note: "第二只备注", registered_province: "广东省"}
+];
+const points = [{time: "09:30", slot: 0, price: 10, average: null, volume: 100, amount: 1000},
+  {time: "09:32", slot: 2, price: 11, average: 10.5, volume: 200, amount: 2200}];
+let timelineExtraRows = [];
+const detail = (code, day = "2026-10-21") => ({date: day, stock: rows.find(r => r.code === code) || timelineExtraRows.find(r => r.code === code), points,
+  previous_close: 10, source: "synthetic", status: "partial", note: "测试缺口"});
+let held, visits = [], availableDates = ["2026-10-21", "2026-10-20"];
+const location = {pathname: "/", search: ""};
+const context = vm.createContext({
+  $, location, URLSearchParams, Option: function(label, value) {this.text = label; this.value = value;},
+  document: {documentElement: {classList: {toggle() {}}}},
+  state: {tab: "date", requests: {}, intradayDate: "2026-10-21", meta: {}, intradayData: {rows, total: 2}},
+  history: {pushState(_a, _b, url) {visits.push(url); location.search = url.slice(1);},
+    replaceState(_a, _b, url) {location.search = url.slice(1);}},
+  hideSuggestions() {}, hideBlacklistSuggestions() {}, clearError() {},
+  showError(error, retry) {failures.push({error, retry});}, loadingHTML: () => "loading", emptyHTML: () => "empty",
+  request: async (url, channel, options = {}) => {
+    if (url === "/api/intraday/collect") {
+      const {date, code} = JSON.parse(options.body);
+      assert.equal(options.method, "POST");
+      requestLog.push({url, channel, date, code});
+      needsCollection.delete(code);
+      return detail(code, date);
+    }
+    const day = new URL(url, "http://localhost").searchParams.get("date") || "2026-10-21";
+    requestLog.push({url, channel});
+    if (channel === "intraday") return {date: day, dates: availableDates, rows, total: rows.length, ready: 1, partial: 1, missing: 0};
+    if (channel === "minute-timeline") {
+      const excludeGem = new URL(url, "http://localhost").searchParams.get("exclude_gem") !== "0";
+      return {date: day, events: [], jobs: [], pool: excludeGem ? [] : timelineExtraRows, scope: {start_time: "09:30", exclude_st: true, exclude_gem: excludeGem}, coverage: {total: 0, analyzed: 0, partial: 0, missing: 0}};
+    }
+    stockRequests++;
+    const code = new URL(url, "http://localhost").searchParams.get("code");
+    if (held && code === held.code) return held.promise;
+    return peerDetails.get(code) || {...detail(code, day), needs_collection: needsCollection.has(code)};
+  }
+});
+function load(start, end) {vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end)), context);}
+load("function escapeHTML", "const RECENT_STOCKS_KEY");
+load("function dateLabel", "function debounce");
+load("function stockTags", "function codeDigits");
+load("function updateURL", "function canEditBlacklist");
+load("function minuteRows", "function openMethod");
+(async () => {
+  await context.loadIntraday();
+  assert.equal(context.state.tab, "intraday");
+  assert.equal($("intraday-view").hidden, false);
+  assert.equal($("stock-sticky").hidden, true);
+  assert.match(location.search, /view=intraday/);
+  assert.match(location.search, /minute_code=600001/);
+  assert.match($("minute-stock-list").innerHTML, /甲&lt;测试&gt;/);
+  assert.match($("minute-stock-list").innerHTML, /部分数据/);
+  assert.equal($("minute-stock-initials").textContent, "JCS");
+  assert.equal($("minute-stock-region").textContent, "浙江");
+  assert.match($("minute-stock-tags").innerHTML, /&lt;行业&gt;/);
+  assert.match($("minute-stock-note").innerHTML, /&lt;script&gt;备注&lt;\/script&gt;/);
+  assert.equal($("minute-stock-list")["aria-busy"], "false");
+  assert.equal($("minute-date").value, "2026-10-21");
+  assert.equal($("minute-date").min, "2026-10-20");
+  assert.equal($("minute-date").max, "2026-10-21");
+  assert.equal($("minute-prev-date").disabled, false);
+  assert.equal($("minute-next-date").disabled, true);
+  assert.equal($("minute-latest-date").disabled, false);
+  $("minute-search").value = "YCS";
+  assert.equal(context.minuteRows().length, 1);
+  assert.equal(context.minuteRows()[0].code, "600002");
+  $("minute-search").value = "";
+  // A slow stock request must leave the existing view, focusable nodes and
+  // scroll intact instead of inserting a shorter skeleton and moving the page.
+  const originalNodes = [...listNodes], listWrites = htmlWrites.get("minute-stock-list"), chartWrites = htmlWrites.get("minute-chart");
+  $("minute-stock-list").scrollTop = 175;
+  const originalChart = $("minute-chart").innerHTML, originalQuote = $("minute-quote").innerHTML;
+  let finishSlow;
+  held = {code: "600002", promise: new Promise(done => finishSlow = done)};
+  const slow = context.loadMinuteStock("600002");
+  assert.equal(context.state.minuteDetail.stock.code, "600001");
+  assert.equal($("minute-stock-title").textContent, "甲<测试>");
+  assert.equal($("minute-chart").innerHTML, originalChart);
+  assert.equal($("minute-quote").innerHTML, originalQuote);
+  assert.equal($("minute-quote").hidden, false);
+  assert.equal(htmlWrites.get("minute-stock-list"), listWrites);
+  assert.equal(htmlWrites.get("minute-chart"), chartWrites);
+  assert.equal(listNodes[0], originalNodes[0]);
+  assert.equal(listNodes[1]["aria-pressed"], "true");
+  assert.equal($("minute-stock-list").scrollTop, 175);
+  finishSlow(detail("600002"));
+  await slow;
+  held = null;
+  assert.equal($("minute-chart")["aria-busy"], "false");
+  assert.equal(htmlWrites.get("minute-chart"), chartWrites + 1);
+  assert.equal(htmlWrites.get("minute-stock-list"), listWrites);
+  assert.equal(listNodes[0], originalNodes[0]);
+  assert.equal($("minute-stock-list").scrollTop, 175);
+  const completedRequests = stockRequests;
+  await context.loadMinuteStock("600002");
+  assert.equal(stockRequests, completedRequests, "clicking the already displayed stock does not refetch");
+  let resolve;
+  held = {code: "600001", promise: new Promise(done => resolve = done)};
+  const earlier = context.loadMinuteStock("600001");
+  await context.loadMinuteStock("600002");
+  resolve(detail("600001"));
+  await earlier;
+  held = null;
+  assert.equal(context.state.minuteDetail.stock.code, "600002", "late stock response must not replace the selected stock");
+  assert.equal($("minute-stock-title").textContent, "乙测试");
+  assert.equal($("minute-stock-region").textContent, "广东", "late profile must not replace the selected stock");
+  assert.match($("minute-stock-note").innerHTML, /第二只备注/);
+  assert.match(location.search, /minute_code=600002/);
+  // A -> B -> A must also ignore the first A even though its code matches.
+  let oldA, oldB;
+  held = {code: "600001", promise: new Promise(done => oldA = done)};
+  const requestA = context.loadMinuteStock("600001");
+  held = {code: "600002", promise: new Promise(done => oldB = done)};
+  const requestB = context.loadMinuteStock("600002");
+  held = null;
+  await context.loadMinuteStock("600001");
+  oldB(detail("600002"));
+  oldA({...detail("600001"), stock: {...rows[0], name: "过期响应"}});
+  await Promise.all([requestA, requestB]);
+  assert.equal($("minute-stock-title").textContent, "甲<测试>");
+  const chartBeforeError = $("minute-chart").innerHTML;
+  held = {code: "600002", promise: Promise.reject(new Error("offline"))};
+  await context.loadMinuteStock("600002");
+  held = null;
+  assert.equal(failures.length, 1);
+  assert.equal($("minute-chart").innerHTML, chartBeforeError, "failure preserves the last successful chart");
+  assert.equal($("minute-stock-title").textContent, "甲<测试>");
+  assert.equal($("minute-stock-history").disabled, false);
+  assert.equal(context.state.minuteLoading, false);
+  await failures[0].retry();
+  assert.equal($("minute-stock-title").textContent, "乙测试");
+  const chart = context.minuteChartHTML(detail("600001"));
+  assert.ok(!chart.includes("NaN"));
+  assert.match(chart, /甲&lt;测试&gt;/);
+  const pricePath = chart.match(/d="([^"]+)" class="minute-price-line"/)[1];
+  assert.equal((pricePath.match(/M/g) || []).length, 2, "missing minute must remain a gap");
+  context.setView("date");
+  assert.equal($("intraday-view").hidden, true);
+  assert.equal($("date-view").hidden, false);
+  assert.ok(!location.search.includes("minute_code"));
+  assert.ok(!location.search.includes("view=intraday"));
+  const original = context.state.intradayData;
+  context.state.meta.latest_date = "2026-10-21";
+  context.state.latestLimitUps = new Map([["600002", 1]]);
+  context.state.intradayData = {rows: [
+    {code: "600003", boards: 1, date: "2026-10-20"},
+    {code: "600001", boards: 1, date: "2026-10-20"},
+    {code: "600002", boards: 1, date: "2026-10-20"},
+    {code: "600004", boards: 3, date: "2026-10-20"}
+  ]};
+  assert.deepEqual(Array.from(context.minuteRows(), row => row.code), ["600004", "600002", "600001", "600003"], "same priorities as daily search: board height, latest-day limit-up, then code");
+  context.state.intradayData = original;
+  // Different nominal prices with the same returns must trace the same curve.
+  await context.loadIntraday({code: "600001"});
+  peerDetails.set("600002", {...detail("600002"), previous_close: 20,
+    points: points.map(p => ({...p, price: p.price * 2}))});
+  const peersBefore = [...compareNodes];
+  await context.selectMinuteComparison("600002", true);
+  const comparisonChart = $("minute-chart").innerHTML;
+  assert.equal(comparisonChart.match(/class="minute-compare-line"/g).length, 1);
+  assert.equal(comparisonChart.match(/d="([^"]+)" class="minute-price-line"/)[1], comparisonChart.match(/d="([^"]+)" class="minute-compare-line"/)[1]);
+  assert.equal(compareNodes[1], peersBefore[1], "checkbox updates preserve list nodes");
+  assert.equal(compareNodes[0].querySelector("input").disabled, true);
+  assert.equal(compareNodes[1].querySelector("input").checked, true);
+  assert.match(location.search, /minute_compare=600002/);
+  context.showMinutePoint(0);
+  assert.match($("minute-compare-legend").innerHTML, /0\.00%/);
+  context.renderMinuteCompareLegend(1);
+  assert.match($("minute-compare-legend").innerHTML, /该分钟缺失/);
+  assert.ok(!$("minute-compare-legend").innerHTML.includes("NaN"));
+  const peer = context.state.minuteComparisons.get("600002");
+  const peerPoints = peer.data.points;
+  peer.data.points = peerPoints.slice(1);
+  context.renderMinuteCompareLegend(0);
+  assert.match($("minute-compare-legend").innerHTML, /乙测试<\/span><span>该分钟缺失/);
+  peer.data.points = peerPoints;
+  $("minute-compare-search").value = "YCS";
+  context.renderMinuteCompareList();
+  assert.equal(compareNodes.length, 1);
+  assert.equal(compareNodes[0].querySelector("input").checked, true);
+  $("minute-compare-search").value = "";
+  context.renderMinuteCompareList();
+  rows.push({code: "600003", name: "丙测试", boards: 1, status: "ok"});
+  context.renderMinuteCompareList();
+  await context.selectMinuteComparison("600003", true);
+  assert.equal(($("minute-chart").innerHTML.match(/class="minute-compare-line"/g) || []).length, 2);
+  assert.deepEqual(requestLog.filter(r => r.channel.startsWith("minute-compare-")).slice(-2).map(r => r.channel), ["minute-compare-600002", "minute-compare-600003"], "each peer has an independent abort channel");
+  const beforePrimaryChange = htmlWrites.get("minute-stock-list");
+  await context.loadMinuteStock("600002");
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600003"]);
+  assert.equal(htmlWrites.get("minute-stock-list"), beforePrimaryChange);
+  assert.match($("minute-chart").innerHTML, /data-compare-code="600003"/);
+  assert.ok(!$("minute-chart").innerHTML.includes('data-compare-code="600002"'));
+  await context.selectMinuteComparison("600002", true);
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600003"], "primary cannot be selected twice");
+  let finishTimelinePeer, timelineAborts = 0;
+  held = {code: "600001", promise: new Promise(done => finishTimelinePeer = done)};
+  const pendingTimelinePeer = context.selectMinuteComparison("600001", true);
+  context.state.requests["minute-compare-600001"] = {abort() {timelineAborts++;}};
+  held = null;
+  await context.openMinuteTimelineNode("600002", "09:32", "600003");
+  assert.equal(timelineAborts, 1, "timeline pair changes abort the previous peer request");
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600003"], "timeline click with the same primary replaces all previous comparisons");
+  assert.equal(context.state.minuteComparisons.size, 1);
+  finishTimelinePeer({...detail("600001"), points: [{...points[0], price: 999}]});
+  await pendingTimelinePeer;
+  assert.equal(context.state.minuteComparisons.has("600001"), false, "late responses cannot restore cleared peers");
+  assert.equal(($("minute-chart").innerHTML.match(/class="minute-compare-line"/g) || []).length, 1);
+  assert.equal(($("minute-chart").innerHTML.match(/class="minute-volume-row"/g) || []).length, 2, "the pair has exactly two volume rows");
+  assert.equal(new URLSearchParams(location.search).get("minute_compare"), "600003");
+  await context.openMinuteTimelineNode("600003", "09:32", "600001");
+  assert.equal(context.state.minuteDetail.stock.code, "600003");
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600001"], "a different timeline pair replaces the previous pair");
+  assert.equal(context.state.minuteComparisons.has("600003"), false);
+  await context.loadMinuteStock("600002");
+  context.clearMinuteComparisons();
+  assert.equal($("minute-compare-legend").hidden, true);
+  assert.ok(!location.search.includes("minute_compare"));
+  let finishPeer;
+  held = {code: "600001", promise: new Promise(done => finishPeer = done)};
+  const stalePeer = context.selectMinuteComparison("600001", true);
+  await context.selectMinuteComparison("600001", false);
+  held = null;
+  await context.selectMinuteComparison("600001", true);
+  finishPeer({...detail("600001"), points: [{...points[0], price: 999}]});
+  await stalePeer;
+  assert.equal(context.state.minuteComparisons.get("600001").data.points[0].price, 10, "uncheck/recheck ignores the previous request");
+  // Changing the primary while a peer loads keeps the peer for the new primary.
+  held = {code: "600003", promise: new Promise(done => finishPeer = done)};
+  const pendingPeer = context.selectMinuteComparison("600003", true);
+  await context.loadMinuteStock("600001");
+  held = null;
+  finishPeer(detail("600003"));
+  await pendingPeer;
+  assert.equal(context.state.minuteDetail.stock.code, "600001");
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600003"]);
+  assert.match($("minute-chart").innerHTML, /data-compare-code="600003"/);
+  context.clearMinuteComparisons();
+  held = {code: "600003", promise: Promise.reject(new Error("offline"))};
+  await context.selectMinuteComparison("600003", true);
+  held = null;
+  assert.match($("minute-compare-legend").innerHTML, /读取失败/);
+  assert.equal(context.state.minuteComparisons.get("600003").loading, false);
+  await context.selectMinuteComparison("600003", false);
+  peerDetails.set("600003", {...detail("600003"), points: []});
+  await context.selectMinuteComparison("600003", true);
+  assert.match($("minute-compare-legend").innerHTML, /暂无分时/);
+  assert.ok(!$("minute-chart").innerHTML.includes('data-compare-code="600003"'));
+  context.clearMinuteComparisons();
+  held = {code: "600003", promise: new Promise(done => finishPeer = done)};
+  const previousDayPeer = context.selectMinuteComparison("600003", true);
+  context.clearMinuteComparisons();
+  await context.loadIntraday({day: "2026-10-20", code: "600001"});
+  finishPeer(detail("600003"));
+  await previousDayPeer;
+  held = null;
+  assert.equal(context.state.minuteDetail.date, "2026-10-20");
+  assert.equal(context.state.minuteComparisons.size, 0, "old-date data cannot return after clearing or date switching");
+  context.state.minuteCompareCodes = ["600002", "600002", "999999", "600001"];
+  await context.loadIntraday({day: "2026-10-21", code: "600001"});
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600002"], "date loads keep only unique available peers excluding primary");
+  context.clearMinuteComparisons();
+  peerDetails.clear();
+  await context.loadMinuteStock("600002");
+  await context.selectMinuteComparison("600001", true);
+  context.state.meta.capabilities = {edit_tags: true};
+  needsCollection.add("600001");
+  needsCollection.add("600002");
+  const dateCollectionStart = requestLog.length;
+  await context.navigateMinuteDate("previous");
+  assert.equal(context.state.intradayDate, "2026-10-20");
+  assert.equal(context.state.minuteDetail.date, "2026-10-20");
+  assert.equal(context.state.intradayCode, "600002", "date navigation retains the primary stock");
+  assert.deepEqual(Array.from(context.state.minuteCompareCodes), ["600001"], "date navigation retains valid comparisons");
+  const dateCollections = requestLog.slice(dateCollectionStart).filter(r => r.url === "/api/intraday/collect");
+  assert.deepEqual(dateCollections.map(r => [r.date, r.code]).sort(), [["2026-10-20", "600001"], ["2026-10-20", "600002"]], "only the requested date and selected primary/comparison are collected");
+  assert.match(location.search, /date=2026-10-20/);
+  assert.equal($("minute-prev-date").disabled, true);
+  assert.equal($("minute-next-date").disabled, false);
+  await context.navigateMinuteDate("next");
+  assert.equal(context.state.intradayDate, "2026-10-21");
+  await context.changeMinuteDate("2026-10-20");
+  await context.navigateMinuteDate("latest");
+  assert.equal(context.state.intradayDate, "2026-10-21");
+  const navigationRequests = requestLog.length;
+  await context.navigateMinuteDate("next");
+  await context.navigateMinuteDate("latest");
+  await context.changeMinuteDate("");
+  $("minute-date").checkValidity = () => false;
+  await context.changeMinuteDate("2026-10-19");
+  assert.equal(requestLog.length, navigationRequests, "empty, invalid and unchanged dates do not fetch");
+  assert.equal(context.state.intradayDate, "2026-10-21");
+  $("minute-date").checkValidity = () => true;
+  await context.changeMinuteDate("2026-10-18");
+  assert.equal(requestLog.length, navigationRequests, "non-trading days do not issue collection requests");
+  availableDates = ["2026-10-21", "2026-10-16", "2026-10-20", "2026-10-20"];
+  await context.loadIntraday({day: "2026-10-20"});
+  await context.navigateMinuteDate("previous");
+  assert.equal(context.state.intradayDate, "2026-10-16", "previous follows the project calendar even when that date was not already cached");
+  await context.navigateMinuteDate("next");
+  assert.equal(context.state.intradayDate, "2026-10-20");
+  await context.navigateMinuteDate("latest");
+  assert.equal(context.state.intradayDate, "2026-10-21");
+  availableDates = ["2026-10-21"];
+  await context.loadIntraday();
+  assert.equal($("minute-prev-date").disabled, true);
+  assert.equal($("minute-next-date").disabled, true);
+  assert.equal($("minute-date").disabled, false);
+  timelineExtraRows = [{code: "300001", name: "创业测试", boards: 2, status: "ok"}];
+  $("minute-timeline-exclude-gem").checked = false;
+  context.state.minuteCompareCodes = ["600001"];
+  const failuresBeforeGem = failures.length;
+  await context.loadIntraday({day: "2026-10-21", code: "300001"});
+  assert.equal(failures.length, failuresBeforeGem);
+  assert.equal(context.state.minuteDetail.stock.code, "300001", "a GEM primary selected from the timeline survives a full date/view load");
+  assert.equal(new URLSearchParams(location.search).get("timeline_gem"), "1");
+  assert.ok(context.minuteRows("minute-compare-search").some(row => row.code === "300001"), "enabled timeline GEM stocks are available in the compare picker");
+  assert.ok(!context.minuteRows().some(row => row.code === "300001"), "the main-board directory remains separate");
+  await context.loadMinuteStock("600001");
+  context.clearMinuteComparisons();
+  await context.selectMinuteComparison("300001", true);
+  assert.match($("minute-chart").innerHTML, /data-compare-code="300001"/);
+  assert.match($("minute-compare-legend").innerHTML, /创业测试/);
+  $("minute-timeline-exclude-gem").checked = true;
+  await context.loadIntraday({day: "2026-10-21", code: "600001"});
+  assert.ok(!context.minuteRows("minute-compare-search").some(row => row.code === "300001"));
+  assert.ok(!new URLSearchParams(location.search).has("timeline_gem"));
+  timelineExtraRows = [];
+  availableDates = [];
+  await context.loadIntraday();
+  assert.equal($("minute-date").disabled, true);
+  assert.equal($("minute-prev-date").disabled, true);
+  assert.equal($("minute-next-date").disabled, true);
+  assert.equal($("minute-latest-date").disabled, true);
+  // Each stock keeps its own colored volume series on one absolute scale.
+  const base = {...detail("600001"), auction: {status: "match_only", points: [{time: "09:25", price: 10, volume: 100, amount: 1000}]}};
+  const other = {...detail("600002"), previous_close: 20, points: [
+    {time: "09:30", slot: 0, price: 20, volume: 200, amount: 4000},
+    {time: "09:32", slot: 2, price: 22, volume: 500, amount: 11000}],
+    auction: {status: "match_only", points: [{time: "09:25", price: 20, volume: 200, amount: 4000}]}};
+  context.state.minuteCompareCodes = ["600002"];
+  context.state.minuteComparisons = new Map([["600002", {data: other}]]);
+  context.state.minuteDetail = base;
+  context.state.minuteLoading = false;
+  const compared = context.minuteChartHTML(base);
+  const primaryVolumeColors = html => [...html.matchAll(/class="minute-volume-bar" data-volume-code="600001" style="fill:([^"]+)"/g)].map(match => match[1]);
+  const primaryAuctionVolumeColors = html => [...html.matchAll(/class="minute-auction-volume" style="fill:([^"]+)"/g)].slice(0, 1).map(match => match[1]);
+  context.state.minuteCompareCodes = [];
+  const alone = context.minuteChartHTML(base);
+  context.state.minuteCompareCodes = ["600002"];
+  assert.deepEqual(primaryVolumeColors(compared), primaryVolumeColors(alone), "primary volume keeps its color when adding comparisons");
+  const css = fs.readFileSync(path.join(__dirname, "../web/styles.css"), "utf8");
+  const primaryPriceColor = css.match(/\.minute-price-line\{[^}]*stroke:([^;]+)/)[1];
+  assert.ok(primaryVolumeColors(compared).every(color => color === primaryPriceColor), "primary minute volume matches the actual price-line CSS color");
+  assert.deepEqual(primaryAuctionVolumeColors(compared), [primaryPriceColor], "primary auction volume matches the price line");
+  assert.equal(css.match(/\.minute-volume-key\{background:([^}]+)/)[1], primaryPriceColor, "the primary volume legend matches its price line");
+  const assertStockColors = (html, code, expected) => {
+    const bars = [...html.matchAll(/data-volume-code="([^"]+)" style="fill:([^"]+)"/g)].filter(match => match[1] === code);
+    assert.ok(bars.length && bars.every(match => match[2] === expected), `${code} minute bars match its price line`);
+    const auction = html.match(new RegExp(`data-auction-code="${code}" style="fill:([^"]+)"`));
+    assert.equal(auction[1], expected, `${code} auction point matches its price line`);
+    const row = html.match(new RegExp(`data-minute-volume-row="${code}"[^>]*style="--volume-color:([^"]+)"([\\s\\S]*?)<svg`));
+    assert.equal(row[1], expected, `${code} volume row accent matches its price line`);
+    assert.equal(row[2].match(/<i style="background:([^"]+)"/)[1], expected, `${code} volume heading legend matches its price line`);
+    const auctionBar = html.slice(html.indexOf(`data-minute-volume-row="${code}"`)).match(/class="minute-auction-volume" style="fill:([^"]+)"/);
+    assert.equal(auctionBar[1], expected, `${code} auction bar matches its price line`);
+  };
+  const peerColor = html => html.match(/class="minute-compare-line" data-compare-code="600002" stroke="([^"]+)"/)[1];
+  assertStockColors(alone, "600001", primaryPriceColor);
+  assertStockColors(compared, "600001", primaryPriceColor);
+  assertStockColors(compared, "600002", peerColor(compared));
+  assert.equal((compared.match(/data-volume-code="600001"/g) || []).length, 2);
+  assert.equal((compared.match(/data-volume-code="600002"/g) || []).length, 2);
+  assert.equal((compared.match(/data-auction-code=/g) || []).length, 2);
+  assert.equal((compared.match(/data-minute-volume-row=/g) || []).length, 2, "each loaded stock has a separately named volume row");
+  assert.match(compared, /甲&lt;测试&gt;（主图）/);
+  assert.match(compared, /data-minute-volume-row="600002" data-volume-max="500"/);
+  assert.match(compared, /width="2.8" height="86\.00" class="minute-volume-bar minute-compare-volume"/, "each row uses the full-width volume bars");
+  assert.equal((alone.match(/data-minute-volume-row=/g) || []).length, 1);
+  assert.match(compared, /height="34\.40" class="minute-volume-bar"/);
+  assert.match(compared, /height="86\.00" class="minute-volume-bar minute-compare-volume"/);
+  context.state.minuteVolumeScale = "individual";
+  const individual = context.minuteChartHTML(base);
+  assert.match(individual, /data-minute-volume-row="600001" data-volume-max="200"/);
+  assert.match(individual, /data-minute-volume-row="600002" data-volume-max="500"/);
+  assert.match(individual, /data-minute-volume-scale="individual" aria-pressed="true"/);
+  assertStockColors(individual, "600001", primaryPriceColor);
+  assertStockColors(individual, "600002", peerColor(individual));
+  context.state.minuteCompareCodes = ["600002", "600003"];
+  context.state.minuteComparisons.set("600003", {data: {...other, stock: rows.find(row => row.code === "600003")}});
+  const multiple = context.minuteChartHTML(base);
+  const thirdColor = multiple.match(/class="minute-compare-line" data-compare-code="600003" stroke="([^"]+)"/)[1];
+  assert.notEqual(thirdColor, peerColor(multiple));
+  assertStockColors(multiple, "600003", thirdColor);
+  assertStockColors(multiple, "600002", peerColor(multiple));
+  assertStockColors(multiple, "600001", primaryPriceColor);
+  context.state.minuteCompareCodes = ["600002"];
+  context.state.minuteComparisons.delete("600003");
+  context.state.minuteVolumeScale = "shared";
+  context.minuteChartHTML(base);
+  volumeNodes = ["600001", "600002"].map(code => {
+    const reading = {}, cursor = {toggleAttribute(name, active) {this[name] = active;}, setAttribute(name, value) {this[name] = value;}};
+    return {dataset: {minuteVolumeRow: code}, reading, cursor, querySelector: selector => selector === "[data-volume-reading]" ? reading : cursor};
+  });
+  assert.equal(context.minuteDisplayPoint(base, points[0]).volume, 0, "opening auction is not counted in the 09:30 bar twice");
+  assert.equal(base.points[0].volume, 100, "chart deduction must not mutate the source minute archive");
+  context.showMinuteAuctionPoint();
+  assert.ok(volumeNodes.every(row => row.cursor.x1 === 140 && row.cursor.hidden === false), "auction cursor is aligned across all volume rows");
+  assert.match(volumeNodes[1].reading.textContent, /09:25 · 2 手/);
+  assert.match($("minute-hover").textContent, /09:25 开盘竞价撮合/);
+  assert.match($("minute-compare-legend").innerHTML, /2 手/);
+  context.showMinutePoint(0);
+  assert.ok(volumeNodes.every(row => row.cursor.x1 === 170));
+  assert.match(volumeNodes[0].reading.textContent, /09:30 · 0 手/);
+  assert.match($("minute-hover").textContent, /成交量 0 手/);
+  context.showMinutePoint(1);
+  assert.match(volumeNodes[0].reading.textContent, /09:32 · 2 手/);
+  assert.match(volumeNodes[1].reading.textContent, /09:32 · 5 手/);
+  context.state.minuteComparisons.get("600002").data = {...other, points: other.points.slice(0, 1)};
+  context.showMinutePoint(1);
+  assert.match(volumeNodes[1].reading.textContent, /09:32 · 该分钟缺失/);
+  assert.equal(volumeNodes[0].cursor.x1, volumeNodes[1].cursor.x1, "missing values do not shift the shared time cursor");
+  context.state.minuteComparisons.get("600002").data = other;
+  volumeNodes = [];
+  const withoutAuction = {...base, auction: {status: "unavailable", points: []}};
+  assert.match(context.minuteChartHTML(withoutAuction), /暂无竞价/);
+  assert.equal(context.minuteDisplayPoint(withoutAuction, points[0]).volume, 100, "missing auction does not invent a deduction");
+  context.state.minuteDetail = withoutAuction;
+  context.showMinuteAuctionPoint();
+  assert.match($("minute-hover").textContent, /竞价记录未取得/);
+  // A changed selection must not let a stale GET start a POST that aborts the new selection.
+  context.state.meta.capabilities = {edit_tags: true};
+  needsCollection.add("600003");
+  const beforeCollect = requestLog.filter(r => r.url === "/api/intraday/collect").length;
+  assert.equal(await context.requestMinuteData("2026-10-21", "600003", "intraday-stock", () => false), null);
+  assert.equal(requestLog.filter(r => r.url === "/api/intraday/collect").length, beforeCollect);
+  await context.requestMinuteData("2026-10-21", "600003", "intraday-stock");
+  assert.equal(requestLog.filter(r => r.url === "/api/intraday/collect").length, beforeCollect + 1);
+  context.state.meta.capabilities.edit_tags = false;
+  needsCollection.add("600003");
+  await context.requestMinuteData("2026-10-21", "600003", "intraday-stock");
+  assert.equal(requestLog.filter(r => r.url === "/api/intraday/collect").length, beforeCollect + 1, "read-only browsing never starts collection");
+  context.state.intradayData = {total: 501, rows: Array.from({length: 501}, (_, i) => ({code: String(600000 + i), name: `主板${i}`, boards: ({8: 4, 9: 3, 10: 1})[i] || 0, status: "missing"}))};
+  context.state.intradayCode = "600500";
+  $("minute-search").value = "";
+  context.renderMinuteList();
+  assert.equal(listNodes.length, 151, "large directory starts with a bounded page plus the selected stock");
+  assert.match($("minute-stock-list").innerHTML, /显示更多/);
+  assert.ok(!$("minute-stock-list").innerHTML.includes("0 板"));
+  assert.ok(listNodes.some(node => node.dataset.minuteCode === "600500"));
+  assert.deepEqual(listNodes.slice(0, 3).map(node => node.dataset.minuteCode), ["600008", "600009", "600010"], "an out-of-page non-limit primary cannot precede higher board stocks");
+  assert.equal(listNodes.at(-1).dataset.minuteCode, "600500", "the retained primary follows the sorted first page rather than being pinned");
+  assert.match($("minute-stock-list").innerHTML, /剩余 350 只/, "remaining count excludes the retained primary already displayed");
+  $("minute-compare-search").value = "";
+  context.state.minuteCompareCodes = ["600500", "600450"];
+  context.renderMinuteCompareList();
+  assert.deepEqual(compareNodes.slice(0, 3).map(node => node.dataset.compareRow), ["600008", "600009", "600010"], "selected comparisons also preserve descending board height");
+  assert.deepEqual(compareNodes.slice(-2).map(node => node.dataset.compareRow), ["600450", "600500"], "retained peers follow their sorted positions, independent of selection order");
+  assert.match($("minute-compare-list").innerHTML, /剩余 349 只/);
+  console.log("Grouped volumes, shared scale, independent auction points, no double counting, missing auctions, on-demand POST races/read-only guards and bounded main-board lists: passed.");
+  console.log("Minute calendar: full calendar navigation, selected-date-only collection, retained primary/peers, non-trading day guards and cache reuse: passed.");
+  console.log("Multi-stock comparison: return-normalized paths, multiple peers, separate requests, primary switching, selected-node stability, missing data, errors and date/cancellation races: passed.");
+  console.log("Minute switching: stable list nodes/scroll, retained chart while loading, atomic replacement, repeated-click deduplication, A/B/A races and failed-request retry: passed.");
+})().catch(error => {console.error(error); process.exitCode = 1;});

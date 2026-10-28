@@ -1,0 +1,47 @@
+// Parent grouping uses full membership; chips show each stock's most specific tags.
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../web/app.js'),'utf8');
+const elements=new Map();
+function $(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',hidden:false,value:'',classList:{toggle(){}},setAttribute(){},removeAttribute(){},querySelectorAll:()=>[]});return elements.get(id);}
+const context=vm.createContext({$,canManageTags:()=>true,hideStockNoteTooltip(){},state:{grouping:'industry',meta:{latest_date:'2026-10-27',tag_order:['机器人','机械','人形','仿生','汽车'],
+  tag_hierarchy:[{name:'机器人',parent:''},{name:'机械',parent:'机器人'},{name:'人形',parent:'机械'},{name:'仿生',parent:'机器人'}]}}});
+vm.runInContext(source.slice(source.indexOf('function escapeHTML'),source.indexOf('function debounce')),context);
+vm.runInContext(source.slice(source.indexOf('function stockTags'),source.indexOf('function renderTagEditor')),context);
+vm.runInContext(source.slice(source.indexOf('function renderMinuteProfile'),source.indexOf('function renderMinuteList')),context);
+const row=(code,boards,tags)=>({code,name:code,boards,tags,date:'2026-10-27',registered_province:'北京'});
+const rows=[row('000001',4,['机器人','机械','人形']),row('000002',1,['仿生']),row('000003',1,['机器人']),row('000004',1,['汽车'])];
+const before=JSON.stringify(rows);
+assert.deepEqual(Array.from(context.stockTags(rows[0])),['人形']);
+assert.deepEqual(Array.from(context.allStockTags(rows[0])),['机器人','机械','人形'],'parent memberships remain available for editing and grouping');
+assert.deepEqual(Array.from(context.stockTags(rows[2])),['机器人'],'a parent remains visible when this stock has no descendant membership');
+const counts=context.industryTagBoardCounts(rows);
+assert.equal(counts['机器人'][4],1);assert.equal(counts['机器人'][1],2,'different descendant labels deduplicate into root counts');
+const html=context.renderIndustryColumns(rows,counts);
+const headers=[...html.matchAll(/data-group-label="([^"]+)"/g)].map(m=>m[1]);
+assert.deepEqual(headers,['机器人','独苗','机器人','独苗'],'all heights align the same root columns');
+assert.ok(html.includes('data-child-tag="人形"')&&html.includes('data-child-tag="仿生"'));
+assert.ok(!html.includes('直接归属')&&!html.includes('间接归属'));
+assert.ok(html.includes('data-child-tag="机器人"><ul'), 'root-only memberships show stock cards without a redundant subgroup header');
+const descendantCard=context.renderStockCard(rows[0]);
+assert.ok(!descendantCard.includes('<span class="stock-tag">机器人</span>')&&!descendantCard.includes('<span class="stock-tag">机械</span>'));
+assert.ok(html.includes('data-add-sector-tag="机器人"')&&html.includes('data-add-sector-tag="人形"'),'both parent and child permit independent stock additions');
+assert.equal((html.match(/data-card-code="000001"/g)||[]).length,1,'parent plus descendant membership does not duplicate a card in the same family');
+const onlyFirst=context.renderIndustryColumns(rows.filter(r=>r.boards===1),counts);
+assert.ok(onlyFirst.includes('data-group-label="机器人"')&&onlyFirst.includes('data-child-tag="仿生"'));
+context.renderMinuteProfile(rows[0]);
+assert.ok($('minute-stock-tags').innerHTML.includes('人形')&&!$('minute-stock-tags').innerHTML.includes('机器人'));
+context.state.grouping='region';const region=context.renderIndustryColumns(rows,counts);
+assert.ok(region.includes('data-group-label="北京"')&&!region.includes('matrix-tag-subgroup'),'other grouping modes retain their grouping and leaf-only card chips');
+assert.equal(JSON.stringify(rows),before);
+context.applyTagOrder({tags:[{name:'食品'},{name:'酒业'},{name:'麻花'},{name:'青岛国资委'}],hierarchy:[
+  {name:'食品',parent:'消费'},{name:'酒业',parent:'消费'},{name:'麻花',parent:'食品'}],revision:'food'});
+const food=row('001219',3,['食品','酒业','青岛国资委']);
+assert.deepEqual(Array.from(context.stockTags(food)),['食品','酒业','青岛国资委'],'a global child belonging to other stocks must not hide this stock’s food tag');
+assert.ok(context.renderStockCard(food).includes('<span class="stock-tag">食品</span>'));
+context.renderMinuteProfile(food);
+assert.ok($('minute-stock-tags').innerHTML.includes('食品'),'minute profile follows the same per-stock rule');
+assert.deepEqual(Array.from(context.stockTags({...food,tags:['消费','食品','麻花','酒业']})),['酒业','麻花'],'actual descendants hide their own ancestors, including multiple levels, without hiding sibling branches');
+assert.deepEqual(Array.from(context.stockTags({...food,tags:['消费','食品','酒业']})),['食品','酒业'],'an intermediate parent stays visible without its own descendant');
+context.applyTagOrder({tags:[{name:'机械'},{name:'人形'}],hierarchy:[{name:'人形',parent:'机械'}],revision:'new'});
+assert.equal(context.tagRoot('人形'),'机械','catalog refresh invalidates the hierarchy cache');
+console.log('Tag hierarchy: root union counts, leader alignment, descendant subsections, independent memberships, leaf-only chips in search/minute, refreshes and other layouts passed.');

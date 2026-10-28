@@ -19,9 +19,9 @@ PROJECT_KEY = hashlib.sha256(str(ROOT).casefold().encode('utf-8')).hexdigest()
 
 def serve(port, no_updates=False):
     import app
-    import realtime
-    realtime.initialize(ROOT/'data/archive.sqlite3')
-    realtime.install(app)
+    import published_tags
+    published_tags.apply(ROOT/'data/archive.sqlite3')
+    published_tags.initialize_catalog(ROOT/'data/archive.sqlite3')
     session_file = ROOT/'data/desktop-session.json'
     session = {'pid': os.getpid(), 'port': port, 'project_key': PROJECT_KEY,
                'instance_id': secrets.token_hex(16), 'token': secrets.token_hex(32), 'state': 'starting'}
@@ -34,13 +34,12 @@ def serve(port, no_updates=False):
     class DesktopHandler(original_handler):
         def send_head(self):
             path = urlsplit(self.path).path
-            if path in ('/', '/index.html', '/updates.js', '/updates.css', '/realtime.js'):
+            if path in ('/', '/index.html', '/updates.js', '/updates.css'):
                 filename = 'index.html' if path in ('/', '/index.html') else path[1:]
                 raw = (ROOT/'web'/filename).read_bytes()
                 if filename == 'index.html':
                     extension = ('<link rel="stylesheet" href="/updates.css?v=' + version + '">'
-                                 '<script src="/updates.js?v=' + version + '" defer></script>'
-                                 '<script src="/realtime.js?v=' + version + '" defer></script>')
+                                 '<script src="/updates.js?v=' + version + '" defer></script>')
                     raw = raw.replace(b'</head>', extension.encode('utf-8') + b'</head>', 1)
                 content_type = {'index.html':'text/html', 'updates.js':'text/javascript',
                                 'updates.css':'text/css', 'realtime.js':'text/javascript'}[filename]
@@ -72,26 +71,25 @@ def serve(port, no_updates=False):
             return super().do_POST()
 
     app.Handler = DesktopHandler
+    class OfflineRefresher:
+        def __init__(self, *args, **kwargs): pass
+        def maybe_refresh(self, *args, **kwargs): pass
+        def start(self): pass
+        def stop(self): pass
+    # Published labels remain the default; provider refreshes cannot replace them.
+    app.concept_tags.Refresher = OfflineRefresher
     if no_updates:
-        class OfflineRefresher:
-            def __init__(self, *args, **kwargs): pass
-            def maybe_refresh(self, *args, **kwargs): pass
-            def start(self): pass
-            def stop(self): pass
         app.industry.Refresher = OfflineRefresher
         app.registration.Refresher = OfflineRefresher
         app.suspension.Refresher = OfflineRefresher
         app.live_update.Refresher = OfflineRefresher
+        app.live_pool.Refresher = OfflineRefresher
     sys.argv = [str(ROOT/'app.py'), '--port', str(port), '--db', str(ROOT/'data/archive.sqlite3')]
     session['state'] = 'running'
     session_file.write_text(json.dumps(session), encoding='utf-8')
     try:
-        minute_worker = realtime.Refresher(ROOT/'data/archive.sqlite3')
-        if not no_updates:
-            minute_worker.start()
         app.main()
     finally:
-        minute_worker.stop()
         session['state'] = 'stopped'
         session_file.write_text(json.dumps(session), encoding='utf-8')
 

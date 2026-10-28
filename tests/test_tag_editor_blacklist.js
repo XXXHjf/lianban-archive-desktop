@@ -10,6 +10,7 @@ let stored = false, pending = null, fail = false, dateRenders = 0;
 const board = {scrollLeft: 340};
 const element = id => {
   if (!elements.has(id)) elements.set(id, {value: "", disabled: false, checked: false, hidden: false,
+    setAttribute(name,value) {this[name]=value;}, removeAttribute(name) {delete this[name];},
     querySelector: () => board, querySelectorAll: () => [], reportValidity: () => true,
     showModal() { this.open = true; }, close() { this.open = false; }});
   return elements.get(id);
@@ -24,6 +25,7 @@ const context = vm.createContext({
     calls.push({url, body: options ? JSON.parse(options.body) : null});
     if (pending) await pending;
     if (fail) throw new Error("测试保存失败");
+    if (url === "/api/tags") return {tags:[{name:"水泥",count:10}],revision:"catalog"};
     if (!options) return {code:"600668", name:"尖峰集团", tags:["水泥"],revision:2,blacklisted:stored};
     stored = JSON.parse(options.body).action === "add";
     return {rows:stored ? [{code:"600668"}] : [],total:stored ? 1 : 0};
@@ -32,6 +34,7 @@ const context = vm.createContext({
 function load(from, to) { vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context); }
 load("function escapeHTML", "function textValue");
 load("function canEditBlacklist", "function blacklistError");
+load("function stockTags", "function canEditTags");
 load("function canEditTags", "function renderTagEditor");
 load("function renderTagEditor", "function renderTable");
 (async () => {

@@ -12,6 +12,8 @@ function element(id) {
   if (!elements.has(id)) elements.set(id, {
     value: "", hidden: false, checked: false, textContent: "", innerHTML: "",
     classList: {toggle() {}}, setAttribute(name, value) {this[name] = value;},
+    addEventListener(type, listener) { listeners.set(`${id}:${type}`, listener); },
+    focus() {this.focused = true;}, scrollIntoView(options) {this.scrollOptions = options;},
     removeAttribute(name) {delete this[name];}, setCustomValidity() {}, querySelectorAll() {return [];}
   });
   return elements.get(id);
@@ -32,6 +34,8 @@ const context = vm.createContext({
   window: {addEventListener(type, listener) {listeners.set(type, listener);}},
   hideSuggestions() {}, hideBlacklistSuggestions() {}, clearError() {}, setStats() {},
   renderBoardOptions() {}, updateDateNavigation() {}, renderStockProfile() {},
+  async loadIntraday() {context.state.intradayRestored = [...context.state.minuteCompareCodes];},
+  async loadTagManager() {context.setView("tags"); context.state.restoredTag = context.state.tagManagerName;},
   renderRelationships() {}, loadRelationHistory() {}, renderChart: () => "chart", renderStockCycles: () => "cycles",
   renderDate(data) {renderedDate = data; element("date-table-area").setAttribute("aria-busy", "false");},
   renderBlacklist(data) {context.state.blacklistData = data;}, updateBlacklistControls() {}, blacklistError() {},
@@ -59,6 +63,7 @@ load("function renderStock(data)", "function relationStockButton");
 load("function returnToDate", "function runQuery");
 load("async function restoreFromURL", "async function initialize");
 vm.runInContext(source.split(/\r?\n/).find(line => line.startsWith('window.addEventListener("popstate"')), context);
+load('$("nav-search").addEventListener', '$("nav-blacklist").addEventListener');
 async function traverse(offset) {
   assert.ok(index + offset >= 0 && index + offset < entries.length);
   index += offset;
@@ -157,5 +162,70 @@ async function openStock(code) {
   await traverse(1);
   assert.equal(context.state.grouping, "code", "forward retains code grouping on stock detail");
   assert.equal(context.state.selectedStock.code, "600668");
-  console.log("Stock/date/blacklist back-forward, filter and code-layout restoration, URL deduplication, and stale responses: passed.");
+  context.state.intradayDate = "2026-10-21";
+  context.state.intradayCode = "603278";
+  context.state.minuteCompareCodes = ["300296", "002929"];
+  context.setView("intraday");
+  const comparedURL = entries[index];
+  context.state.minuteCompareCodes = ["300296"];
+  context.updateURL();
+  const comparedCount = entries.length;
+  await traverse(-1);
+  assert.equal(entries[index], comparedURL);
+  assert.equal(context.state.tab, "intraday");
+  assert.equal(context.state.intradayCode, "603278");
+  assert.deepEqual(Array.from(context.state.intradayRestored), ["300296", "002929"]);
+  await traverse(1);
+  assert.deepEqual(Array.from(context.state.intradayRestored), ["300296"]);
+  assert.equal(entries.length, comparedCount, "comparison history traversal does not add visits");
+  readLocation("/?date=2026-10-21&view=intraday&minute_code=603278&minute_compare=300296,300296,bad,002929");
+  await context.restoreFromURL();
+  assert.deepEqual(Array.from(context.state.intradayRestored), ["300296", "002929"], "restore sanitizes peer codes and removes duplicates");
+  context.state.tagManagerName = "机器人";
+  context.setView("tags");
+  const tagURL = entries[index];
+  assert.ok(tagURL.includes("view=tags") && tagURL.includes("tag="));
+  context.setView("date");
+  await traverse(-1);
+  assert.equal(context.state.tab,"tags");
+  assert.equal(context.state.restoredTag,"机器人");
+  assert.equal(element("tag-management-view").hidden,false);
+  assert.equal(element("search-workspace").hidden,true);
+  await traverse(1);
+  assert.equal(context.state.tab,"date");
+  assert.equal(element("tag-management-view").hidden,true);
+  // Exercise the actual sidebar click handler, not only direct route loaders.
+  context.state.selectedStock = null;
+  context.state.tagManagerName = "机器人";
+  context.state.boards = "2";
+  const selectedDate = element("trade-date").value;
+  await context.loadTagManager();
+  const managerURL = entries[index];
+  const managerIndex = index;
+  listeners.get("nav-search:click")();
+  await Promise.resolve();
+  assert.equal(context.state.tab,"date","search leaves tag management and opens the daily search workspace");
+  assert.equal(element("search-workspace").hidden,false);
+  assert.equal(element("tag-management-view").hidden,true);
+  assert.equal(element("nav-search")["aria-current"],"page");
+  assert.equal(element("stock-search").focused,true);
+  assert.equal(element("search-workspace").scrollOptions.block,"center");
+  assert.equal(element("trade-date").value,selectedDate);
+  assert.equal(context.state.boards,"2");
+  assert.ok(!location.search.includes("view=tags") && !location.search.includes("tag="));
+  assert.equal(index,managerIndex+1,"leaving management creates exactly one search visit");
+  await traverse(-1);
+  assert.equal(entries[index],managerURL);
+  assert.equal(context.state.tab,"tags");
+  await traverse(1);
+  assert.equal(context.state.tab,"date");
+  await openStock("600668");
+  const priorVisits = [...visits];
+  await context.loadTagManager();
+  listeners.get("nav-search:click")();
+  await Promise.resolve();
+  assert.equal(context.state.tab,"stock","search restores the previously selected stock when entered from its detail");
+  assert.equal(context.state.selectedStock.code,"600668");
+  assert.deepEqual(visits,priorVisits,"returning through the sidebar does not add a recent-stock visit");
+  console.log("Stock/date/blacklist/tags back-forward, filter and code-layout restoration, URL deduplication, and stale responses: passed.");
 })().catch(error => {console.error(error); process.exitCode = 1;});

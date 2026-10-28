@@ -10,6 +10,7 @@ import time
 from contextlib import closing
 
 import industry
+import concept_tags
 import registration
 from live_update import target_day
 
@@ -140,6 +141,12 @@ def main():
             print(f"注册省份更新：{registration.refresh(args.db)} 只股票。", flush=True)
     except Exception as exc:
         print(f"注册省份更新未完成，保留已有缓存：{exc}", flush=True)
+    try:
+        concepts = concept_tags.refresh(args.db)
+        if concepts:
+            print(f"共有概念标签：{concepts['tagged']} 只，{concepts['errors']} 只待重试。", flush=True)
+    except Exception as exc:
+        print(f"概念更新未完成，保留已有缓存：{exc}", flush=True)
     return 0 if summary["coverage_status"] == "complete" else 1
 
 

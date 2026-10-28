@@ -200,7 +200,7 @@ const peerHTML = context.renderRoundPeer(rows[8]);
 assert.ok(peerHTML.includes("天津") && peerHTML.includes("传媒"));
 assert.ok(!peerHTML.includes("天津测试地址"), "detailed addresses are never rendered");
 assert.ok(peerHTML.includes("自定义&lt;&amp;标签"), "custom profile labels must be safely escaped");
-assert.ok(peerHTML.includes("当前自定义行业标签"));
+assert.ok(peerHTML.includes("当前股票标签"), "the tooltip covers merged default and custom labels");
 assert.ok(context.renderRoundPeer(rows[0]).includes("地区待补充"));
 assert.ok(context.renderRoundPeer(rows[0]).includes("行业待补充"));
 const cohortMembers = [

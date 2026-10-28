@@ -279,10 +279,10 @@ def normalize_cls_pool(payload: dict, day: str) -> list[dict]:
     return rows
 
 
-def _cls_day(day: str, raw_dir: Path) -> DayResult:
+def _cls_day(day: str, raw_dir: Path, *, attempts=3) -> DayResult:
     params = {"app": "CailianpressWeb", "os": "web", "sv": "8.7.9",
               "type": "up_pool", "way": "last_px", "rever": 1}
-    response = _get(CLS_POOL_URL, params)
+    response = _get(CLS_POOL_URL, params, attempts=attempts)
     raw_path = _save_raw(f"cls_{day}", response, Path(raw_dir))
     try:
         rows = normalize_cls_pool(response.json(), day)
@@ -326,6 +326,31 @@ def fetch_day(day: str, raw_dir: Path = RAW_DIR, *, now=None) -> DayResult:
     if not rows:
         return DayResult(day, [], "empty", "当天各来源暂未返回可确认的数据；空返回不代表没有涨停。", raw_path)
     return DayResult(day, rows, "ok", "历史入口未就绪，采用封板日期已逐只校验的选股宝收盘后实时池。" + note, raw_path)
+
+
+def fetch_live_day(day: str, raw_dir: Path = RAW_DIR, *, now=None) -> DayResult:
+    """Read today's provisional pool without changing the closing archive policy."""
+    valid_day(day)
+    current = (now or datetime.now(TZ)).astimezone(TZ)
+    if day != current.date().isoformat():
+        raise ProviderError("盘中接口只能读取北京时间当天，不能用于历史归档")
+    failures = []
+    try:
+        result = _cls_day(day, raw_dir, attempts=1)
+        if result.status == "ok":
+            return result
+        failures.append(result.note)
+    except ProviderError as exc:
+        failures.append(str(exc))
+    response = _get(POOL_URL, {"pool_name": "limit_up"}, attempts=1)
+    raw_path = _save_raw(f"xgb_intraday_{day}", response, Path(raw_dir))
+    try:
+        rows, note = normalize_pool(response.json(), day)
+    except (ValueError, ProviderError) as exc:
+        raise ProviderError(f"盘中池暂不可用：{'；'.join(failures)}；{exc}", raw_path) from exc
+    return DayResult(day, rows, "ok" if rows else "empty",
+                     "盘中暂定涨停池，收盘后另行确认。" + note if rows else "盘中来源未返回可确认的数据，保留上次快照。",
+                     raw_path)
 
 
 def trading_dates(start: str, end: str, raw_dir: Path = RAW_DIR) -> tuple[list[str], str]:

@@ -9,14 +9,17 @@ const calls = [];
 const element = id => {
   if (!elements.has(id)) elements.set(id, { value: "", disabled: false,
     setAttribute(name, value) { this[name] = value; }, removeAttribute(name) { delete this[name]; }, reportValidity: () => true,
-    querySelectorAll: () => [], close() { calls.push("close"); } });
+    querySelector: () => null, querySelectorAll: () => [], close() { calls.push("close"); } });
   return elements.get(id);
 };
 const context = vm.createContext({
   state: { tab: "stock", tagEditorData: { code: "000001", revision: 3 },
     tagDraft: ["染料", "纺织", "化工"], tagUseSource: false, tagSaving: false },
-  $: element, clearTimeout,
-  request: async (url, key, options) => { calls.push(JSON.parse(options.body)); return { tags: ["染料", "纺织", "化工"] }; },
+  $: element, clearTimeout, window: {scrollX:0,scrollY:0,scrollTo(){}},
+  request: async (url, key, options) => {
+    if (url === "/api/tags") return {tags:[{name:"化工",count:5},{name:"染料",count:3},{name:"纺织",count:1}],revision:"new-order"};
+    calls.push(JSON.parse(options.body)); return { tags: ["染料", "纺织", "化工"] };
+  },
   loadStock: async () => calls.push("stock"), loadDate: async () => calls.push("date")
 });
 function load(from, to) { vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context); }
@@ -24,6 +27,7 @@ load("function escapeHTML", "function debounce");
 load("function stockTags", "function renderStockCard");
 load("function renderStockProfile", "function renderStock(data)");
 load("function updateTagEditorControls", "function syncTagBlacklistMembership");
+load("function hideTagSuggestions", "function updateTagEditorControls");
 load("function canEditBlacklist", "function blacklistError");
 load("async function saveTagEditor", "function renderTable");
 context.renderStockProfile({code:"000001", name:"测试股", initials:"CSG", registered_province:"广西壮族自治区",
@@ -57,12 +61,13 @@ context.renderStockProfile({code:"000001", name:"测试股", tags:["银行"]});
 assert.equal(element("edit-stock-profile-tags").hidden, false, "local editing is retained");
 (async () => {
   await context.saveTagEditor({preventDefault(){}});
-  assert.equal(calls.at(-1), "stock", "saving from stock history must stay on that stock");
+  assert.equal(calls.at(-2), "stock", "saving from stock history must stay on that stock and finish before closing");
   assert.ok(!calls.includes("date"));
   assert.deepEqual(calls[0].tags, ["染料", "纺织", "化工"]);
+  assert.deepEqual(Array.from(context.state.meta.tag_order),["化工","染料","纺织"],"single-stock edits immediately refresh the shared tag order");
   context.state.tab = "date";
   await context.saveTagEditor({preventDefault(){}});
-  assert.equal(calls.at(-1), "date", "the daily editor retains its original return behavior");
+  assert.equal(calls.at(-2), "date", "the daily editor retains its original return behavior");
   assert.equal(context.state.tagSaving, false);
   console.log("Stock province, complete editable tags, loading state, and save destination: passed.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

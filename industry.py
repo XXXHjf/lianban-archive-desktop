@@ -138,9 +138,10 @@ class Refresher:
             with closing(db.connect(self.path)) as conn:
                 settings = db.get_settings(conn)
                 last = settings.get(f"{self.prefix}_fetched_at")
-                missing_registrations = self.prefix == "registration" and conn.execute(
-                    "SELECT COUNT(*) FROM stocks").fetchone()[0] > settings.get("registration_requested", 0)
-                if last and datetime.now(db.TZ) - datetime.fromisoformat(last) < MAX_AGE and not missing_registrations:
+                missing_profiles = self.prefix in ("registration", "concept") and conn.execute(
+                    "SELECT COUNT(*) FROM stocks").fetchone()[0] > settings.get(f"{self.prefix}_requested", 0)
+                max_age = timedelta(hours=1) if self.prefix == "concept" and settings.get("concept_errors", 0) else MAX_AGE
+                if last and datetime.now(db.TZ) - datetime.fromisoformat(last) < max_age and not missing_profiles:
                     return
                 self._running = True
                 db.set_settings(conn, **{f"{self.prefix}_status": "updating"})
