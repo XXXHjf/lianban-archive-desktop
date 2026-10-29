@@ -1,5 +1,6 @@
+const { install } = require('./frontend-harness.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const source=fs.readFileSync(path.join(__dirname,'../web/app.js'),'utf8'),elements=new Map(),requests=[];
+const elements=new Map(),requests=[];
 function $(id){if(!elements.has(id))elements.set(id,{value:'',innerHTML:'',textContent:'',hidden:false,disabled:false,open:false,
   classList:{toggle(){}},setAttribute(){},querySelectorAll:()=>[],focus(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(id);}
 const catalog={tags:[{name:'父<&>',count:2},{name:'子',count:1},{name:'孙',count:1}],total:3,stocks:2,revision:'r1',hierarchy:[{name:'父<&>',parent:''},{name:'子',parent:'父<&>'},{name:'孙',parent:'子'}]};
@@ -7,10 +8,10 @@ let refreshes=0;
 const context=vm.createContext({$,URLSearchParams,state:{tab:'tags',requests:{},tagManagerName:'子',tagManagerMembers:{rows:[],revision:'r1'},tagManagerData:catalog,meta:{capabilities:{manage_tags:true}}},
   canEditTags:()=>true,emptyHTML:()=>'',regionLabel:()=>'',
   request:(url,channel,options)=>new Promise((resolve,reject)=>requests.push({url,channel,body:JSON.parse(options.body),resolve,reject})),updateURL(){}});
-vm.runInContext(source.slice(source.indexOf('function escapeHTML'),source.indexOf('const RECENT_STOCKS_KEY')),context);
-vm.runInContext(source.slice(source.indexOf('function canManageTags'),source.indexOf('function renderMeta')),context);
-vm.runInContext(source.slice(source.indexOf('function stockTags'),source.indexOf('function canEditTags')),context);
-vm.runInContext(source.slice(source.indexOf('function matchesExistingTag'),source.indexOf('function positionTagSuggestions')),context);
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["canManageTags","tagManagerError","updateTagManagerControls","renderTagManagerCatalog","hideManagerParentSuggestions","renderManagerParentSuggestions","chooseManagerParentTag","selectManagerTag","loadTagManager","hideManagerSuggestions","showManagerSuggestions","searchManagerStocks","refreshAfterTagWrite","removeManagerStock","addManagerStock","cancelManagerMerge","renameManagerTag","cancelManagerDelete","deleteManagerTag","openTagNodeDialog","saveManagerTagNode","openManagerTagBatch","bindTagManager","tagBatchError","tagBatchTokens","tagBatchStocks","updateTagBatchControls","renderTagBatchPreview","cancelTagBatchSearch","loadTagBatchCatalog","openTagBatch","closeTagBatch","resolveTagBatchInput","changeTagBatchInput","saveTagBatch","bindTagBatch"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder"], []);
+install(context, ["matchesExistingTag"], []);
 context.refreshAfterTagWrite=async()=>{refreshes++;};
 context.applyTagOrder(catalog);context.renderTagManagerCatalog();
 assert.ok($('tag-manager-list').innerHTML.includes('tag-manager-tree-children')&&$('tag-manager-list').innerHTML.includes('父&lt;&amp;&gt;'));

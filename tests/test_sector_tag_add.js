@@ -1,5 +1,6 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm"), path = require("node:path");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), requests = [], timers = [];
 function element(id) {
   if (!elements.has(id)) elements.set(id, {value:"",textContent:"",innerHTML:"",hidden:false,disabled:false,open:false,listeners:{},
@@ -13,9 +14,9 @@ const context=vm.createContext({$:element,state:{requests:{},meta:{capabilities:
   canManageTags(){return context.state.meta.capabilities.manage_tags;},
   applyTagOrder(data){applied=data;},async refreshAfterTagWrite(){refreshes++;},
   request(route,channel,options){return new Promise((resolve,reject)=>requests.push({route,channel,options,resolve,reject}));}});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"),source.indexOf("function debounce")),context);
-vm.runInContext(source.slice(source.indexOf("function tagBatchError"),source.indexOf("function renderMeta")),context);
-vm.runInContext(source.slice(source.indexOf("function industryColumnHeading"),source.indexOf("function mergeIdenticalFirstBoardGroups")),context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["tagBatchError","tagBatchTokens","tagBatchStocks","updateTagBatchControls","renderTagBatchPreview","cancelTagBatchSearch","loadTagBatchCatalog","openTagBatch","closeTagBatch","resolveTagBatchInput","changeTagBatchInput","saveTagBatch","bindTagBatch"], []);
+install(context, ["industryColumnHeading"], []);
 context.bindTagBatch();
 const tag="消费<&>", catalog=revision=>({tags:[{name:tag,count:2}],revision});
 const a={code:"000001",name:"测试甲",initials:"CSJ"}, b={code:"000002",name:"测试乙",initials:"CSY"}, c={code:"600003",name:"模糊甲",initials:"MHJ"};

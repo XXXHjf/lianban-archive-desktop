@@ -42,6 +42,13 @@ function New-ReleaseFixture([string]$Version,[switch]$BrokenStart) {
     if ($BrokenStart) {
         [IO.File]::WriteAllText((Join-Path $project 'desktop.py'),"raise RuntimeError('intentional isolated integration fixture failure')`n")
         $bundle.sha256.PSObject.Properties['desktop.py'].Value=Get-LianbanHash (Join-Path $project 'desktop.py')
+        $maintainedPath=Join-Path $project 'BUILD_BASELINE.json'
+        if (Test-Path -LiteralPath $maintainedPath) {
+            $maintained=Get-Content -LiteralPath $maintainedPath -Raw -Encoding UTF8|ConvertFrom-Json
+            $maintained.identity_sha256.PSObject.Properties['desktop.py'].Value=Get-LianbanHash (Join-Path $project 'desktop.py')
+            [IO.File]::WriteAllText($maintainedPath,($maintained|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
+            $bundle.sha256.PSObject.Properties['BUILD_BASELINE.json'].Value=Get-LianbanHash $maintainedPath
+        }
     }
     [IO.File]::WriteAllText($bundlePath,($bundle|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
     $zip=Join-Path $integrationRoot ('release-'+$Version+'.zip')

@@ -8,13 +8,13 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 
 
 class BlacklistTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         for day in ("2026-10-15", "2026-10-16"):
             db.save_day(self.conn, day, [
                 {"code": "000001", "name": "测试甲", "boards": 1},
@@ -37,7 +37,7 @@ class BlacklistTests(unittest.TestCase):
         handler.send_response = lambda status: result.update(status=status)
         handler.send_header = lambda *args: None
         handler.end_headers = lambda: None
-        with patch.object(app.db, "connect", return_value=self.conn), \
+        with patch.object(app, "connect", return_value=self.conn), \
                 patch.object(app, "closing", side_effect=nullcontext):
             getattr(handler, "do_" + method)()
         result["body"] = json.loads(handler.wfile.getvalue())
@@ -47,7 +47,7 @@ class BlacklistTests(unittest.TestCase):
         self.assertEqual(db.get_blacklist(self.conn), {"rows": [], "total": 0})
         first = db.save_blacklist(self.conn, "000001", "add")
         self.assertTrue(first["changed"])
-        with patch.object(db, "now_iso", return_value="2099-01-01T00:00:00+08:00"):
+        with patch("lianban.research.blacklist.now_iso", return_value="2099-01-01T00:00:00+08:00"):
             duplicate = db.save_blacklist(self.conn, "000001", "add")
         self.assertFalse(duplicate["changed"])
         self.assertEqual(duplicate["rows"], first["rows"])
@@ -126,7 +126,7 @@ class BlacklistTests(unittest.TestCase):
         self.assertEqual(result["board_counts"], before["board_counts"])
         self.assertIs(db.date_view(self.conn, "2026-10-16", boards=2)["rows"][0]["blacklisted"], True)
         retained = {"code": "600001", "name": "测试乙", "boards": 3, "market": "沪市主板"}
-        with patch.object(db, "suspended_leaders", return_value=[retained]):
+        with patch("lianban.archive.queries.suspended_leaders", return_value=[retained]):
             self.assertIs(db.date_view(self.conn, "2026-10-16")["suspended_rows"][0]["blacklisted"], True)
         db.save_blacklist(self.conn, "600001", "remove")
         self.assertTrue(all(row["blacklisted"] is False for row in db.date_view(self.conn, "2026-10-16")["rows"]))
@@ -134,19 +134,19 @@ class BlacklistTests(unittest.TestCase):
     def test_membership_survives_database_reopen(self):
         # Keep fixture files; project rules prohibit bulk cleanup.
         target = Path(__file__).parent / "test-data" / ("blacklist-" + uuid4().hex + ".sqlite3")
-        conn = db.connect(target)
+        conn = db.initialize(target)
         try:
             db.save_day(conn, "2026-10-16", [{"code": "000001", "name": "持久股", "boards": 1}], "synthetic")
             db.save_blacklist(conn, "000001", "add")
         finally:
             conn.close()
-        conn = db.connect(target)
+        conn = db.initialize(target)
         try:
             self.assertEqual(db.get_blacklist(conn)["rows"][0]["code"], "000001")
             db.save_blacklist(conn, "000001", "remove")
         finally:
             conn.close()
-        conn = db.connect(target)
+        conn = db.initialize(target)
         try:
             self.assertEqual(db.get_blacklist(conn)["total"], 0)
         finally:

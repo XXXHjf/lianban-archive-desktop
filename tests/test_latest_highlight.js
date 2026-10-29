@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Exercise the actual rendering functions with synthetic fixtures, without a browser or network.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map();
 const context = vm.createContext({
   state: { meta: { latest_date: "2026-07-30" }, latestLimitUps: new Map([["000009", 3]]),
@@ -13,11 +14,11 @@ const context = vm.createContext({
   icons: {search:""},
   relationStockButton: () => "", relationDateButton: () => ""
 });
-function load(from, to) { vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context); }
-load("function escapeHTML", "function debounce");
-load("function emptyHTML", "function loadingHTML");
-load("function stockTags", "function renderTagEditor");
-load("function verificationBadge", "function renderChart");
+
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["emptyHTML"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
+install(context, ["verificationBadge","renderRoundPeer","renderCompetitionRounds","renderStockCycles","containRelationWheel","mergeRelationPeers","peerComparisonEntries","comparisonRunHTML","comparisonSegmentsHTML","loadPeerComparison","setRelationSort","relationSortButtonsHTML","relationSortNote","filteredRelationPeers","setRelationFilters","relationPeerRowsHTML","peerComparisonHTML","renderComparisonWorkspace","renderPeerSelection","renderCompetition"], []);
 assert.equal(context.normalizeRelationHeight(null),880);
 assert.equal(context.normalizeRelationHeight("1040"),1040);
 assert.equal(context.normalizeRelationHeight("500"),600);

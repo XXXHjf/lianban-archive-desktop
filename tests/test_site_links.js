@@ -1,11 +1,12 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const links = ["author_url", "author_url", "feedback_url"].map(key => ({dataset: {siteLink: key},
   removeAttribute(name) {delete this[name];}, setAttribute(name, value) {this[name] = value;}}));
 const requests = [];
 const context = vm.createContext({URL, state: {}, document: {querySelectorAll() {return links;}},
   request: () => new Promise((resolve, reject) => requests.push({resolve, reject}))});
-vm.runInContext(source.slice(source.indexOf("function validSiteLink"), source.indexOf("async function openAnnouncement")), context);
+install(context, ["validSiteLink","renderSiteLinks","loadSiteLinks"], []);
 (async () => {
   const initial = context.loadSiteLinks();
   requests[0].resolve({links: {author_url: "https://www.tgb.cn/blog/5894557", feedback_url: ""}});

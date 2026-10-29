@@ -1,13 +1,14 @@
+const { install } = require('./frontend-harness.cjs');
 // Full note histories are fetched on hover, escaped, bounded and protected from stale replies.
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const tooltip = {innerHTML:"",hidden:true,style:{},scrollTop:0,getBoundingClientRect:()=>({width:560,height:300})};
 const pending=[];
 const context=vm.createContext({$:()=>tooltip,state:{requests:{}},URLSearchParams,setTimeout,clearTimeout,
   window:{innerWidth:1236,innerHeight:1044},
   request:(route,channel)=>new Promise((resolve,reject)=>pending.push({route,channel,resolve,reject}))});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"),source.indexOf("function textValue")),context);
-vm.runInContext(source.slice(source.indexOf("function hideStockNoteTooltip"),source.indexOf("async function openStockNoteEditor")),context);
+install(context, ["escapeHTML"], []);
+install(context, ["hideStockNoteTooltip","scheduleStockNoteTooltipHide","renderStockNoteTooltip","positionStockNoteTooltip","showStockNoteTooltip"], []);
 function anchor(code,filled=true){
   const attributes={};
   return {attributes,dataset:{editStockNote:code},isConnected:true,classList:{contains:()=>filled},

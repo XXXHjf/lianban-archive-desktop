@@ -14,9 +14,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
-import provider
+from lianban.adapters.providers import pools as provider
 
 
 def event(code="000001", name="测试甲", boards=1, **fields):
@@ -25,7 +25,7 @@ def event(code="000001", name="测试甲", boards=1, **fields):
 
 class ArchiveTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2025-10-14", range_end="2025-10-31")
 
     def tearDown(self):
@@ -279,9 +279,9 @@ class ArchiveTests(unittest.TestCase):
         handler.send_response = lambda status: response.update(status=status)
         handler.send_header = lambda key, value: response["headers"].update({key: value})
         handler.end_headers = lambda: None
-        request_conn = db.connect(":memory:")
+        request_conn = db.initialize(":memory:")
         self.conn.backup(request_conn)
-        with patch.object(app.db, "connect", return_value=request_conn):
+        with patch.object(app, "connect", return_value=request_conn):
             handler.do_GET()
         response["body"] = handler.wfile.getvalue()
         return response
@@ -457,7 +457,7 @@ class ProviderTests(unittest.TestCase):
                 self.assertEqual(result.status, "ok")
                 self.assertEqual([(row["code"], row["date"]) for row in result.records], [("000001", day)])
                 self.assertIn(code, result.note)
-                with db.connect(":memory:") as conn:
+                with db.initialize(":memory:") as conn:
                     db.save_day(conn, day, result.records, result.source, note=result.note)
                     saved = conn.execute("SELECT count,note FROM days WHERE date=?", (day,)).fetchone()
                     self.assertEqual(saved["count"], 1)

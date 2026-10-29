@@ -7,10 +7,10 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import intraday as minute
-import intraday_sources as sources
+from lianban.intraday import collection as sources
 from collect_intraday import collect, fetch_stock
 
 
@@ -29,7 +29,7 @@ class IntradayTests(unittest.TestCase):
         self.root = Path(__file__).parent / "test-data" / ("intraday-" + uuid4().hex)
         self.root.mkdir(parents=True)
         self.path = self.root / "archive.sqlite3"
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, "2026-10-21", [event()], "synthetic")
             db.save_day(conn, "2026-10-20", [event("2026-10-20")], "synthetic")
 
@@ -90,9 +90,9 @@ class IntradayTests(unittest.TestCase):
             minute.normalize_tencent(payload, event())
 
     def test_failed_or_partial_retry_preserves_a_complete_session_and_archive(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             before = [tuple(r) for r in conn.execute("SELECT * FROM events ORDER BY date")]
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             minute.save_session(conn, event(), complete_points(), "synthetic", "test.json")
             self.assertFalse(minute.save_session(conn, event(), complete_points()[1:], "partial", "partial.json"))
             minute.save_error(conn, "2026-10-21", "600001", "temporary outage")
@@ -101,7 +101,7 @@ class IntradayTests(unittest.TestCase):
             self.assertEqual((detail["status"], len(detail["points"])), ("ok", 241))
             summary = minute.overview(self.path)
             self.assertEqual((summary["date"], summary["ready"]), ("2026-10-21", 1))
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(before, [tuple(r) for r in conn.execute("SELECT * FROM events ORDER BY date")])
 
     def test_invalid_queries_and_non_pool_stock_are_rejected(self):
@@ -111,16 +111,16 @@ class IntradayTests(unittest.TestCase):
 
     def test_calendar_includes_uncached_trading_days_without_collecting_them(self):
         sources.save_catalog(self.path, [{"code": "600001", "name": "分时测试"}], 1)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.set_settings(conn, calendar_dates=["2026-10-16", "2026-10-19", "2026-10-20", "2026-10-21", "2099-01-01"])
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             minute.save_session(conn, event(), complete_points(), "synthetic", "cached.json")
-        with patch("requests.get", side_effect=AssertionError("calendar browsing must stay offline")), patch.object(minute, "_cached", wraps=minute._cached) as cached:
+        with patch("requests.get", side_effect=AssertionError("calendar browsing must stay offline")), patch("lianban.intraday.queries._cached", wraps=minute._cached) as cached:
             result = minute.overview(self.path, "2026-10-19")
         self.assertEqual(result["dates"], ["2026-10-21", "2026-10-20", "2026-10-19", "2026-10-16"])
         self.assertEqual((result["date"], result["ready"], result["missing"]), ("2026-10-19", 0, 1))
         cached.assert_called_once_with(self.path, day="2026-10-19")
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             self.assertEqual([r[0] for r in conn.execute("SELECT DISTINCT date FROM sessions")], ["2026-10-21"])
 
     def test_non_trading_and_future_dates_do_not_start_collection(self):
@@ -141,7 +141,7 @@ class IntradayTests(unittest.TestCase):
             minute.normalize_tencent(payload, event("2026-10-19"))
 
     def test_current_profile_matches_daily_search_without_recollecting_minutes(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_stock_tags(conn, "600001", ["标签甲", "<行业>"], 0)
             db.save_stock_note(conn, "600001", "独立备注\n第二行", 0)
             db.save_blacklist(conn, "600001", "add")
@@ -157,10 +157,10 @@ class IntradayTests(unittest.TestCase):
         self.assertFalse(minute.store_path(self.path).exists())
 
     def test_collector_skips_complete_data_without_upstream_calls(self):
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             minute.save_session(conn, event(), complete_points(), "synthetic", "test.json")
         sources.save_catalog(self.path, [{"code": "600001", "name": "分时测试"}, {"code": "000001", "name": "非涨停股"}], 2)
-        with patch("collect_intraday.fetch_stock", side_effect=AssertionError("must skip")):
+        with patch("lianban.intraday.batch.fetch_stock", side_effect=AssertionError("must skip")):
             report = collect(self.path, ["2026-10-21"])
         self.assertEqual(report["days"][0]["ready"], 1)
         self.assertEqual(report["days"][0]["total"], 1, "the legacy collector report covers its pool, not the whole main-board directory")
@@ -172,7 +172,7 @@ class IntradayTests(unittest.TestCase):
         bars = [f"{p['time'].replace(':', '')} 11 {i + 1} {(i + 1) * 1100}" for i, p in enumerate(complete_points())]
         payload = {"code": 0, "data": {"sh600001": {"data": [{"date": "20261021", "data": bars}]}}}
         response = SimpleNamespace(content=b"{}", raise_for_status=lambda: None, json=lambda: payload)
-        with patch("requests.get", side_effect=[requests.ConnectionError(), requests.ConnectionError(), response]), patch("collect_intraday.time.sleep"):
+        with patch("requests.get", side_effect=[requests.ConnectionError(), requests.ConnectionError(), response]), patch("lianban.intraday.batch.time.sleep"):
             results, failures = fetch_stock([event(), event("2026-10-20")], raw_dir)
         self.assertEqual((len(results), results[0][0]["date"], results[0][2]), (1, "2026-10-21", "腾讯财经分时"))
         self.assertEqual({e["date"] for e, _ in failures}, {"2026-10-20"})
@@ -186,7 +186,7 @@ class IntradayTests(unittest.TestCase):
         self.assertEqual(stock["stock"]["boards"], 0)
         self.assertEqual(stock["status"], "missing")
         self.assertTrue(stock["needs_collection"])
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM events").fetchone()[0], 2)
         with self.assertRaises(ValueError):
             sources.save_catalog(self.path, [{"code": "300001", "name": "创业板"}], 1)
@@ -197,13 +197,13 @@ class IntradayTests(unittest.TestCase):
     def test_st_is_excluded_from_lists_totals_cached_details_and_on_demand_collection(self):
         rows = [event(), {**event(), "code": "600002", "name": "历史普通股"},
                 {**event(), "code": "600003", "name": " *st 测试 "}]
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, "2026-10-21", rows, "synthetic")
         sources.save_catalog(self.path, [{"code": "600001", "name": "分时测试"},
                                         {"code": "600002", "name": "ST当前股"},
                                         {"code": "600003", "name": "当前普通股"},
                                         {"code": "000002", "name": "*ST目录股"}], 4)
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             for row in rows:
                 minute.save_session(conn, row, complete_points(), "synthetic", "cached.json")
         overview = minute.overview(self.path, "2026-10-21")
@@ -216,26 +216,26 @@ class IntradayTests(unittest.TestCase):
                 with self.subTest(code=code), self.assertRaisesRegex(ValueError, "已剔除 ST"):
                     sources.collect_requested(self.path, "2026-10-21", code, force=True)
             fetch.assert_not_called()
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0], 3)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM events WHERE date='2026-10-21'").fetchone()[0], 3)
 
     def test_st_is_also_excluded_before_the_mainboard_catalog_is_synced(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, "2026-10-21", [event(), {**event(), "code": "600002", "name": "ST测试"}], "synthetic")
         self.assertEqual([r["code"] for r in minute.overview(self.path, "2026-10-21")["rows"]], ["600001"])
         with self.assertRaisesRegex(ValueError, "已剔除 ST"):
             minute.stock_view(self.path, "2026-10-21", "600002")
 
     def test_batch_collection_skips_st_by_current_and_selected_day_names(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, "2026-10-21", [event(), {**event(), "code": "600002", "name": "*ST当日"},
                         {**event(), "code": "600003", "name": "历史普通股"}], "synthetic")
         sources.save_catalog(self.path, [{"code": "600001", "name": "分时测试"},
                                         {"code": "600002", "name": "当前普通股"},
                                         {"code": "600003", "name": " st 当前股"}], 3)
-        with patch("collect_intraday.fetch_stock", return_value=([], [])) as fetch:
+        with patch("lianban.intraday.batch.fetch_stock", return_value=([], [])) as fetch:
             report = collect(self.path, ["2026-10-21"], force=True)
         self.assertEqual(fetch.call_count, 1)
         self.assertEqual([r["code"] for r in fetch.call_args.args[0]], ["600001"])
@@ -266,13 +266,13 @@ class IntradayTests(unittest.TestCase):
         self.assertIn("未校正除权", detail["reference_basis"])
         with patch.object(sources, "fetch_json", side_effect=AssertionError("cached reads must stay offline")):
             self.assertEqual(sources.collect_requested(self.path, "2026-10-21", "000001")["status"], "ok")
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM events WHERE code='000001'").fetchone()[0], 0)
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             self.assertEqual([r[0] for r in conn.execute("SELECT DISTINCT date FROM sessions")], ["2026-10-21"], "other dates in an upstream response are not written to the cache")
 
     def test_failed_auction_does_not_destroy_complete_minutes(self):
-        with closing(minute.connect(minute.store_path(self.path))) as conn:
+        with closing(minute.initialize(minute.store_path(self.path))) as conn:
             minute.save_session(conn, event(), complete_points(), "synthetic", "existing.json")
         with patch.object(sources, "fetch_json", side_effect=ValueError("unavailable")):
             detail = sources.collect_requested(self.path, "2026-10-21", "600001")

@@ -13,7 +13,7 @@ from sync_data import archive_coverage, archive_calendar
 
 class SyncCoverageTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2023-01-01", range_end="2023-01-05",
                         calendar_dates=["2022-12-30", "2023-01-03", "2023-01-04", "2023-01-05"])
 
@@ -56,7 +56,7 @@ class SyncCoverageTests(unittest.TestCase):
         def fetch(start, end):
             spans.append((start, end))
             return [start, end], f"calendar-{len(spans)}.json"
-        with patch("sync_data.trading_dates", side_effect=fetch), patch("sync_data.time.sleep"):
+        with patch("lianban.ingestion.backfill.trading_dates", side_effect=fetch), patch("lianban.ingestion.backfill.time.sleep"):
             days, paths = archive_calendar("2019-12-01", "2026-10-15")
         self.assertEqual(spans[0][0], "2019-12-01")
         self.assertEqual(spans[-1][1], "2026-10-15")
@@ -66,7 +66,7 @@ class SyncCoverageTests(unittest.TestCase):
         self.assertEqual(len(paths), len(spans))
 
     def test_short_tail_does_not_become_a_holiday_only_request(self):
-        with patch("sync_data.trading_dates", return_value=(["2020-12-31"], "calendar.json")) as fetch:
+        with patch("lianban.ingestion.backfill.trading_dates", return_value=(["2020-12-31"], "calendar.json")) as fetch:
             days, paths = archive_calendar("2020-01-01", "2021-01-02")
         fetch.assert_called_once_with("2020-01-01", "2021-01-02")
         self.assertEqual((days, paths), (["2020-12-31"], ["calendar.json"]))

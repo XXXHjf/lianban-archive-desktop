@@ -8,13 +8,13 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 
 
 class StockNoteTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         for day in ("2026-10-15", "2026-10-16"):
             db.save_day(self.conn, day, [{"code": "601811", "name": "样本股票", "boards": 3}], "synthetic")
 
@@ -32,7 +32,7 @@ class StockNoteTests(unittest.TestCase):
         handler.send_response = lambda status: result.update(status=status)
         handler.send_header = lambda *args: None
         handler.end_headers = lambda: None
-        with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+        with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
             getattr(handler, "do_" + method)()
         return result["status"], json.loads(handler.wfile.getvalue())
 
@@ -50,10 +50,10 @@ class StockNoteTests(unittest.TestCase):
 
     def test_reopen_database_retains_note_and_clear_keeps_revision(self):
         path = Path(__file__).parent / "test-data" / ("stock-note-" + uuid4().hex + ".sqlite3")
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, "2026-10-16", [{"code": "601811", "name": "样本股票", "boards": 3}], "synthetic")
             db.save_stock_note(conn, "601811", "跨重启保留", 0)
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             self.assertEqual(db.get_stock_note(conn, "601811")["content"], "跨重启保留")
             cleared = db.save_stock_note(conn, "601811", " \n\t", 1)
             self.assertEqual((cleared["content"], cleared["revision"]), ("", 2))
@@ -125,13 +125,14 @@ class StockNoteTests(unittest.TestCase):
 
     def test_legacy_migration_preserves_content_time_revision_and_is_idempotent(self):
         path = Path(__file__).parent / "test-data" / ("note-history-migration-" + uuid4().hex + ".sqlite3")
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, "2026-10-16", [{"code": "601811", "name": "样本股票", "boards": 3}], "synthetic")
             with conn:
                 conn.execute("DELETE FROM settings WHERE key='stock_note_history'")
+                conn.execute("PRAGMA user_version=0")  # Fixture represents the unversioned legacy schema.
                 conn.execute("INSERT INTO stock_notes VALUES ('601811','旧备注\n保留换行',7,'2026-10-19T21:30:05+08:00')")
         for _ in range(2):
-            with closing(db.connect(path)) as conn:
+            with closing(db.initialize(path)) as conn:
                 note = db.get_stock_note(conn, "601811")
                 self.assertEqual((note["content"], note["revision"]), ("旧备注\n保留换行", 7))
                 self.assertEqual(len(note["entries"]), 1)
@@ -217,12 +218,12 @@ class StockNoteTests(unittest.TestCase):
 
     def test_undated_and_deleted_entries_survive_reopening(self):
         path = Path(__file__).parent / "test-data" / ("note-options-" + uuid4().hex + ".sqlite3")
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, "2026-10-16", [{"code":"601811","name":"样本股票","boards":3}], "synthetic")
             saved = db.save_stock_note(conn,"601811","重启保留的无日期备注",0,note_date="",new_entry=True)
             entry_id = saved["latest_entry_id"]
             db.change_stock_note_entry(conn,"601811",entry_id,1,"delete")
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             self.assertEqual(db.get_stock_note(conn,"601811")["entries"], [])
             restored = db.change_stock_note_entry(conn,"601811",entry_id,2,"restore")
             self.assertEqual((restored["content"],restored["entries"][0]["note_date"]), ("重启保留的无日期备注", ""))

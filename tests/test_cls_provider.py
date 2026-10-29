@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-import provider
+from lianban.adapters.providers import pools as provider
 
 
 class CurrentPoolTests(unittest.TestCase):

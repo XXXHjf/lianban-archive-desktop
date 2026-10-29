@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Exercise the real dialog workflow without changing the user's database.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map();
 const calls = [];
 let stored = false, pending = null, fail = false, dateRenders = 0;
@@ -31,12 +32,12 @@ const context = vm.createContext({
     return {rows:stored ? [{code:"600668"}] : [],total:stored ? 1 : 0};
   }, loadStock() {}, loadDate() {}
 });
-function load(from, to) { vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context); }
-load("function escapeHTML", "function textValue");
-load("function canEditBlacklist", "function blacklistError");
-load("function stockTags", "function canEditTags");
-load("function canEditTags", "function renderTagEditor");
-load("function renderTagEditor", "function renderTable");
+
+install(context, ["escapeHTML"], []);
+install(context, ["canEditBlacklist"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder"], []);
+install(context, ["canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
+install(context, ["renderTagEditor","updateTagEditorPaths","defaultEditorTags","hideTagSuggestions","matchesExistingTag","positionTagSuggestions","renderTagSuggestions","loadTagSuggestionCatalog","chooseExistingTag","onTagSuggestionInput","onTagSuggestionKeydown","updateTagEditorControls","syncTagBlacklistMembership","changeTagBlacklist","openTagEditor","addTagDraft","closeTagEditor","saveTagEditor","noteLocalDate","stockNoteFields","expandStockNoteDate","removeStockNoteDate","captureStockNoteDrafts","resizeStockNoteContents","renderStockNoteHistory","updateStockNoteControls","hideStockNoteTooltip","scheduleStockNoteTooltipHide","renderStockNoteTooltip","positionStockNoteTooltip","showStockNoteTooltip","openStockNoteEditor","closeStockNoteEditor","applyStockNoteEditorUpdate","scheduleStockNoteAutosave","flushStockNoteDrafts","finishStockNoteEditor","saveStockNoteEditor","persistStockNoteEditor","changeStockNoteEntryEditor","persistStockNoteEntryChange","stockNoteKeydown"], []);
 (async () => {
   await context.openTagEditor("600668");
   assert.equal(element("tag-blacklist").checked, false);

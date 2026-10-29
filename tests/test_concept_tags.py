@@ -11,7 +11,7 @@ from uuid import uuid4
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import concept_tags as concepts
+from lianban.profiles import concepts as concepts
 import database as db
 
 
@@ -98,7 +98,7 @@ class ConceptSourceTests(unittest.TestCase):
 
 class ConceptDatabaseTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.save_day(self.conn, "2026-10-21", [
             {"code": "000001", "name": "测试一", "boards": 2},
             {"code": "600001", "name": "测试二", "boards": 1}], "synthetic")
@@ -218,26 +218,27 @@ class ConceptDatabaseTests(unittest.TestCase):
         root = Path(__file__).parent / "test-data" / ("concept-batch-" + uuid4().hex)
         root.mkdir(parents=True)
         path = root / "archive.sqlite3"
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, "2026-10-21", [{"code": "000001", "name": "样本", "boards": 1}], "synthetic")
             db.save_stock_tags(conn, "000001", ["保留"], 0)
             db.save_default_tags(conn, [self.record()], concepts.SOURCE)
         with patch.object(concepts, "collect_stock", return_value={"code": "000001", "status": "error", "error": "offline"}):
             report = concepts.refresh(path)
         self.assertEqual(report["errors"], 1)
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             tags = db.get_stock_tags(conn, "000001")
             self.assertEqual(tags["tags"], ["保留", "机器人", "风电"])
             self.assertEqual(tags["source_tags"], ["机器人", "风电"])
             self.assertEqual(db.get_settings(conn)["concept_status"], "partial")
 
     def test_partial_refresh_waits_an_hour_and_new_stocks_trigger_supplement(self):
-        import industry
+        from lianban.runtime import metadata
+        from lianban.profiles import industry
         conn = self.conn
         refresher = concepts.Refresher(":memory:")
         db.set_settings(conn, concept_fetched_at=db.now_iso(), concept_errors=1, concept_requested=2)
-        with patch.object(industry.db, "connect", return_value=conn), patch.object(industry, "closing", side_effect=nullcontext), \
-                patch.object(industry.threading, "Thread") as worker:
+        with patch.object(metadata, "connect", return_value=conn), patch.object(metadata, "closing", side_effect=nullcontext), \
+                patch.object(metadata.threading, "Thread") as worker:
             refresher.maybe_refresh()
             worker.assert_not_called()
             db.set_settings(conn, concept_fetched_at=(datetime.now(db.TZ) - timedelta(hours=2)).isoformat())

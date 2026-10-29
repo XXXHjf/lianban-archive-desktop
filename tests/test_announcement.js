@@ -1,12 +1,13 @@
+const { install } = require('./frontend-harness.cjs');
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
-const source=fs.readFileSync(path.join(__dirname,"../web/app.js"),"utf8");
+
 const elements=new Map(),requests=[];
 function element(id){
   if(!elements.has(id))elements.set(id,{open:false,hidden:false,textContent:"",classList:{remove(){},toggle(){}},showModal(){this.open=true;}});
   return elements.get(id);
 }
 const context=vm.createContext({$:element,state:{requests:{}},request:()=>new Promise((resolve,reject)=>requests.push({resolve,reject}))});
-vm.runInContext(source.slice(source.indexOf("async function openAnnouncement"),source.indexOf('$("announcement-button").addEventListener')),context);
+install(context, ["openAnnouncement"], []);
 (async()=>{
   const empty=context.openAnnouncement();requests[0].resolve({announcement:{enabled:false,content:"private draft"}});await empty;
   assert.equal(element("announcement-dialog").open,true);

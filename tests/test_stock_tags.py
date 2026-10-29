@@ -9,13 +9,13 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 
 
 class StockTagTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         for day, boards in (("2025-10-14", 1), ("2025-10-15", 2)):
             db.save_day(self.conn, day, [{"code": "000001", "name": "测试股", "boards": boards}], "synthetic")
         self.source("银行")
@@ -128,7 +128,7 @@ class StockTagTests(unittest.TestCase):
         handler.send_response = lambda status: result.update(status=status)
         handler.send_header = lambda *args: None
         handler.end_headers = lambda: None
-        with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+        with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
             getattr(handler, "do_" + method)()
         result["body"] = json.loads(handler.wfile.getvalue())
         return result

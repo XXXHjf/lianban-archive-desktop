@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Verify blacklist mutations, errors, view state, and request concurrency using the real frontend.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
+
 const elements = new Map();
 function element(id) {
   if (!elements.has(id)) elements.set(id, {value:'', hidden:false, innerHTML:'', textContent:'', disabled:false,
@@ -29,11 +30,11 @@ const context = vm.createContext({
     return {rows,total:rows.length};
   }
 });
-function load(from,to){vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);}
-load('function escapeHTML','const RECENT_STOCKS_KEY');
-load('function marketValue','function latestLimitUp');
-load('function updateURL','function renderMeta');
-load('function stockTags','function renderStockCard');
+
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["marketValue","dateLabel"], []);
+install(context, ["updateURL","setView","canEditBlacklist","blacklistError","updateBlacklistControls","renderBlacklist","loadBlacklist","hideBlacklistSuggestions","showBlacklistSuggestions","selectBlacklistStock","searchBlacklistStocks","changeBlacklist","canManageTags","tagManagerError","updateTagManagerControls","renderTagManagerCatalog","hideManagerParentSuggestions","renderManagerParentSuggestions","chooseManagerParentTag","selectManagerTag","loadTagManager","hideManagerSuggestions","showManagerSuggestions","searchManagerStocks","refreshAfterTagWrite","removeManagerStock","addManagerStock","cancelManagerMerge","renameManagerTag","cancelManagerDelete","deleteManagerTag","openTagNodeDialog","saveManagerTagNode","openManagerTagBatch","bindTagManager","tagBatchError","tagBatchTokens","tagBatchStocks","updateTagBatchControls","renderTagBatchPreview","cancelTagBatchSearch","loadTagBatchCatalog","openTagBatch","closeTagBatch","resolveTagBatchInput","changeTagBatchInput","saveTagBatch","bindTagBatch"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups"], []);
 element('trade-date').value='2026-10-16';
 (async()=>{
   await context.loadBlacklist();

@@ -11,14 +11,14 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import tag_management as tags
 
 
 class TagManagementTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         for day in ("2026-10-20", "2026-10-21"):
             db.save_day(self.conn, day, [
                 {"code": "000001", "name": "测试甲", "boards": 1},
@@ -102,7 +102,7 @@ class TagManagementTests(unittest.TestCase):
             if len(calls) == 2:
                 raise ValueError("模拟第二只股票无法保存")
             return original(*args, **kwargs)
-        with patch.object(db, "save_stock_tags", side_effect=failing_save), self.assertRaises(ValueError):
+        with patch("lianban.research.tags.save_stock_tags", side_effect=failing_save), self.assertRaises(ValueError):
             tags.add_stocks(self.conn, "自定义", ["000002", "600003"], self.revision())
         self.assertEqual(calls, ["000002", "600003"])
         self.assertEqual(self.snapshot(), before, "the first saved stock also rolls back")
@@ -346,7 +346,7 @@ class TagManagementTests(unittest.TestCase):
         handler.send_response = lambda status: result.update(status=status)
         handler.send_header = lambda *args: None
         handler.end_headers = lambda: None
-        with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+        with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
             getattr(handler, "do_" + method)()
         result["body"] = json.loads(handler.wfile.getvalue())
         return result

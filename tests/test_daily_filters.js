@@ -1,17 +1,18 @@
+const { install } = require('./frontend-harness.cjs');
 // The checkbox's daily API query and shareable URL must retain the same state.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 let url = "";
 const context = vm.createContext({
   URLSearchParams, state: { tab:"date", boards:"2", grouping:"region", excludeST:true, excludeGEM:true },
   $: () => ({value:"2026-10-15"}), location: {pathname:"/"},
   history: { replaceState: (_a, _b, next) => { url = next; }, pushState: (_a, _b, next) => { url = next; } }
 });
-vm.runInContext(source.slice(source.indexOf("function updateURL"),source.indexOf("function setView")),context);
-vm.runInContext(source.slice(source.indexOf("function getDateQuery"),source.indexOf("function renderBoardOptions")),context);
+install(context, ["updateURL"], []);
+install(context, ["getDateQuery"], []);
 assert.equal(context.getDateQuery().get("exclude_st"), "1");
 assert.equal(context.getDateQuery().get("exclude_gem"), "1");
 assert.equal(context.getDateQuery().get("boards"), "2");

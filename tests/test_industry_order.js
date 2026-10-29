@@ -1,13 +1,14 @@
+const { install } = require('./frontend-harness.cjs');
 // Daily sector leaders take precedence over global tag popularity and first-board counts.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8");
+
 const context = vm.createContext({state: {grouping: "industry", meta: {
   latest_date: "2026-10-22", tag_order: ["首板大", "低位大", "领涨乙", "领涨甲", "领涨独立", "二板", "首板小"],
 }}});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("function debounce")), context);
-vm.runInContext(source.slice(source.indexOf("function stockTags"), source.indexOf("function renderTagEditor")), context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
 let code = 0;
 const stock = (boards, tags) => ({code: String(++code).padStart(6, "0"), name: `样本${code}`, boards, tags,
   date: "2026-10-22", registered_province: "北京"});

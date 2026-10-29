@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import database as db
-import registration
+from lianban.profiles import registration
 
 
 class RegistrationTests(unittest.TestCase):
@@ -77,7 +77,7 @@ class RegistrationTests(unittest.TestCase):
                 registration.normalize_batch({**payload, **changes}, {"832145"})
 
     def test_registration_enrichment_does_not_change_archived_events(self):
-        with closing(db.connect(":memory:")) as conn:
+        with closing(db.initialize(":memory:")) as conn:
             db.save_day(conn, "2025-10-14", [{"code": "002343", "name": "测试股份", "boards": 1}], "synthetic")
             original = dict(conn.execute("SELECT * FROM events").fetchone())
             db.save_registrations(conn, [self.record()], "synthetic", db.now_iso(), [], 1)
@@ -89,7 +89,7 @@ class RegistrationTests(unittest.TestCase):
             self.assertEqual(dict(conn.execute("SELECT * FROM events").fetchone()), original)
 
     def test_bad_snapshot_rolls_back_and_failure_keeps_registration_cache(self):
-        conn = db.connect(":memory:")
+        conn = db.initialize(":memory:")
         db.save_registrations(conn, [self.record()], "cached", "2025-10-14T00:00:00+08:00", [], 1)
         bad = self.record(code="600000")
         del bad["province"]
@@ -100,7 +100,7 @@ class RegistrationTests(unittest.TestCase):
             db.save_registrations(conn, [self.record(province="江西省南昌市测试地址")], "new", db.now_iso(), [], 1)
         refresher = registration.Refresher(":memory:")
         refresher.refresh_callback = lambda path: (_ for _ in ()).throw(OSError("offline"))
-        with patch("industry.db.connect", return_value=conn), patch("industry.closing", side_effect=nullcontext):
+        with patch("lianban.runtime.metadata.connect", return_value=conn), patch("lianban.runtime.metadata.closing", side_effect=nullcontext):
             refresher._run()
         self.assertEqual(db.get_settings(conn)["registration_status"], "error")
         self.assertNotIn("industry_status", db.get_settings(conn))
@@ -110,18 +110,19 @@ class RegistrationTests(unittest.TestCase):
     def test_legacy_database_is_cleaned_without_changing_other_tables(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "archive.sqlite3"
-            with closing(db.connect(path)) as conn:
+            with closing(db.initialize(path)) as conn:
                 db.save_day(conn, "2025-10-14", [{"code": "002343", "name": "测试股份", "boards": 1}], "synthetic")
                 db.save_stock_tags(conn, "002343", ["测试标签"], 0)
                 conn.execute("INSERT INTO stock_blacklist VALUES ('002343','2025-10-14')")
                 record = self.record(province="江西")
                 conn.execute("INSERT INTO company_registrations VALUES (?,?,?,?,?,?,?)", tuple(record[key] for key in ("code", "province", "city", "location", "address")) + ("legacy", "2025-10-14"))
                 conn.execute("DELETE FROM settings WHERE key='registration_storage'")
+                conn.execute("PRAGMA user_version=0")  # Fixture represents the unversioned legacy schema.
                 conn.commit()
                 before = {table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table}")]
                           for table in ("events", "stocks", "stock_tag_overrides", "stock_blacklist")}
             for _ in range(2):
-                with closing(db.connect(path)) as conn:
+                with closing(db.initialize(path)) as conn:
                     self.assertEqual(tuple(conn.execute("SELECT province,city,location,address FROM company_registrations").fetchone()), ("江西省", "", "", ""))
                     for table, expected in before.items():
                         self.assertEqual([tuple(row) for row in conn.execute(f"SELECT * FROM {table}")], expected)
@@ -130,12 +131,12 @@ class RegistrationTests(unittest.TestCase):
     def test_refresh_does_not_save_raw_responses(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "archive.sqlite3"
-            with closing(db.connect(path)) as conn:
+            with closing(db.initialize(path)) as conn:
                 db.save_day(conn, "2025-10-14", [{"code": "002343", "name": "测试股份", "boards": 1}], "synthetic")
-            with patch("registration._fetch_batch", return_value=[self.record()]):
+            with patch("lianban.profiles.registration._fetch_batch", return_value=[self.record()]):
                 self.assertEqual(registration.refresh(path), 1)
             self.assertFalse((Path(directory) / "raw").exists())
-            with closing(db.connect(path)) as conn:
+            with closing(db.initialize(path)) as conn:
                 self.assertEqual(tuple(conn.execute("SELECT province,city,location,address FROM company_registrations").fetchone()), ("江西省", "", "", ""))
                 self.assertEqual(db.get_settings(conn)["registration_raw_paths"], [])
 

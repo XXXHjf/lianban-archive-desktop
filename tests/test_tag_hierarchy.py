@@ -11,12 +11,12 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import database as db
 import tag_management as tags
-import app
+from lianban.interfaces.http import routes as app
 
 
 class HierarchyTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.save_day(self.conn, "2026-10-27", [{"code": code, "name": code, "boards": 1} for code in ("000001", "000002", "000003")], "synthetic")
         for code, labels in (("000001", ["机械", "人形"]), ("000002", ["仿生"]), ("000003", ["汽车"])):
             db.save_stock_tags(self.conn, code, labels, 0)
@@ -118,7 +118,7 @@ class HierarchyTests(unittest.TestCase):
             handler.send_response = lambda status: result.update(status=status)
             handler.send_header = lambda *args: None
             handler.end_headers = lambda: None
-            with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+            with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
                 handler.do_POST()
             return result["status"]
         payload = {"name": "机器人", "parent": "", "revision": self.revision()}
@@ -126,7 +126,7 @@ class HierarchyTests(unittest.TestCase):
         self.assertEqual(request(payload), 200)
         self.assertEqual(request(payload), 409)
         self.node("人形", "机器人", "parent")
-        with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+        with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
             meta = app.read_api(SimpleNamespace(db_path=":memory:", read_only=True), "/api/meta")
         self.assertIn({"name": "人形", "parent": "机器人"}, meta["tag_hierarchy"])
         self.assertFalse(meta["capabilities"]["manage_tags"])

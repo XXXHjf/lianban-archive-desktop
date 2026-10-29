@@ -1,8 +1,9 @@
+const { install } = require('./frontend-harness.cjs');
 // Tag labels share the archive order; industry columns prioritize the day's leaders.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname,"../web/app.js"),"utf8");
+
 const elements = new Map();
 function $(id) {
   if (!elements.has(id)) elements.set(id,{innerHTML:"",textContent:"",hidden:false,
@@ -10,15 +11,15 @@ function $(id) {
   return elements.get(id);
 }
 const context = vm.createContext({$,hideStockNoteTooltip(){},state:{grouping:"industry",meta:{tag_order:["大标签","小标签","自定义"],latest_date:"2026-10-21"}}});
-function load(from,to) { vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context); }
-load("function escapeHTML","function debounce");
-load("function stockTags","function renderTagEditor");
-load("function renderTagEditor","function updateTagEditorControls");
-load("function renderStockProfile","function renderStock(data)");
-load("function renderRoundPeer","function renderCompetitionRounds");
-load("function renderMinuteProfile","function renderMinuteList");
-load("function canEditBlacklist","function blacklistError");
-load("function updateBlacklistControls","async function loadBlacklist");
+
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
+install(context, ["renderTagEditor","updateTagEditorPaths","defaultEditorTags","hideTagSuggestions","matchesExistingTag","positionTagSuggestions","renderTagSuggestions","loadTagSuggestionCatalog","chooseExistingTag","onTagSuggestionInput","onTagSuggestionKeydown"], []);
+install(context, ["renderStockProfile"], []);
+install(context, ["renderRoundPeer"], []);
+install(context, ["renderMinuteProfile"], []);
+install(context, ["canEditBlacklist"], []);
+install(context, ["updateBlacklistControls","renderBlacklist"], []);
 const stock = {code:"000001",name:"样本甲",date:"2026-10-21",initials:"YBJ",tags:["自定义","小标签","大标签"],boards:4,created_at:"2026-10-21T12:00:00"};
 const before = JSON.stringify(stock);
 const ordered = html => {

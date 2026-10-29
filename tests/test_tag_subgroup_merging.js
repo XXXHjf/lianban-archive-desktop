@@ -1,13 +1,14 @@
+const { install } = require('./frontend-harness.cjs');
 // Child groups with identical stock sets share cards at every board height.
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
-const source = fs.readFileSync(require('node:path').join(__dirname, '../web/app.js'), 'utf8');
+
 const context = vm.createContext({canManageTags: () => context.state.meta.capabilities?.manage_tags !== false, state: {grouping: 'industry', meta: {
   latest_date: '2026-10-28', tag_order: ['机器人', '减速器', '轴承', '分支', '电机<标签>'],
   tag_hierarchy: [{name: '机器人', parent: ''}, {name: '减速器', parent: '机器人'},
     {name: '轴承', parent: '机器人'}, {name: '分支', parent: '机器人'}, {name: '电机<标签>', parent: '分支'}]
 }}});
-vm.runInContext(source.slice(source.indexOf('function escapeHTML'), source.indexOf('function debounce')), context);
-vm.runInContext(source.slice(source.indexOf('function stockTags'), source.indexOf('function renderTagEditor')), context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
 const stock = (code, boards, tags) => ({code, name: '同名股票', boards, tags, date: '2026-10-28', note: '保留备注'});
 const cards = (html, code) => (html.match(new RegExp(`data-card-code="${code}"`, 'g')) || []).length;
 const sections = html => (html.match(/class="matrix-tag-subgroup"/g) || []).length;

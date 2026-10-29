@@ -13,16 +13,33 @@ ROOT = Path(__file__).resolve().parent
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
-def verify():
-    bundle = json.loads((ROOT/'BUNDLE.json').read_text(encoding='utf-8'))
+def runtime_files(root=ROOT):
+    """Discover shipped code independently of the manifest, including new modules."""
+    root = Path(root)
+    names = {p.name for p in root.glob('*.py') if not p.name.startswith('.')}
+    for directory in ('lianban', 'web'):
+        for path in (root/directory).rglob('*'):
+            if path.is_file() and '__pycache__' not in path.parts and (directory == 'web' or path.suffix == '.py'):
+                names.add(path.relative_to(root).as_posix())
+    return names
+
+
+def verify(root=ROOT):
+    root = Path(root).resolve()
+    bundle = json.loads((root/'BUNDLE.json').read_text(encoding='utf-8'))
     for name, expected in bundle['sha256'].items():
-        path = (ROOT/name).resolve()
-        if not path.is_relative_to(ROOT) or not path.is_file() or sha256(path) != expected:
+        path = (root/name).resolve()
+        if not path.is_relative_to(root) or not path.is_file() or sha256(path) != expected:
             raise ValueError('Missing or changed distribution file: ' + name)
-    baseline = json.loads((ROOT/'SOURCE_BASELINE.json').read_text(encoding='utf-8'))
+    baseline = json.loads((root/'BUILD_BASELINE.json').read_text(encoding='utf-8'))
+    upstream = baseline['upstream']
+    if upstream['manifest'] != 'SOURCE_BASELINE.json' or sha256(root/'SOURCE_BASELINE.json') != upstream['sha256']:
+        raise ValueError('Upstream provenance differs from the recorded source baseline')
+    if set(baseline['identity_sha256']) != runtime_files(root):
+        raise ValueError('Runtime code or UI asset inventory differs from the build baseline')
     for name, expected in baseline['identity_sha256'].items():
-        if sha256(ROOT/name) != expected:
-            raise ValueError('Application differs from the source baseline: ' + name)
+        if name not in bundle['sha256'] or sha256(root/name) != expected:
+            raise ValueError('Application differs from the maintained build baseline: ' + name)
     return bundle
 
 def wheel_target(name, destination):

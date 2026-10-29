@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import database as db
-import suspension
+from lianban.profiles import suspension
 
 
 def payload(**changes):
@@ -21,7 +21,7 @@ def payload(**changes):
 
 class SuspensionTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2026-10-12", range_end="2026-10-16",
                         calendar_dates=["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"])
         db.save_day(self.conn, "2026-10-12", [{"code": "600001", "name": "暂停测试", "boards": 10}], "synthetic")
@@ -117,7 +117,7 @@ class SuspensionTests(unittest.TestCase):
         worker = suspension.Refresher(":memory:")
         worker._running.add("2026-10-15")
         with patch.object(suspension, "refresh", side_effect=ValueError("synthetic network failure")), \
-             patch.object(suspension.db, "connect", return_value=self.conn), \
+             patch.object(suspension, "connect", return_value=self.conn), \
              patch.object(suspension, "closing", side_effect=nullcontext):
             worker._run("2026-10-15")
         result = db.date_view(self.conn, "2026-10-15")

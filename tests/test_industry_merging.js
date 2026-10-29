@@ -1,10 +1,11 @@
+const { install } = require('./frontend-harness.cjs');
 // Identical first-board cohorts can share a presentation column without rewriting tags.
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8");
+
 const context = vm.createContext({state: {grouping: "industry", meta: {latest_date: "2026-10-26",
   tag_order: ["3D打印", "体育产业", "稀土永磁", "定制<标签>", "甲", "乙", "丙", "领涨甲", "领涨乙", "共同甲", "共同乙"]}}});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("function debounce")), context);
-vm.runInContext(source.slice(source.indexOf("function stockTags"), source.indexOf("function renderTagEditor")), context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
 const stock = (code, boards, tags) => ({code, boards, tags, name: "同名样本", date: "2026-10-26", initials: "HYW"});
 const headers = html => [...html.matchAll(/data-group-label="([^"]+)"/g)].map(match => match[1]);
 const occurrences = (html, code) => (html.match(new RegExp(`data-card-code="${code}"`, "g")) || []).length;

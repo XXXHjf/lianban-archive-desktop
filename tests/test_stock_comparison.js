@@ -1,8 +1,9 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname,"../web/app.js"),"utf8");
+
 const elements = new Map();
 const calls = [], requests = [];
 const element = id => {
@@ -16,13 +17,13 @@ const context = vm.createContext({
   chooseStock:stock=>calls.push(stock.code),
   request:(url)=>new Promise((resolve,reject)=>requests.push({url,resolve,reject}))
 });
-function load(from,to){vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);}
-load("function escapeHTML","function debounce");
-load("function emptyHTML","function loadingHTML");
-load("function stockTags","function renderStockCard");
-load("function relationStockButton","function renderChart");
-load("function renderChart","function openMethod");
-load("function handleRelationClick",'$("stock-relations").addEventListener("click", handleRelationClick)');
+
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["emptyHTML"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups"], []);
+install(context, ["relationStockButton","relationDateButton","renderRelationships","loadRelationHistory","verificationBadge","renderRoundPeer","renderCompetitionRounds","renderStockCycles","containRelationWheel","mergeRelationPeers","peerComparisonEntries","comparisonRunHTML","comparisonSegmentsHTML","loadPeerComparison","setRelationSort","relationSortButtonsHTML","relationSortNote","filteredRelationPeers","setRelationFilters","relationPeerRowsHTML","peerComparisonHTML","renderComparisonWorkspace","renderPeerSelection","renderCompetition"], []);
+install(context, ["renderChart","returnToDate","runQuery","changeQueryDate","minuteRows","minuteDates","updateMinuteDateNavigation","changeMinuteDate","navigateMinuteDate","renderMinuteProfile","renderMinuteList","updateMinuteSelection","minuteCompareStyle","renderMinuteCompareList","updateMinuteCompareSelection","renderMinuteCompareLegend","minutePointAt","updateMinuteVolumeReadings","refreshMinuteComparisonChart","loadMinuteComparison","selectMinuteComparison","clearMinuteComparisons","requestMinuteData","recordMinuteData","refreshVisibleMinuteData","minuteTimelineLiveEnabled","updateMinuteTimelineLiveStatus","minuteDisplayPoint","loadIntraday","renderMinuteStockData","loadMinuteStock","minuteChartHTML","showMinuteAuctionPoint","showMinutePoint","toggleMinuteAverage","minuteTimelineViewSnapshot","restoreMinuteTimelineView","renderMinuteTimeline","updateMinuteTimelineGuides","highlightMinuteTimelineGuide","minuteTimelineRegularEvent","minuteTimelineDayModel","minuteTimelineFirstSeal","changeMinuteTimelineSort","minuteTimelineDayPosition","minuteTimelineDayClock","minuteTimelineLaneLayout","minuteTimelineLaneHTML","renderMinuteTimelineSelection","selectMinuteTimelineDayNode","syncMinuteTimelineScroll","panMinuteTimelineDay","jumpMinuteTimelineDay","zoomMinuteTimelineDay","minuteTimelinePickerStocks","renderMinuteTimelineStockPickers","renderMinuteTimelineStockPicker","changeMinuteTimelineStockSelection","clearMinuteTimelineStockSelection","closeMinuteTimelineStockPickers","toggleMinuteTimelineStockPicker","minuteTimelineMetric","minuteTimelineClock","minuteTimelineEventOrder","toggleMinuteTimelineTags","minuteTimelineTagsHTML","updateMinuteTimelineControls","loadMinuteTimeline","changeMinuteTimelineGemFilter","stopMinuteTimelineCollection","collectMinuteTimeline","openMinuteTimelineNode"], []);
+install(context, ["handleRelationClick"], []);
 const day = (date,boards)=>({date,boards});
 const dates = ["2026-10-13","2026-10-14","2026-10-15","2026-10-16"];
 const detail = {segments:[{start:dates[0],end:dates[3],target_dates:dates.slice(2).map((d,i)=>day(d,i+1)),

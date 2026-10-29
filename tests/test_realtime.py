@@ -7,7 +7,7 @@ from unittest.mock import patch
 from uuid import uuid4
 import unittest
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import provider
 import realtime
@@ -30,7 +30,7 @@ class RealtimeTests(unittest.TestCase):
         self.now, self.day = Clock.now(db.TZ), '2026-10-27'
         self.row = {'date':self.day,'code':'600001','name':'测试股份','market':'沪市主板','boards':2,'close':11,'pct_change':10}
         realtime.initialize(self.path)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.set_settings(conn, range_start='2026-10-26',range_end='2026-10-26',calendar_dates=['2026-10-26'])
             db.save_day(conn,'2026-10-26',[{**self.row,'date':'2026-10-26','boards':1}],provider.SOURCE)
         original = app.read_api
@@ -38,11 +38,11 @@ class RealtimeTests(unittest.TestCase):
         realtime.install(app)
 
     def save(self, rows=None):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             return realtime.save_pool(conn,self.day,[self.row] if rows is None else rows,provider.CLS_SOURCE,now=self.now)
 
     def test_snapshot_and_temp_views_do_not_change_history_or_personal_edits(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_stock_tags(conn,'600001',['私有标签'],0)
             db.save_stock_note(conn,'600001','保留备注',0)
             before = db.meta(conn)
@@ -54,7 +54,7 @@ class RealtimeTests(unittest.TestCase):
             self.assertEqual(date['rows'][0]['boards'],2)
             self.assertIn('私有标签',date['rows'][0]['tags'])
             self.assertEqual(app.read_api(server,'/api/stock?code=600001')['stats']['limit_days'],1)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(db.meta(conn)['coverage'],before['coverage'])
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM events').fetchone()[0],1)
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM days').fetchone()[0],1)
@@ -72,7 +72,7 @@ class RealtimeTests(unittest.TestCase):
         for rows in [[self.row,self.row],[{**self.row,'date':'2026-10-26'}],[{**self.row,'boards':True}]]:
             with self.assertRaises(ValueError):self.save(rows)
         self.assertFalse(self.save([]))
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(len(realtime.snapshot(conn,self.day)['records']),1)
             self.assertNotIn('limit_up_reason',realtime.snapshot(conn,self.day)['records'][0])
 
@@ -96,7 +96,7 @@ class RealtimeTests(unittest.TestCase):
         with patch.object(provider,'trading_dates') as calendar, patch.object(realtime,'fetch_pool',side_effect=RuntimeError('offline')):
             realtime.refresh(self.path,now=self.now)
             calendar.assert_not_called()
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(realtime.metadata(conn)['status'],'error')
             self.assertEqual(realtime.metadata(conn)['count'],1)
 
@@ -108,7 +108,7 @@ class RealtimeTests(unittest.TestCase):
             realtime.refresh(self.path,now=after,close_archive=True)
             realtime.refresh(self.path,now=after,close_archive=True)
             fetch.assert_called_once()
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertIsNone(realtime.snapshot(conn,self.day))
             self.assertEqual(db.meta(conn)['latest_date'],self.day)
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM events').fetchone()[0],2)

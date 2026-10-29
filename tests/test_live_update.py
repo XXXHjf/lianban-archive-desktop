@@ -9,20 +9,22 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import database as db
 import live_update
-import provider
-import registration
+from lianban.ingestion import archive_update
+from lianban.runtime import metadata
+from lianban.adapters.providers import pools as provider
+from lianban.profiles import registration
 
 
 class LiveUpdateTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2026-10-13", range_end="2026-10-13",
                         calendar_dates=["2026-10-13"])
         self.row = {"date": "2026-10-13", "code": "000001", "name": "测试股份", "boards": 1,
                     "market": "深市主板", "industry": None, "close": 10.0, "pct_change": 10.0,
                     "turnover": None, "first_time": "09:30:00", "last_time": "14:00:00",
                     "open_times": 0, "limit_up_reason": "", "source": provider.SOURCE}
-        with patch.object(db, "now_iso", return_value="2026-10-13T16:00:00+08:00"):
+        with patch("lianban.archive.service.now_iso", return_value="2026-10-13T16:00:00+08:00"):
             db.save_day(self.conn, "2026-10-13", [self.row], provider.SOURCE)
         self.stop = Mock()
         self.stop.is_set.return_value = False
@@ -36,8 +38,8 @@ class LiveUpdateTests(unittest.TestCase):
                                   "empty" if empty else "ok", "synthetic", "synthetic.json")
 
     def run_refresh(self, calendar, responses, now="2026-10-15T16:00:00+08:00"):
-        with patch.object(live_update.db, "connect", return_value=self.conn), \
-             patch.object(live_update, "closing", side_effect=nullcontext), \
+        with patch.object(archive_update, "connect", return_value=self.conn), \
+             patch.object(archive_update, "closing", side_effect=nullcontext), \
              patch.object(provider, "trading_dates", return_value=(calendar, "calendar.json")) as dates, \
              patch.object(provider, "fetch_day", side_effect=lambda day, **kwargs: responses[day]) as fetch:
             live_update.refresh(":memory:", now=datetime.fromisoformat(now), stop=self.stop)
@@ -58,7 +60,7 @@ class LiveUpdateTests(unittest.TestCase):
 
     def test_1530_rechecks_today_if_a_snapshot_was_saved_before_cutoff(self):
         day = "2026-10-15"
-        with patch.object(db, "now_iso", return_value="2026-10-15T15:15:00+08:00"):
+        with patch("lianban.archive.service.now_iso", return_value="2026-10-15T15:15:00+08:00"):
             db.save_day(self.conn, day, self.result(day).records, provider.SOURCE)
         db.set_settings(self.conn, calendar_dates=["2026-10-13", day],
                         auto_update_day_checks={"2026-10-13": "2026-10-15T15:29:00+08:00",
@@ -124,8 +126,8 @@ class LiveUpdateTests(unittest.TestCase):
         self.assertEqual(row["tags"], ["自定义标签"])
 
     def test_network_failure_retries_and_preserves_confirmed_snapshot(self):
-        with patch.object(live_update.db, "connect", return_value=self.conn), \
-             patch.object(live_update, "closing", side_effect=nullcontext), \
+        with patch.object(archive_update, "connect", return_value=self.conn), \
+             patch.object(archive_update, "closing", side_effect=nullcontext), \
              patch.object(provider, "trading_dates", return_value=(["2026-10-13"], "calendar.json")), \
              patch.object(provider, "fetch_day", side_effect=provider.ProviderError("offline")):
             live_update.refresh(":memory:", now=datetime.fromisoformat("2026-10-15T16:00:00+08:00"), stop=self.stop)
@@ -136,8 +138,8 @@ class LiveUpdateTests(unittest.TestCase):
     def test_new_stocks_refresh_registration_even_if_existing_cache_is_fresh(self):
         db.set_settings(self.conn, registration_fetched_at=db.now_iso(), registration_requested=0)
         refresher = registration.Refresher(":memory:")
-        with patch("industry.db.connect", return_value=self.conn), patch("industry.closing", side_effect=nullcontext), \
-             patch("industry.threading.Thread") as worker:
+        with patch("lianban.runtime.metadata.connect", return_value=self.conn), patch("lianban.runtime.metadata.closing", side_effect=nullcontext), \
+             patch("lianban.runtime.metadata.threading.Thread") as worker:
             refresher.maybe_refresh()
         worker.assert_called_once()
 
@@ -159,7 +161,7 @@ class LiveUpdateTests(unittest.TestCase):
 
     def test_yesterdays_cls_snapshot_is_not_overwritten_by_historical_provider(self):
         day = "2026-10-15"
-        with patch.object(db, "now_iso", return_value="2026-10-15T15:30:00+08:00"):
+        with patch("lianban.archive.service.now_iso", return_value="2026-10-15T15:30:00+08:00"):
             db.save_day(self.conn, day, [{**self.row, "date": day, "boards": 11}], provider.CLS_SOURCE)
         _, fetch = self.run_refresh(["2026-10-13", day], {"2026-10-13": self.result("2026-10-13")},
                                    now="2026-10-16T15:00:00+08:00")

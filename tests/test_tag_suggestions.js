@@ -1,8 +1,9 @@
+const { install } = require('./frontend-harness.cjs');
 // Real autocomplete handlers: live fuzzy filtering, keyboard/IME, async races and drafts.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname,"../web/app.js"),"utf8");
+
 const elements = new Map(), listeners = new Map(), calls = [];
 const rect = {left:232,bottom:410,width:470};
 function $(id) {
@@ -34,11 +35,11 @@ const context=vm.createContext({$,state:{requests:{},meta:{},tagDraft:[]},URLSea
   canEditTags:()=>true,canEditBlacklist:()=>true,
   async request(url,channel) {calls.push({url,channel}); if(context.override) return context.override(url); return url==="/api/tags" ? catalog : stock;}
 });
-function load(from,to) {vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);}
-load("function escapeHTML","const RECENT_STOCKS_KEY");
-load("function stockTags","function canEditTags");
-load("function renderTagEditor","function renderTable");
-load('$("tag-new").addEventListener("input"','$("add-tag").addEventListener');
+
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder"], []);
+install(context, ["renderTagEditor","updateTagEditorPaths","defaultEditorTags","hideTagSuggestions","matchesExistingTag","positionTagSuggestions","renderTagSuggestions","loadTagSuggestionCatalog","chooseExistingTag","onTagSuggestionInput","onTagSuggestionKeydown","updateTagEditorControls","syncTagBlacklistMembership","changeTagBlacklist","openTagEditor","addTagDraft","closeTagEditor","saveTagEditor","noteLocalDate","stockNoteFields","expandStockNoteDate","removeStockNoteDate","captureStockNoteDrafts","resizeStockNoteContents","renderStockNoteHistory","updateStockNoteControls","hideStockNoteTooltip","scheduleStockNoteTooltipHide","renderStockNoteTooltip","positionStockNoteTooltip","showStockNoteTooltip","openStockNoteEditor","closeStockNoteEditor","applyStockNoteEditorUpdate","scheduleStockNoteAutosave","flushStockNoteDrafts","finishStockNoteEditor","saveStockNoteEditor","persistStockNoteEditor","changeStockNoteEntryEditor","persistStockNoteEntryChange","stockNoteKeydown"], []);
+install(context, [], ["binding083","binding075","binding076","binding077","binding078","binding079","binding080","binding081","binding082","binding084"]);
 function type(value) {$("tag-new").value=value;listeners.get("tag-new:input")();}
 function key(key,extra={}) {const event={key,preventDefault() {this.prevented=true;},stopPropagation() {this.stopped=true;},...extra};listeners.get("tag-new:keydown")(event);return event;}
 const names=()=>Array.from(context.state.tagSuggestionRows || [],tag=>tag.name);

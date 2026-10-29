@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Use the real profile renderer and save flow with an isolated editor fixture.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map();
 const calls = [];
 const element = id => {
@@ -22,14 +23,14 @@ const context = vm.createContext({
   },
   loadStock: async () => calls.push("stock"), loadDate: async () => calls.push("date")
 });
-function load(from, to) { vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context); }
-load("function escapeHTML", "function debounce");
-load("function stockTags", "function renderStockCard");
-load("function renderStockProfile", "function renderStock(data)");
-load("function updateTagEditorControls", "function syncTagBlacklistMembership");
-load("function hideTagSuggestions", "function updateTagEditorControls");
-load("function canEditBlacklist", "function blacklistError");
-load("async function saveTagEditor", "function renderTable");
+
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups"], []);
+install(context, ["renderStockProfile"], []);
+install(context, ["updateTagEditorControls"], []);
+install(context, ["hideTagSuggestions","matchesExistingTag","positionTagSuggestions","renderTagSuggestions","loadTagSuggestionCatalog","chooseExistingTag","onTagSuggestionInput","onTagSuggestionKeydown"], []);
+install(context, ["canEditBlacklist"], []);
+install(context, ["saveTagEditor","noteLocalDate","stockNoteFields","expandStockNoteDate","removeStockNoteDate","captureStockNoteDrafts","resizeStockNoteContents","renderStockNoteHistory","updateStockNoteControls","hideStockNoteTooltip","scheduleStockNoteTooltipHide","renderStockNoteTooltip","positionStockNoteTooltip","showStockNoteTooltip","openStockNoteEditor","closeStockNoteEditor","applyStockNoteEditorUpdate","scheduleStockNoteAutosave","flushStockNoteDrafts","finishStockNoteEditor","saveStockNoteEditor","persistStockNoteEditor","changeStockNoteEntryEditor","persistStockNoteEntryChange","stockNoteKeydown"], []);
 context.renderStockProfile({code:"000001", name:"测试股", initials:"CSG", registered_province:"广西壮族自治区",
   registered_address:"测试地址", tags:["染料", "纺织", "自定义<&标签"],blacklisted:true,note:"详情备注<&内容"});
 assert.ok(element("stock-profile-note").innerHTML.includes("详情备注&lt;&amp;内容"));

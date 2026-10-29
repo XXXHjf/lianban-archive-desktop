@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 
 
@@ -20,7 +20,7 @@ def event(code="600001", name="测试甲", boards=2):
 
 class RelationshipTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         self.start, self.end = "2026-07-23", "2026-07-30"
         db.set_settings(self.conn, range_start=self.start, range_end=self.end,
                         calendar_dates=["2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28",
@@ -219,9 +219,9 @@ class RelationshipTests(unittest.TestCase):
         handler.send_response = lambda status: response.update(status=status)
         handler.send_header = lambda key, value: None
         handler.end_headers = lambda: None
-        copied = db.connect(":memory:")
+        copied = db.initialize(":memory:")
         self.conn.backup(copied)
-        with patch.object(app.db, "connect", return_value=copied):
+        with patch.object(app, "connect", return_value=copied):
             handler.do_GET()
         self.assertEqual(response["status"], 200)
         result = json.loads(handler.wfile.getvalue())["relationships"]

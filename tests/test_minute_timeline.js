@@ -1,6 +1,7 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map();
 function $(id) {
   if (!elements.has(id)) elements.set(id, {value: "", textContent: "", hidden: false, innerHTML: "", setAttribute(k, v) {this[k] = v;}, append(...nodes) {nodes.forEach(node => {node.parentElement = this;});}, querySelectorAll() {return [];}, querySelector() {return null;}, focus() {this.focused = true;}});
@@ -21,11 +22,11 @@ const context = vm.createContext({$, URLSearchParams,
   selectMinuteComparison: async code => {navigation.push(code); (context.state.minuteCompareCodes ||= []).push(code);},
   updateURL() {}, renderMinuteCompareList() {}
 });
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("const RECENT_STOCKS_KEY")), context);
-vm.runInContext(source.slice(source.indexOf("function dateLabel"), source.indexOf("function latestLimitUp")), context);
-vm.runInContext(source.slice(source.indexOf("function stockTags"), source.indexOf("function applyTagOrder")), context);
-vm.runInContext(source.slice(source.indexOf("function minuteTimelineLiveEnabled"), source.indexOf("function minuteDisplayPoint")), context);
-vm.runInContext(source.slice(source.indexOf("function minuteTimelineViewSnapshot"), source.indexOf("function openMethod")), context);
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["dateLabel"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags"], []);
+install(context, ["minuteTimelineLiveEnabled","updateMinuteTimelineLiveStatus"], []);
+install(context, ["minuteTimelineViewSnapshot","restoreMinuteTimelineView","renderMinuteTimeline","updateMinuteTimelineGuides","highlightMinuteTimelineGuide","minuteTimelineRegularEvent","minuteTimelineDayModel","minuteTimelineFirstSeal","changeMinuteTimelineSort","minuteTimelineDayPosition","minuteTimelineDayClock","minuteTimelineLaneLayout","minuteTimelineLaneHTML","renderMinuteTimelineSelection","selectMinuteTimelineDayNode","syncMinuteTimelineScroll","panMinuteTimelineDay","jumpMinuteTimelineDay","zoomMinuteTimelineDay","minuteTimelinePickerStocks","renderMinuteTimelineStockPickers","renderMinuteTimelineStockPicker","changeMinuteTimelineStockSelection","clearMinuteTimelineStockSelection","closeMinuteTimelineStockPickers","toggleMinuteTimelineStockPicker","minuteTimelineMetric","minuteTimelineClock","minuteTimelineEventOrder","toggleMinuteTimelineTags","minuteTimelineTagsHTML","updateMinuteTimelineControls","loadMinuteTimeline","changeMinuteTimelineGemFilter","stopMinuteTimelineCollection","collectMinuteTimeline","openMinuteTimelineNode"], []);
 $("minute-chart").querySelector = () => ({focus() {}});
 $("minute-chart").scrollIntoView = () => {};
 

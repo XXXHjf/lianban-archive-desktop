@@ -8,7 +8,8 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import database as db
-import industry
+from lianban.runtime import metadata
+from lianban.profiles import industry
 
 
 class IndustryTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class IndustryTests(unittest.TestCase):
             industry.select_current(rows, {}, "2026-10-15")
 
     def test_current_industries_do_not_rewrite_historical_events(self):
-        with closing(db.connect(":memory:")) as conn:
+        with closing(db.initialize(":memory:")) as conn:
             db.save_day(conn, "2025-10-14", [{"code": "000001", "name": "测试股", "boards": 1}], "synthetic")
             db.save_industries(conn, [self.record()], "synthetic-current", db.now_iso(), [])
             row = db.date_view(conn, "2025-10-14")["rows"][0]
@@ -59,7 +60,7 @@ class IndustryTests(unittest.TestCase):
             self.assertIsNone(conn.execute("SELECT industry FROM events").fetchone()[0])
 
     def test_failed_snapshot_commit_preserves_old_cache(self):
-        with closing(db.connect(":memory:")) as conn:
+        with closing(db.initialize(":memory:")) as conn:
             db.save_industries(conn, [self.record()], "first", "2026-10-14T00:00:00+08:00", [])
             bad = self.record(code="600000")
             del bad["industry"]
@@ -70,12 +71,12 @@ class IndustryTests(unittest.TestCase):
 
     def test_failed_network_update_keeps_cache_and_sets_retry_delay(self):
         # In-memory SQLite avoids creating or deleting any test directories.
-        conn = db.connect(":memory:")
+        conn = db.initialize(":memory:")
         db.save_industries(conn, [self.record()], "cached", "2025-10-14T00:00:00+08:00", [])
         refresher = industry.Refresher(":memory:")
-        with patch.object(industry, "refresh", side_effect=OSError("offline")), \
-             patch.object(industry.db, "connect", return_value=conn), \
-             patch.object(industry, "closing", side_effect=nullcontext):
+        with patch.object(refresher, "refresh_callback", side_effect=OSError("offline")), \
+             patch.object(metadata, "connect", return_value=conn), \
+             patch.object(metadata, "closing", side_effect=nullcontext):
             refresher._run()
         self.assertEqual(conn.execute("SELECT industry FROM stock_industries").fetchone()[0], "银行")
         self.assertEqual(db.get_settings(conn)["industry_status"], "error")
@@ -83,12 +84,12 @@ class IndustryTests(unittest.TestCase):
         conn.close()
 
     def test_fresh_cache_and_in_progress_update_do_not_spawn_workers(self):
-        conn = db.connect(":memory:")
+        conn = db.initialize(":memory:")
         db.set_settings(conn, industry_fetched_at=db.now_iso())
         refresher = industry.Refresher(":memory:")
-        with patch.object(industry.db, "connect", return_value=conn), \
-             patch.object(industry, "closing", side_effect=nullcontext), \
-             patch.object(industry.threading, "Thread") as worker:
+        with patch.object(metadata, "connect", return_value=conn), \
+             patch.object(metadata, "closing", side_effect=nullcontext), \
+             patch.object(metadata.threading, "Thread") as worker:
             refresher.maybe_refresh()
             worker.assert_not_called()
             refresher._running = True

@@ -6,13 +6,13 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 
 
 class ComparisonTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         self.days = ["2026-10-09", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]
         db.set_settings(self.conn, calendar_dates=self.days, range_start=self.days[0], range_end=self.days[-1])
 
@@ -161,7 +161,7 @@ class ComparisonTests(unittest.TestCase):
             copied=connect(":memory:")
             self.conn.backup(copied)
             return copied
-        with patch.object(app.db,"connect",side_effect=connect_copy):
+        with patch.object(app,"connect",side_effect=connect_copy):
             response=app.read_api(SimpleNamespace(db_path=":memory:",read_only=True),"/api/comparison?code=600668&peer=000530")
             self.assertEqual(len(response["segments"]),1)
             self.assertEqual(response["segments"][0]["leader"]["code"], "300001")
@@ -183,7 +183,7 @@ class ComparisonTests(unittest.TestCase):
             self.conn.backup(copied)
             return copied
         before=[tuple(row) for row in self.conn.execute("SELECT * FROM events ORDER BY date,code")]
-        with patch.object(app.db,"connect",side_effect=connect_copy):
+        with patch.object(app,"connect",side_effect=connect_copy):
             context=SimpleNamespace(db_path=":memory:")
             full=app.read_api(context,"/api/stock?code=600668")
             filtered=app.read_api(context,"/api/stock?code=600668&exclude_latest=1")
@@ -206,7 +206,7 @@ class ComparisonTests(unittest.TestCase):
         connect=db.connect
         def connect_copy(_):
             copied=connect(":memory:");self.conn.backup(copied);return copied
-        with patch.object(app.db,"connect",side_effect=connect_copy):
+        with patch.object(app,"connect",side_effect=connect_copy):
             context=SimpleNamespace(db_path=":memory:")
             result=app.read_api(context,"/api/stock?code=600668&exclude_latest=1")
             self.assertEqual(result["relationships"]["target_limit_days"],0)

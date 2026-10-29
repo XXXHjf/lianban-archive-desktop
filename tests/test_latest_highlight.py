@@ -9,7 +9,7 @@ import database as db
 
 class LatestHighlightTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2026-07-23", range_end="2026-07-30")
 
     def tearDown(self):

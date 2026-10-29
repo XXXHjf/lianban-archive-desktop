@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Exercise the actual MRU storage and typed-query resolution flows without a browser.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), storage = new Map(), requests = [];
 const element = id => {
   if (!elements.has(id)) elements.set(id, {value:"", hidden:false,
@@ -27,10 +28,10 @@ const context = vm.createContext({
     return {stock:context.state.selectedStock,rows:[{date:"2026-10-16"}]};
   }
 });
-function load(from,to){vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);}
-load("function escapeHTML","function numberValue");
-load("const RECENT_STOCKS_KEY","function marketValue");
-load("async function loadStock","function renderStockProfile");
+
+install(context, ["escapeHTML","textValue"], []);
+install(context, ["normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock"], []);
+install(context, ["loadStock"], []);
 for(let i=0;i<12;i++)context.rememberStock({code:String(600000+i),name:`测试${i}`});
 assert.equal(context.state.recentStocks.length,10);
 assert.equal(context.state.recentStocks[0].code,"600011");

@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Protect minute viewing from stale responses, wrong routes and unsafe labels.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map();
 const htmlWrites = new Map(), failures = [];
 let listNodes = [], compareNodes = [], volumeNodes = [], stockRequests = 0;
@@ -76,12 +77,12 @@ const context = vm.createContext({
     return peerDetails.get(code) || {...detail(code, day), needs_collection: needsCollection.has(code)};
   }
 });
-function load(start, end) {vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end)), context);}
-load("function escapeHTML", "const RECENT_STOCKS_KEY");
-load("function dateLabel", "function debounce");
-load("function stockTags", "function codeDigits");
-load("function updateURL", "function canEditBlacklist");
-load("function minuteRows", "function openMethod");
+
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials"], []);
+install(context, ["updateURL","setView"], []);
+install(context, ["minuteRows","minuteDates","updateMinuteDateNavigation","changeMinuteDate","navigateMinuteDate","renderMinuteProfile","renderMinuteList","updateMinuteSelection","minuteCompareStyle","renderMinuteCompareList","updateMinuteCompareSelection","renderMinuteCompareLegend","minutePointAt","updateMinuteVolumeReadings","refreshMinuteComparisonChart","loadMinuteComparison","selectMinuteComparison","clearMinuteComparisons","requestMinuteData","recordMinuteData","refreshVisibleMinuteData","minuteTimelineLiveEnabled","updateMinuteTimelineLiveStatus","minuteDisplayPoint","loadIntraday","renderMinuteStockData","loadMinuteStock","minuteChartHTML","showMinuteAuctionPoint","showMinutePoint","toggleMinuteAverage","minuteTimelineViewSnapshot","restoreMinuteTimelineView","renderMinuteTimeline","updateMinuteTimelineGuides","highlightMinuteTimelineGuide","minuteTimelineRegularEvent","minuteTimelineDayModel","minuteTimelineFirstSeal","changeMinuteTimelineSort","minuteTimelineDayPosition","minuteTimelineDayClock","minuteTimelineLaneLayout","minuteTimelineLaneHTML","renderMinuteTimelineSelection","selectMinuteTimelineDayNode","syncMinuteTimelineScroll","panMinuteTimelineDay","jumpMinuteTimelineDay","zoomMinuteTimelineDay","minuteTimelinePickerStocks","renderMinuteTimelineStockPickers","renderMinuteTimelineStockPicker","changeMinuteTimelineStockSelection","clearMinuteTimelineStockSelection","closeMinuteTimelineStockPickers","toggleMinuteTimelineStockPicker","minuteTimelineMetric","minuteTimelineClock","minuteTimelineEventOrder","toggleMinuteTimelineTags","minuteTimelineTagsHTML","updateMinuteTimelineControls","loadMinuteTimeline","changeMinuteTimelineGemFilter","stopMinuteTimelineCollection","collectMinuteTimeline","openMinuteTimelineNode"], []);
 (async () => {
   await context.loadIntraday();
   assert.equal(context.state.tab, "intraday");

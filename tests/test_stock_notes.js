@@ -1,5 +1,6 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), requests = [], timers = new Map(), cards = [{innerHTML: ""}, {innerHTML: ""}];
 let nextTimer = 0;
 function element(id) {
@@ -32,9 +33,9 @@ const context = vm.createContext({$: element, state: {meta: {capabilities: {}}, 
     return [...cards, ...(selector === `[data-note-code="${profile["data-note-code"]}"]` ? [profile] : [])];
   }},
   request: (route, channel, options) => new Promise((resolve, reject) => requests.push({route, options, resolve, reject}))});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("function textValue")), context);
-vm.runInContext(source.slice(source.indexOf("function canEditNotes"), source.indexOf("function regionLabel")), context);
-vm.runInContext(source.slice(source.indexOf("function noteLocalDate"), source.indexOf("function renderTable")), context);
+install(context, ["escapeHTML"], []);
+install(context, ["canEditNotes","renderStockNote","renderStockHeaderNote"], []);
+install(context, ["noteLocalDate","stockNoteFields","expandStockNoteDate","removeStockNoteDate","captureStockNoteDrafts","resizeStockNoteContents","renderStockNoteHistory","updateStockNoteControls","hideStockNoteTooltip","scheduleStockNoteTooltipHide","renderStockNoteTooltip","positionStockNoteTooltip","showStockNoteTooltip","openStockNoteEditor","closeStockNoteEditor","applyStockNoteEditorUpdate","scheduleStockNoteAutosave","flushStockNoteDrafts","finishStockNoteEditor","saveStockNoteEditor","persistStockNoteEditor","changeStockNoteEntryEditor","persistStockNoteEntryChange","stockNoteKeydown"], []);
 const note = (code = "601811", content = "", revision = 0) => ({code, name: "样本股票", content, revision,
   entries:content ? [{id:1,content,occurred_at:"2026-10-23T15:30:00+08:00"}] : []});
 const submit = {preventDefault() {}};

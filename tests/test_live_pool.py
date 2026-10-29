@@ -7,12 +7,12 @@ from unittest.mock import patch
 from uuid import uuid4
 import unittest
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import intraday
-import intraday_sources
-import live_pool
-import provider
+from lianban.intraday import collection as intraday_sources
+from lianban.ingestion import live_pool
+from lianban.adapters.providers import pools as provider
 
 
 class Clock(datetime):
@@ -33,13 +33,13 @@ class LivePoolTests(unittest.TestCase):
         self.clock = patch.object(live_pool, "datetime", Clock)
         self.clock.start()
         self.addCleanup(self.clock.stop)
-        self.minute_clock = patch.object(intraday, "datetime", Clock)
+        self.minute_clock = patch("lianban.intraday.queries.datetime", Clock)
         self.minute_clock.start()
         self.addCleanup(self.minute_clock.stop)
         self.row = {"date": self.day, "code": "600001", "name": "测试股份", "boards": 2,
                     "market": "沪市主板", "close": 11, "pct_change": 10,
                     "first_time": "09:40:00", "last_time": "09:40:00", "source": provider.CLS_SOURCE}
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.set_settings(conn, range_start=self.previous, range_end=self.previous, calendar_dates=[self.previous])
             db.save_day(conn, self.previous, [{**self.row, "date": self.previous, "boards": 1}], provider.SOURCE)
 
@@ -47,18 +47,18 @@ class LivePoolTests(unittest.TestCase):
         return provider.DayResult(self.day, [self.row] if rows is None else rows, "ok", "synthetic", "test.json", provider.CLS_SOURCE)
 
     def save(self, rows=None):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             return live_pool.save_snapshot(conn, self.result(rows), now=self.now)
 
     def test_snapshot_replaces_opened_stocks_without_entering_history_or_changing_edits(self):
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             before = db.meta(conn)
             db.save_stock_tags(conn, "600001", ["自定义"], 0)
             db.save_stock_note(conn, "600001", "保留备注", 0)
             history = db.stock_view(conn, "600001", self.previous, self.previous)
         self.save()
         self.save([{**self.row, "code": "600002", "boards": 1}])
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             after = db.meta(conn)
             pool = live_pool.snapshot(conn, self.day)
             self.assertEqual([r["code"] for r in pool["records"]], ["600002"])
@@ -98,14 +98,14 @@ class LivePoolTests(unittest.TestCase):
         for rows in [[self.row, self.row], [{**self.row, "date": self.previous}], [{**self.row, "boards": 0}]]:
             with self.subTest(rows=rows), self.assertRaises(ValueError):
                 self.save(rows)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(live_pool.snapshot(conn, self.day)["records"][0]["boards"], 2)
             with self.assertRaises(ValueError):
                 live_pool.save_snapshot(conn, provider.DayResult(self.previous, [self.row], "ok", "", ""), now=self.now)
 
     def test_close_supersedes_snapshot_and_counts_the_day_once(self):
         self.save()
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, self.day, [{**self.row, "boards": 3}], provider.CLS_SOURCE)
             db.set_settings(conn, range_end=self.day)
             self.assertIsNone(live_pool.snapshot(conn, self.day))
@@ -129,7 +129,7 @@ class LivePoolTests(unittest.TestCase):
         calendar, fetch = self.run_refresh(self.result([{**self.row, "boards": 3}]))
         calendar.assert_not_called()
         fetch.assert_called_once()
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(live_pool.snapshot(conn, self.day)["records"][0]["boards"], 3)
 
     def test_holiday_and_outside_session_never_fetch_pool(self):
@@ -144,11 +144,11 @@ class LivePoolTests(unittest.TestCase):
     def test_empty_and_failure_keep_last_success_and_expose_state(self):
         self.save()
         self.run_refresh(provider.DayResult(self.day, [], "empty", "waiting", "empty.json"))
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertEqual(live_pool.metadata(conn)["status"], "waiting")
             self.assertEqual(live_pool.metadata(conn)["count"], 1)
         self.run_refresh(error=provider.ProviderError("offline"))
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             meta = live_pool.metadata(conn)
             self.assertEqual(meta["status"], "error")
             self.assertEqual(meta["count"], 1)
@@ -158,7 +158,7 @@ class LivePoolTests(unittest.TestCase):
     def test_calendar_failure_retries_instead_of_marking_holiday(self):
         with patch.object(provider, "trading_dates", side_effect=provider.ProviderError("calendar offline")):
             live_pool.refresh(self.path, now=self.now)
-        with closing(db.connect(self.path)) as conn:
+        with closing(db.initialize(self.path)) as conn:
             self.assertNotIn("live_calendar_date", db.get_settings(conn))
         calendar, fetch = self.run_refresh()
         calendar.assert_called_once()
@@ -184,29 +184,29 @@ class LivePoolTests(unittest.TestCase):
     def test_current_minute_cache_advances_without_truncation_and_deduplicates_collection(self):
         self.save()
         points = [{"time": "09:30", "price": 11, "volume": 100, "amount": 1100}]
-        with closing(intraday.connect(intraday.store_path(self.path))) as conn:
-            with patch.object(db, "now_iso", return_value="2026-10-27T09:58:00+08:00"):
+        with closing(intraday.initialize(intraday.store_path(self.path))) as conn:
+            with patch("lianban.intraday.store.now_iso", return_value="2026-10-27T09:58:00+08:00"):
                 intraday.save_session(conn, self.row, points, "synthetic", "old.json")
             conn.execute("INSERT INTO auctions VALUES (?,?,?,?,?,?,?,?)", (self.day, "600001", "unavailable", "[]", "", "synthetic", "", ""))
             conn.commit()
         payload = {"code": 0, "data": {"sh600001": {"data": [{"date": "20261027", "data": ["0930 11 100 1100", "0931 11 200 2200"]}]}}}
-        with patch.object(intraday_sources, "fetch_json", return_value=(payload, "new.json")) as fetch, patch.object(db, "now_iso", return_value=self.now.isoformat()):
+        with patch.object(intraday_sources, "fetch_json", return_value=(payload, "new.json")) as fetch, patch("lianban.intraday.store.now_iso", return_value=self.now.isoformat()):
             detail = intraday_sources.collect_requested(self.path, self.day, "600001")
             self.assertEqual(len(detail["points"]), 2)
             intraday_sources.collect_requested(self.path, self.day, "600001")
             fetch.assert_called_once()
-        with closing(intraday.connect(intraday.store_path(self.path))) as conn:
+        with closing(intraday.initialize(intraday.store_path(self.path))) as conn:
             self.assertFalse(intraday.save_session(conn, self.row, points, "synthetic", "truncated.json"))
         self.assertEqual(len(intraday.stock_view(self.path, self.day, "600001", include_live=True)["points"]), 2)
 
     def test_failed_minute_refresh_preserves_series_and_backs_off_until_next_minute(self):
         self.save()
-        with closing(intraday.connect(intraday.store_path(self.path))) as conn:
-            with patch.object(db, "now_iso", return_value="2026-10-27T09:58:00+08:00"):
+        with closing(intraday.initialize(intraday.store_path(self.path))) as conn:
+            with patch("lianban.intraday.store.now_iso", return_value="2026-10-27T09:58:00+08:00"):
                 intraday.save_session(conn, self.row, [{"time": "09:30", "price": 11, "volume": 100, "amount": 1100}], "synthetic", "old.json")
             conn.execute("INSERT INTO auctions VALUES (?,?,?,?,?,?,?,?)", (self.day, "600001", "unavailable", "[]", "", "synthetic", "", ""))
             conn.commit()
-        with patch.object(intraday_sources, "fetch_json", side_effect=ValueError("offline")) as fetch, patch.object(db, "now_iso", return_value=self.now.isoformat()):
+        with patch.object(intraday_sources, "fetch_json", side_effect=ValueError("offline")) as fetch, patch("lianban.intraday.store.now_iso", return_value=self.now.isoformat()):
             detail = intraday_sources.collect_requested(self.path, self.day, "600001")
             self.assertEqual(len(detail["points"]), 1)
             self.assertIn("offline", detail["refresh_error"])

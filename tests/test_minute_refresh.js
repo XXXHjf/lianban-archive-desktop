@@ -1,6 +1,7 @@
+const { install } = require('./frontend-harness.cjs');
 // Live UI polling must preserve navigation, pending work, series and user state.
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), requests = [], renders = [], records = [];
 function $(id) {
   if (!elements.has(id)) elements.set(id, {value: "", textContent: "", scrollTop: 125, scrollLeft: 88,
@@ -21,9 +22,9 @@ const context = vm.createContext({$, Date: {now: () => clock}, URLSearchParams,
   renderMinuteStockData: data => renders.push(data.stock.code), showMinutePoint: index => renders.push(index), showMinuteAuctionPoint() {},
   refreshMinuteComparisonChart() {}, loadMinuteTimeline: async () => renders.push("timeline")
 });
-function load(from, to) {vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context);}
-load("async function requestMinuteData", "function recordMinuteData");
-load("async function refreshVisibleMinuteData", "function minuteDisplayPoint");
+
+install(context, ["requestMinuteData"], []);
+install(context, ["refreshVisibleMinuteData","minuteTimelineLiveEnabled","updateMinuteTimelineLiveStatus"], []);
 function normalResponder(url, channel, options) {
   if (channel === "minute-live-overview") return {date: day, rows: [], dates: [previous, day]};
   if (url === "/api/intraday/collect") return detail(JSON.parse(options.body).code);
@@ -71,7 +72,7 @@ function normalResponder(url, channel, options) {
   Object.assign(context, {renderMeta(meta) {meta.query_dates = [...new Set([...meta.dates, ...(meta.live?.dates || [])])].sort();},
     loadSiteLinks() {}, updateDateNavigation() {}, renderDateStatus() {}, loadDate: options => dateLoads.push(options), loadStock: () => stockLoads++,
     loadIntraday() {}, loadBlacklist() {}, clearTimeout() {}, setTimeout() {}});
-  load("async function refreshMeta", "function updateDateNavigation");
+  install(context, ["refreshMeta"], []);
   context.state.tab = "date"; context.state.meta = {...base, query_dates: [previous]}; $("trade-date").value = previous;
   nextMeta = {...base, live: {enabled: true, today: day, date: day, dates: [day], fetched_at: "10:00"}};
   responder = () => nextMeta;
@@ -89,7 +90,7 @@ function normalResponder(url, channel, options) {
   assert.equal(stockLoads, 0, "provisional updates cannot alter historical competition");
   context.Date = Date;
   context.dateLabel = value => value;
-  load("function renderDateStatus", "function updateIndustryNavigation");
+  install(context, ["renderDateStatus"], []);
   const provisional = {date: day, provisional: true, fetched_at: `${day}T10:02:00+08:00`};
   context.state.meta.live.status = "error";
   context.renderDateStatus(provisional);

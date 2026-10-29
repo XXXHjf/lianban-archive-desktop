@@ -57,7 +57,7 @@ def create_database(source, destination, source_note):
     with destination.open("xb"):
         pass
     days = sorted({row["date"] for row in records})
-    with closing(db.connect(destination)) as conn:
+    with closing(db.initialize(destination)) as conn:
         db.set_settings(conn, range_start=days[0], range_end=days[-1],
                         source="个人手工复盘记录", coverage_status="partial",
                         scope_note="仅包含人工录入的股票与日期，未收录不代表未涨停或全市场无记录。",

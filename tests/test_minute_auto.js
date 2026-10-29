@@ -1,5 +1,6 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const day = "2026-10-27", codes = Array.from({length: 8}, (_, i) => String(600001 + i));
 
 function harness({beforePost, freshPrimary = true, editable = true} = {}) {
@@ -26,8 +27,8 @@ function harness({beforePost, freshPrimary = true, editable = true} = {}) {
     showMinutePoint(index) {positions.push(index);}, showMinuteAuctionPoint() {}, refreshMinuteComparisonChart() {},
     updateMinuteTimelineControls() {context.updateMinuteTimelineLiveStatus();}
   });
-  vm.runInContext(source.slice(source.indexOf("async function requestMinuteData"), source.indexOf("function recordMinuteData")), context);
-  vm.runInContext(source.slice(source.indexOf("async function refreshVisibleMinuteData"), source.indexOf("function minuteDisplayPoint")), context);
+  install(context, ["requestMinuteData"], []);
+  install(context, ["refreshVisibleMinuteData","minuteTimelineLiveEnabled","updateMinuteTimelineLiveStatus"], []);
   return {context, $, posts, gets, records, positions, advance(ms) {now += ms;}, peak: () => peak, renders: () => renders};
 }
 

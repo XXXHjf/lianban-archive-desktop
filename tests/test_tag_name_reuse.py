@@ -12,7 +12,7 @@ import tag_management as tags
 
 class DetachedTagNameTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.save_day(self.conn, "2026-10-28", [
             {"code": "603006", "name": "联明股份", "boards": 1},
             {"code": "000002", "name": "测试乙", "boards": 2},

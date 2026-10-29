@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // Exercise real route loaders against a browser-like back/forward stack.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), listeners = new Map(), entries = ["/"], visits = [], requests = [];
 const location = {pathname: "/", search: ""};
 let index = 0, replacements = 0, renderedDate = null, pendingStock = null;
@@ -53,17 +54,17 @@ const context = vm.createContext({
     throw Error(`Unexpected request: ${url}`);
   }
 });
-function load(from, to) {vm.runInContext(source.slice(source.indexOf(from), source.indexOf(to)), context);}
-load("function updateURL", "function canEditBlacklist");
-load("async function loadBlacklist", "function hideBlacklistSuggestions");
-load("function getDateQuery", "function renderBoardOptions");
-load("async function loadDate", "function renderDate");
-load("function chooseStock", "function renderStockProfile");
-load("function renderStock(data)", "function relationStockButton");
-load("function returnToDate", "function runQuery");
-load("async function restoreFromURL", "async function initialize");
-vm.runInContext(source.split(/\r?\n/).find(line => line.startsWith('window.addEventListener("popstate"')), context);
-load('$("nav-search").addEventListener', '$("nav-blacklist").addEventListener');
+
+install(context, ["updateURL","setView"], []);
+install(context, ["loadBlacklist"], []);
+install(context, ["getDateQuery"], []);
+install(context, ["loadDate"], []);
+install(context, ["chooseStock","loadStock"], []);
+install(context, ["renderStock"], []);
+install(context, ["returnToDate"], []);
+install(context, ["restoreFromURL"], []);
+install(context, [], ["binding138"]);
+install(context, [], ["binding013"]);
 async function traverse(offset) {
   assert.ok(index + offset >= 0 && index + offset < entries.length);
   index += offset;

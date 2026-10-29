@@ -1,9 +1,10 @@
+const { install } = require('./frontend-harness.cjs');
 // A solitary stock's complete tag union must match only itself over the full day.
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8");
+
 const context = vm.createContext({state: {grouping: "industry", meta: {latest_date: "2026-10-26", tag_order: ["主线", "第二主线"]}}});
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("function debounce")), context);
-vm.runInContext(source.slice(source.indexOf("function stockTags"), source.indexOf("function renderTagEditor")), context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
 const stock = (code, boards, tags) => ({code, boards, tags, name: `样本${code}`, date: "2026-10-26", registered_province: "北京"});
 const rows = [stock("000001", 5, ["主线", "领涨私有"]), stock("000002", 1, ["主线", "唯一甲", "唯一乙"]),
   stock("000003", 1, ["主线", "第二主线"]), stock("000004", 1, ["第二主线", "独有丙"]),

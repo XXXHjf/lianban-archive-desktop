@@ -1,8 +1,9 @@
+const { install } = require('./frontend-harness.cjs');
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname,"../web/app.js"),"utf8");
+
 const elements = new Map(), requests = [], errors = [];
 const full = {range_end:"2026-10-16",target_limit_days:22};
 const filtered = {range_end:"2026-10-15",target_limit_days:21};
@@ -16,7 +17,7 @@ const context = vm.createContext({URLSearchParams,$:element,
   renderRelationships(data){context.state.relationships=data;},
   request:(url,channel)=>new Promise((resolve,reject)=>requests.push({url,channel,resolve,reject}))
 });
-vm.runInContext(source.slice(source.indexOf("async function loadRelationHistory"),source.indexOf("function verificationBadge")),context);
+install(context, ["loadRelationHistory"], []);
 (async()=>{
   const original=JSON.stringify(context.state.stockData);
   const first=context.loadRelationHistory();

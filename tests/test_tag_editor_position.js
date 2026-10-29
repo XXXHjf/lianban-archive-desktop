@@ -1,6 +1,7 @@
+const { install } = require('./frontend-harness.cjs');
 // Full hierarchy paths and an actual quiet save/refresh at the end of the matrix.
 const assert=require('node:assert/strict'), fs=require('node:fs'), vm=require('node:vm');
-const source=fs.readFileSync(require('node:path').join(__dirname,'../web/app.js'),'utf8');
+
 const elements=new Map(), listeners=new Map(), calls=[];
 let board={scrollLeft:8500}, resolveDate, failed=false, paths=[];
 const view={scrollX:0,scrollY:4600,scrollTo(position){this.scrollX=position.left;this.scrollY=position.top;}};
@@ -32,11 +33,8 @@ const context=vm.createContext({$,URLSearchParams,window:view,state:{tab:'date',
     if(url.startsWith('/api/date?'))return new Promise(resolve=>{resolveDate=resolve;});
     throw new Error(url);
   }});
-for(const [from,to] of [['function escapeHTML','function debounce'],['function stockTags','function canEditTags'],
-  ['function renderTagEditor','function renderTable'],['async function loadDate','function renderDate(data)']]){
-  vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);
-}
-vm.runInContext(source.slice(source.indexOf('$("tag-editor-list").addEventListener("input"'),source.indexOf('$("tag-editor-list").addEventListener("click"')),context);
+install(context, ["escapeHTML", "textValue", "numberValue", "normalizeRelationHeight", "readRelationHeight", "applyRelationHeight", "normalizeRecentStocks", "readRecentStocks", "renderRecentStocks", "rememberStock", "marketValue", "dateLabel", "latestLimitUp", "prioritizeLatest", "latestLimitBadge", "latestPriorityNote", "stockTags", "allStockTags", "tagHierarchy", "tagAncestors", "tagRoot", "renderHierarchyStockGroups", "tagRanks", "compareTags", "sortedTags", "applyTagOrder", "refreshTagOrder", "renderTagEditor", "updateTagEditorPaths", "defaultEditorTags", "hideTagSuggestions", "matchesExistingTag", "positionTagSuggestions", "renderTagSuggestions", "loadTagSuggestionCatalog", "chooseExistingTag", "onTagSuggestionInput", "onTagSuggestionKeydown", "updateTagEditorControls", "syncTagBlacklistMembership", "changeTagBlacklist", "openTagEditor", "addTagDraft", "closeTagEditor", "saveTagEditor", "noteLocalDate", "stockNoteFields", "expandStockNoteDate", "removeStockNoteDate", "captureStockNoteDrafts", "resizeStockNoteContents", "renderStockNoteHistory", "updateStockNoteControls", "hideStockNoteTooltip", "scheduleStockNoteTooltipHide", "renderStockNoteTooltip", "positionStockNoteTooltip", "showStockNoteTooltip", "openStockNoteEditor", "closeStockNoteEditor", "applyStockNoteEditorUpdate", "scheduleStockNoteAutosave", "flushStockNoteDrafts", "finishStockNoteEditor", "saveStockNoteEditor", "persistStockNoteEditor", "changeStockNoteEntryEditor", "persistStockNoteEntryChange", "stockNoteKeydown", "loadDate"]);
+install(context, [], ["binding073"]);
 $('trade-date').value='2026-10-28';$('tag-dialog').open=true;$('date-table-area').innerHTML='original matrix';
 context.renderTagEditor();
 assert.equal(paths.find(p=>p.dataset.tagPath==='0').hidden,true,'explicit root remains its own editable membership');

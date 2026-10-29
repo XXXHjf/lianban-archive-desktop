@@ -1,13 +1,14 @@
+const { install } = require('./frontend-harness.cjs');
 // Parent grouping uses full membership; chips show each stock's most specific tags.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const source=fs.readFileSync(path.join(__dirname,'../web/app.js'),'utf8');
+
 const elements=new Map();
 function $(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',hidden:false,value:'',classList:{toggle(){}},setAttribute(){},removeAttribute(){},querySelectorAll:()=>[]});return elements.get(id);}
 const context=vm.createContext({$,canManageTags:()=>true,hideStockNoteTooltip(){},state:{grouping:'industry',meta:{latest_date:'2026-10-27',tag_order:['机器人','机械','人形','仿生','汽车'],
   tag_hierarchy:[{name:'机器人',parent:''},{name:'机械',parent:'机器人'},{name:'人形',parent:'机械'},{name:'仿生',parent:'机器人'}]}}});
-vm.runInContext(source.slice(source.indexOf('function escapeHTML'),source.indexOf('function debounce')),context);
-vm.runInContext(source.slice(source.indexOf('function stockTags'),source.indexOf('function renderTagEditor')),context);
-vm.runInContext(source.slice(source.indexOf('function renderMinuteProfile'),source.indexOf('function renderMinuteList')),context);
+install(context, ["escapeHTML","textValue","numberValue","normalizeRelationHeight","readRelationHeight","applyRelationHeight","normalizeRecentStocks","readRecentStocks","renderRecentStocks","rememberStock","marketValue","dateLabel","latestLimitUp","prioritizeLatest","latestLimitBadge","latestPriorityNote"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder","canEditTags","canEditNotes","renderStockNote","renderStockHeaderNote","regionLabel","nameInitials","codeDigits","orderMatchingGroups","orderPinyinGroups","orderCodeGroups","renderStockCard","renderSuspensionNote","renderSuspendedLeaders","industryTagBoardCounts","industryGroupRank","industryColumnHeading","mergeIdenticalFirstBoardGroups","renderIndustryColumns"], []);
+install(context, ["renderMinuteProfile"], []);
 const row=(code,boards,tags)=>({code,name:code,boards,tags,date:'2026-10-27',registered_province:'北京'});
 const rows=[row('000001',4,['机器人','机械','人形']),row('000002',1,['仿生']),row('000003',1,['机器人']),row('000004',1,['汽车'])];
 const before=JSON.stringify(rows);

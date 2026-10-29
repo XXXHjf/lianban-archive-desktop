@@ -32,7 +32,7 @@ def build(source, output):
     src = sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)
     src.row_factory = sqlite3.Row
     src.execute('BEGIN')
-    dst = db.connect(clean)
+    dst = db.initialize(clean)
     counts = {}
     try:
         for table in TABLES:

@@ -9,14 +9,14 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import tag_management as tags
 
 
 class TagPathInputTests(unittest.TestCase):
     def setUp(self):
-        self.conn = db.connect(":memory:")
+        self.conn = db.initialize(":memory:")
         db.save_day(self.conn, "2026-10-28", [{"code": "000001", "name": "样本", "boards": 1}], "synthetic")
         db.save_stock_tags(self.conn, "000001", ["原有"], 0)
         tags.save_node(self.conn, "机器人", "", tags.catalog(self.conn)["revision"])
@@ -99,7 +99,7 @@ class TagPathInputTests(unittest.TestCase):
             handler.send_response = lambda status: result.update(status=status)
             handler.send_header = lambda *args: None
             handler.end_headers = lambda: None
-            with patch.object(app.db, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
+            with patch.object(app, "connect", return_value=self.conn), patch.object(app, "closing", side_effect=nullcontext):
                 handler.do_POST()
             return result["status"]
         self.assertEqual(request(True), 403)

@@ -1,6 +1,7 @@
+const { install } = require('./frontend-harness.cjs');
 // Parent picker fuzzy matching and keyboard selection never write until submit.
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
-const source = fs.readFileSync(require('node:path').join(__dirname, '../web/app.js'), 'utf8');
+
 const elements = new Map(), listeners = new Map(), requests = [];
 function $(id) {
   if (!elements.has(id)) {
@@ -24,10 +25,7 @@ const context=vm.createContext({$,URLSearchParams,state:{requests:{},tab:'tags',
   tagManagerMembers:{rows:[],revision:'r1'},meta:{capabilities:{manage_tags:true}}},
   canEditTags:()=>true,debounce:fn=>fn,emptyHTML:()=>'',
   async request(url,channel,options){requests.push({url,body:JSON.parse(options.body)});return {name:'当前标签',catalog};}});
-for (const [from,to] of [['function escapeHTML','const RECENT_STOCKS_KEY'], ['function canManageTags','function renderMeta'],
-  ['function stockTags','function canEditTags'], ['function matchesExistingTag','function positionTagSuggestions']]) {
-  vm.runInContext(source.slice(source.indexOf(from),source.indexOf(to)),context);
-}
+install(context, ["escapeHTML", "textValue", "numberValue", "canManageTags", "tagManagerError", "updateTagManagerControls", "renderTagManagerCatalog", "hideManagerParentSuggestions", "renderManagerParentSuggestions", "chooseManagerParentTag", "selectManagerTag", "loadTagManager", "hideManagerSuggestions", "showManagerSuggestions", "searchManagerStocks", "refreshAfterTagWrite", "removeManagerStock", "addManagerStock", "cancelManagerMerge", "renameManagerTag", "cancelManagerDelete", "deleteManagerTag", "openTagNodeDialog", "saveManagerTagNode", "openManagerTagBatch", "bindTagManager", "tagBatchError", "tagBatchTokens", "tagBatchStocks", "updateTagBatchControls", "renderTagBatchPreview", "cancelTagBatchSearch", "loadTagBatchCatalog", "openTagBatch", "closeTagBatch", "resolveTagBatchInput", "changeTagBatchInput", "saveTagBatch", "bindTagBatch", "stockTags", "allStockTags", "tagHierarchy", "tagAncestors", "tagRoot", "renderHierarchyStockGroups", "tagRanks", "compareTags", "sortedTags", "applyTagOrder", "refreshTagOrder", "matchesExistingTag"]);
 context.refreshAfterTagWrite=async()=>{};
 context.applyTagOrder(catalog); context.bindTagManager(); context.renderTagManagerCatalog();
 const input=$('tag-manager-parent'), popup=$('tag-manager-parent-suggestions');

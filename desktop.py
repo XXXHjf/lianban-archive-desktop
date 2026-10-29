@@ -21,6 +21,10 @@ PROJECT_KEY = hashlib.sha256(str(ROOT).casefold().encode('utf-8')).hexdigest()
 def serve(port, no_updates=False):
     import app
     import published_tags
+    from contextlib import closing
+    import database as db
+    with closing(db.initialize(ROOT/'data/archive.sqlite3')):
+        pass
     published_tags.apply(ROOT/'data/archive.sqlite3')
     published_tags.initialize_catalog(ROOT/'data/archive.sqlite3')
     session_file = ROOT/'data/desktop-session.json'
@@ -71,25 +75,11 @@ def serve(port, no_updates=False):
                 return
             return super().do_POST()
 
-    app.Handler = DesktopHandler
-    class OfflineRefresher:
-        def __init__(self, *args, **kwargs): pass
-        def maybe_refresh(self, *args, **kwargs): pass
-        def start(self): pass
-        def stop(self): pass
-    # Published labels remain the default; provider refreshes cannot replace them.
-    app.concept_tags.Refresher = OfflineRefresher
-    if no_updates:
-        app.industry.Refresher = OfflineRefresher
-        app.registration.Refresher = OfflineRefresher
-        app.suspension.Refresher = OfflineRefresher
-        app.live_update.Refresher = OfflineRefresher
-        app.live_pool.Refresher = OfflineRefresher
-    sys.argv = [str(ROOT/'app.py'), '--port', str(port), '--db', str(ROOT/'data/archive.sqlite3')]
     session['state'] = 'running'
     session_file.write_text(json.dumps(session), encoding='utf-8')
     try:
-        app.main()
+        app.run(ROOT/'data/archive.sqlite3', port, handler_class=DesktopHandler,
+                include_concepts=False, no_updates=no_updates)
     finally:
         session['state'] = 'stopped'
         session_file.write_text(json.dumps(session), encoding='utf-8')

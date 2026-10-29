@@ -9,12 +9,12 @@ import threading
 from unittest.mock import patch
 from uuid import uuid4
 
-import app
+from lianban.interfaces.http import routes as app
 import database as db
 import intraday
 import intraday_sources
-import intraday_timeline as timeline
-import provider
+from lianban.intraday import timeline
+from lianban.adapters.providers import pools as provider
 
 
 def stock(code="000001", name="测试股", boards=2, **extra):
@@ -54,7 +54,7 @@ class TimelineTests(unittest.TestCase):
         root.mkdir(parents=True)
         path, day = root / "archive.sqlite3", "2026-10-23"
         originals = [stock(boards=4), stock("600001"), stock("600002", first_time="09:40:01")]
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, day, originals, "财联社公开涨停池")
             before = [dict(r) for r in conn.execute("SELECT * FROM events ORDER BY code")]
         result = provider.DayResult(day, [stock(first_time="09:30:33", last_time="09:31:30"),
@@ -75,7 +75,7 @@ class TimelineTests(unittest.TestCase):
         self.assertEqual(pool["600002"]["first_time"], "09:40:01", "existing validated clocks are never replaced")
         self.assertTrue(any(e["time"] == "09:30:33" and e["precision"] == "source" for e in data["events"]))
         self.assertEqual(data["time_coverage"], {"cached": True, "missing": 1})
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             self.assertEqual([dict(r) for r in conn.execute("SELECT * FROM events ORDER BY code")], before)
         with patch.object(provider, "_historical_day", return_value=provider.DayResult(day, [], "empty", "", "empty.json")):
             with self.assertRaises(ValueError):
@@ -207,7 +207,7 @@ class TimelineTests(unittest.TestCase):
         root = Path(__file__).parent / "test-data" / ("timeline-" + uuid4().hex)
         root.mkdir(parents=True)
         path = root / "archive.sqlite3"
-        with closing(db.connect(path)) as conn:
+        with closing(db.initialize(path)) as conn:
             db.save_day(conn, "2026-10-23", [stock(first_time="09:40:05"), stock("600001", "*ST测试"), stock("600002", " st 测试"),
                                            stock("300001", "创业板", first_time="09:40:20"), stock("301001", "创业板二", first_time="09:40:40"),
                                            stock("300002", "*ST创业"), stock("688001", "科创板")], "synthetic")

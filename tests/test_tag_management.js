@@ -1,8 +1,9 @@
+const { install } = require('./frontend-harness.cjs');
 // Exercise the actual manager loaders and mutation handlers, with an isolated UI.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const source = fs.readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8");
+
 const elements = new Map(), calls = [];
 function element(id) {
   if (!elements.has(id)) elements.set(id, {
@@ -44,9 +45,9 @@ const context = vm.createContext({
     throw Error(`Unexpected request: ${url}`);
   }
 });
-vm.runInContext(source.slice(source.indexOf("function escapeHTML"), source.indexOf("const RECENT_STOCKS_KEY")), context);
-vm.runInContext(source.slice(source.indexOf("function canManageTags"), source.indexOf("function renderMeta")), context);
-vm.runInContext(source.slice(source.indexOf("function stockTags"), source.indexOf("function canEditTags")), context);
+install(context, ["escapeHTML","textValue","numberValue"], []);
+install(context, ["canManageTags","tagManagerError","updateTagManagerControls","renderTagManagerCatalog","hideManagerParentSuggestions","renderManagerParentSuggestions","chooseManagerParentTag","selectManagerTag","loadTagManager","hideManagerSuggestions","showManagerSuggestions","searchManagerStocks","refreshAfterTagWrite","removeManagerStock","addManagerStock","cancelManagerMerge","renameManagerTag","cancelManagerDelete","deleteManagerTag","openTagNodeDialog","saveManagerTagNode","openManagerTagBatch","bindTagManager","tagBatchError","tagBatchTokens","tagBatchStocks","updateTagBatchControls","renderTagBatchPreview","cancelTagBatchSearch","loadTagBatchCatalog","openTagBatch","closeTagBatch","resolveTagBatchInput","changeTagBatchInput","saveTagBatch","bindTagBatch"], []);
+install(context, ["stockTags","allStockTags","tagHierarchy","tagAncestors","tagRoot","renderHierarchyStockGroups","tagRanks","compareTags","sortedTags","applyTagOrder","refreshTagOrder"], []);
 
 (async () => {
   await context.loadTagManager();
