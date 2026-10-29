@@ -10,9 +10,9 @@
 | `lianban/storage/` | 主库连接、版本迁移、事务、设置及资料存储；普通连接不初始化 |
 | `lianban/archive/` | 确认档案写入、日期/个股查询、周期和关系分析；纯规则与取数分开 |
 | `lianban/research/` | 标签有效值与层级、备注历史、黑名单、发布默认值合并；完整编辑用例拥有事务 |
-| `lianban/profiles/` | 行业、注册省份、概念和停牌资料的来源处理及刷新用例 |
+| `lianban/profiles/` | 行业、注册省份、概念、股东和停牌资料的来源处理及刷新用例；公开股东初始缓存只补缺 |
 | `lianban/intraday/` | 分时规则、来源标准化、独立存储、只读查询、显式采集与时间轴推导 |
-| `lianban/readside/` | 组合当前资料、有效标签及备注的展示投影；不参与历史推导 |
+| `lianban/readside/` | 组合当前资料、有效标签及备注的展示投影；股东关系与今天同涨停投影；不参与历史推导 |
 | `lianban/adapters/providers/` | 涨停池和辅助日期来源的请求、响应校验及标准化 |
 | `lianban/ingestion/` | 收盘归档、手动回补、暂定池用例；不依赖命令行入口 |
 | `lianban/runtime/` | 服务创建、任务生命周期、刷新通用机制和时钟对齐 |
@@ -25,7 +25,7 @@ HTTP/CLI/定时任务调用现有用例；用例组合来源、规则和存储�
 ## 初始化与事务
 
 - `lianban.storage.connect(path)` 只打开连接及设置 WAL；`initialize(path)` 初始化并返回连接，调用者负责关闭。
-- `initialize_connection(conn)` 接收空闲连接，在一次事务中处理空库和未编号旧库。当前结构版本为 1，记录于 SQLite `user_version`，不新增业务表。未来版本必须有显式迁移；较新版本的库会被拒绝。
+- `initialize_connection(conn)` 接收空闲连接，在一次事务中处理空库、未编号旧库和版本升级。主库当前结构版本为 2，记录于 SQLite `user_version`；v1→v2 只新增股东快照、股东明细和名称索引，不重跑个人资料的历史迁移。分时库仍为版本 1。迁移失败回滚 DDL 和版本号；较新版本的库会被拒绝。
 - 分时 `lianban.intraday.store` 有同样的连接/初始化契约，正常查询使用只读缓存路径，不因访问页面创建分时缓存。
 - 一个完整写入用例使用 `storage.transaction.transaction(conn)`。最外层取得 `BEGIN IMMEDIATE`、提交或回滚；内层加入已有事务，不提前提交。不要在组合操作中混用会自动提交的嵌套 `with conn`。
 - 归档记录整池先校验。是否允许写入、旧日状态保护和最终替换在同一事务内完成，失败不能降级其他连接刚确认的记录。
@@ -54,6 +54,7 @@ HTTP v1 的现有返回字段继续兼容，包括元数据中的既有设置字
 | `daily.mjs` / `stock.mjs` | 各自的查询、筛选、周期与关系显示状态 |
 | `intraday.mjs` | 分时、对比、时间轴、任务及过期响应保护状态 |
 | `tags.mjs` / `notes.mjs` / `blacklist.mjs` | 各自编辑、修订、请求和事件 |
+| `shareholders.mjs` | 共同股东浮窗、分类偏好、今日提示和请求生命周期；通过元数据及公开特性方法协作 |
 
 每个特性闭包持有自己的 `featureState`，公开 `read/write` 只接受该模块拥有的字段。跨特性协作使用显式功能方法及受限状态接口；不要恢复一个通用可变全局 `state`。浏览器全局对象由环境注入，构造器不绑定，原生方法绑定真实 Window，访问 localStorage 时才触发其 getter。
 

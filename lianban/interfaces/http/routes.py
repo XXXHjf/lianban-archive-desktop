@@ -25,6 +25,7 @@ from lianban.ingestion import live_pool
 from lianban.profiles import suspension
 from lianban.intraday import api as intraday
 from lianban.research import tag_management
+from lianban.readside import shareholders
 
 from lianban.config import ROOT
 
@@ -59,9 +60,13 @@ def read_api(server, path):
     if parsed.path == "/api/meta" and hasattr(server, "industry_refresher"):
         server.industry_refresher.maybe_refresh()
         server.registration_refresher.maybe_refresh()
+        if hasattr(server, "shareholder_refresher"):
+            server.shareholder_refresher.maybe_refresh()
         if hasattr(server, "concept_refresher"):
             server.concept_refresher.maybe_refresh()
     with closing(connect(server.db_path)) as conn:
+        if parsed.path == "/api/stock-shareholders":
+            return shareholders.stock_view(conn, arg("code"), include_live=editable)
         if parsed.path == "/api/announcement":
             return get_announcement(conn)
         if parsed.path == "/api/site-links":
@@ -79,6 +84,7 @@ def read_api(server, path):
         metadata["capabilities"] = {"edit_tags": editable, "edit_blacklist": editable, "edit_notes": editable, "manage_tags": editable}
         metadata["tag_alias_revision"] = tag_alias_revision(conn)
         if parsed.path == "/api/meta":
+            metadata["shareholder_alerts"] = shareholders.today_alerts(conn, include_live=editable)
             if editable:
                 metadata["live"] = live_pool.metadata(conn)
             catalog = tag_management.catalog(conn)

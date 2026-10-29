@@ -1,3 +1,4 @@
+import { createFeature as shareholdersFactory } from './shareholders.mjs';
 import { createFeature as formatFactory } from './format.mjs';
 import { createFeature as preferencesFactory } from './preferences.mjs';
 import { createFeature as apiFactory } from './api.mjs';
@@ -10,7 +11,7 @@ import { createFeature as tagsFactory } from './tags.mjs';
 import { createFeature as notesFactory } from './notes.mjs';
 import { createFeature as blacklistFactory } from './blacklist.mjs';
 
-export const factories = { format: formatFactory, preferences: preferencesFactory, api: apiFactory, navigation: navigationFactory, shell: shellFactory, daily: dailyFactory, stock: stockFactory, intraday: intradayFactory, tags: tagsFactory, notes: notesFactory, blacklist: blacklistFactory };
+export const factories = { format: formatFactory, preferences: preferencesFactory, api: apiFactory, navigation: navigationFactory, shell: shellFactory, daily: dailyFactory, stock: stockFactory, intraday: intradayFactory, tags: tagsFactory, notes: notesFactory, blacklist: blacklistFactory, shareholders: shareholdersFactory };
 export function createApplication(environment) {
   const features = {};
   for (const [name, factory] of Object.entries(factories)) features[name] = factory(environment, features);
@@ -122,6 +123,7 @@ export function createApplication(environment) {
     features.shell.bindings.binding105();
     features.shell.bindings.binding106();
     features.shell.bindings.binding107();
+    features.shareholders.bindEvents();
     features.notes.bindings.binding108();
     features.notes.bindings.binding109();
     features.notes.bindings.binding110();

@@ -35,6 +35,7 @@ function updateQueryStickyOffset() {
 }
 
 function renderMeta(meta, initial = false) {
+  features.shareholders.updateShareholderAlerts(meta);
   document.documentElement.classList.toggle("read-only", !features.tags.canEditTags());
   $("nav-blacklist").disabled = false;
   $("nav-tags").disabled = false;

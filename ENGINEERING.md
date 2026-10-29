@@ -2,6 +2,8 @@
 
 本分支由 XXXHjf 维护，基于上游 `x107108/lianban-archive-desktop` 的 2026.10.28 正式版及其发布通知提交 `3ac5a4d`。`SOURCE_BASELINE.json` 保留上游来源记录；本分支当前运行代码和网页使用 `BUILD_BASELINE.json`，完整分发使用 `BUNDLE.json`。模块职责与开发约束见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
+后续上游增量维护从 [UPSTREAM_SYNC.json](UPSTREAM_SYNC.json) 的 `last_reviewed_commit` 开始。固定上游目标提交，按功能及依赖适配到本地模块；审查结果区分采用和跳过，不用原版目录覆盖工程分支。最新一次同步记录见 [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md)。
+
 ## 首轮变更（提交 b04ba1f）
 
 1. 在线升级同时快照并迁移 `archive.sqlite3` 与可选的 `intraday.sqlite3`。使用 SQLite backup API 读取一致性快照，逐份检查完整性和复制散列，保留旧目录及备份。旧版没有分时库时仍能升级；失败恢复流程继续保留。

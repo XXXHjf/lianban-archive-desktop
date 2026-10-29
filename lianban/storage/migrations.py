@@ -87,16 +87,42 @@ SCHEMA = """
         );
     """
 
+SHAREHOLDER_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS shareholder_profiles (
+        code TEXT NOT NULL, scope TEXT NOT NULL, report_date TEXT,
+        source TEXT NOT NULL, fetched_at TEXT NOT NULL, PRIMARY KEY(code,scope)
+    );
+    CREATE TABLE IF NOT EXISTS stock_shareholders (
+        code TEXT NOT NULL, scope TEXT NOT NULL, holder_key TEXT NOT NULL,
+        holder_name TEXT NOT NULL, holder_type TEXT NOT NULL, report_date TEXT NOT NULL,
+        PRIMARY KEY(code,scope,holder_key)
+    );
+    CREATE INDEX IF NOT EXISTS shareholders_holder ON stock_shareholders(holder_key,code);
+"""
+SCHEMA_VERSION = 2
+
+
 def initialize_connection(conn):
-    """Initialize empty/legacy schema atomically; callers must supply an idle connection."""
+    """Migrate legacy/v1 databases atomically, without running migrations on ordinary opens."""
     if conn.in_transaction:
         raise ValueError("initialization requires an idle connection")
     with transaction(conn):
         version = conn.execute("PRAGMA user_version").fetchone()[0]
-        if version > 1:
+        if version > SCHEMA_VERSION:
             raise ValueError("database schema is newer than this application")
-        if version == 1:
-            return conn
+        if version < 1:
+            _initialize_legacy(conn)
+        if version < 2:
+            for statement in SHAREHOLDER_SCHEMA.split(";"):
+                if statement.strip():
+                    conn.execute(statement)
+            conn.execute("PRAGMA user_version=2")
+    return conn
+
+
+def _initialize_legacy(conn):
+    """The original v0-to-v1 rules; keep their existing personal-data semantics."""
+    with transaction(conn):
         for statement in SCHEMA.split(";"):
             if statement.strip():
                 conn.execute(statement)
@@ -118,4 +144,3 @@ def initialize_connection(conn):
             from lianban.research.tag_management import migrate_detached_names
             migrate_detached_names(conn)
         conn.execute("PRAGMA user_version=1")
-    return conn

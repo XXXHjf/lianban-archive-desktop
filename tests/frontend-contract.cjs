@@ -549,4 +549,7 @@ const bindingOwners = {
 };
 
 
+Object.assign(functionOwners, {"shareholderHasAlert": "shareholders", "syncShareholderAlertIcons": "shareholders", "renderShareholderIcon": "shareholders", "hideShareholderTooltip": "shareholders", "scheduleShareholderHide": "shareholders", "shareholderTypeBlocked": "shareholders", "filteredShareholderRows": "shareholders", "renderShareholderTooltip": "shareholders", "openShareholderInfo": "shareholders", "positionShareholderTooltip": "shareholders", "showShareholderTooltip": "shareholders", "toggleShareholderTooltip": "shareholders", "updateShareholderAlerts": "shareholders"});
+Object.assign(stateOwners, {"shareholderAlertTypes": "shareholders", "shareholderAnchor": "shareholders", "shareholderBlockedTypes": "shareholders", "shareholderData": "shareholders", "shareholderGeneration": "shareholders", "shareholderLimit": "shareholders", "shareholderPinned": "shareholders", "shareholderTimer": "shareholders"});
+
 module.exports = { functionOwners, stateOwners, bindingOwners };

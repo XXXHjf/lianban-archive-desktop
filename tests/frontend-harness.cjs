@@ -40,7 +40,7 @@ function install(context, functions = [], bindings = []) {
       const feature = application.features[owner];
       originals[name] = feature[name];
       Object.defineProperty(feature, name, { configurable: true,
-        get: () => context[name] });
+        get: () => owner === "shareholders" ? context[name] ?? originals[name] : context[name] });
     }
     record = { application, originals };
     applications.set(context, record);

@@ -1,0 +1,31 @@
+{
+  "repository": "https://github.com/x107108/lianban-archive-desktop",
+  "original_base_commit": "3ac5a4d89db8f0c29ae11d7d9acb010f7b7d6aa1",
+  "last_reviewed_commit": "2d26a92eaa46fed89346fdb2a60a8be5dab71b1a",
+  "reviewed_on": "2026-10-29",
+  "local_base_commit": "cc131c6",
+  "upstream_feature_version": "2026.10.29.1",
+  "adopted": [
+    {
+      "commit": "7c83c8a2e806300c08624eab8d883c5a8a5c48f5",
+      "scope": "共同股东查询、公开缓存、浮窗、分类屏蔽、今日同涨停提示及说明",
+      "adaptation": "资料采集、事务存储、展示查询、显式迁移及前端特性模块分别实现"
+    },
+    {
+      "commit": "648d62a9f27f7e73010d8e4cf1db5920a465ec9e",
+      "scope": "基金、其他、QFII 默认屏蔽，已有浏览器显式选择优先"
+    }
+  ],
+  "reviewed_without_copying": [
+    {"commit": "9bc533c8a357672b05f769b6582c67921dae06e6", "reason": "上游正式发布通知；本工程分支没有发布正式安装包"},
+    {"commit": "1435f25ec55c92609e6f16fdf58cc9c5da2cb85f", "reason": "上游正式发布通知；本工程分支没有发布正式安装包"},
+    {"commit": "2d26a92eaa46fed89346fdb2a60a8be5dab71b1a", "reason": "仅记录上游下一轮页面版本显示约定，本次没有对应运行代码可移植"}
+  ],
+  "preserved_local_contracts": [
+    "SOURCE_BASELINE.json 保留原始来源凭证，本文件记录后续同步进度",
+    "VERSION.json 保留现有基线版本，开发快照以 Git 提交和 BUNDLE 编号区分",
+    "不复制上游构建散列或发布通知，BUILD_BASELINE.json 和 BUNDLE.json 在本分支重建",
+    "主库从结构版本 1 显式升级到 2；分时库结构版本不变",
+    "只补充缺少的公开股东快照，不覆盖既有缓存或个人记录"
+  ]
+}

@@ -2,6 +2,8 @@
 
 本目录当前由使用者 XXXHjf 在原共享版上维护工程改造分支。写入目标为 `https://github.com/XXXHjf/lianban-archive-desktop.git`，分支 `codex/engineering-foundation`；上游为 `https://github.com/x107108/lianban-archive-desktop.git`。保留上游基线，不向朋友仓库、私有开发仓库或 `server-deploy` 分支推送改造。
 
+2026-10-29 用户确认后续按上游增量适配维护：以 `UPSTREAM_SYNC.json` 的 `last_reviewed_commit` 为起点，固定目标提交，审查上游两提交之间的差异及依赖，在独立同步分支按本地模块边界移植。可直接复用独立改动，不用上游文件整体覆盖本地重构，也不自动合并后直接运行。记录采用、暂缓或跳过的每项变更；只有完整审查后才推进 reviewed 游标。必要回归、原有行为对照及新功能上游对照通过后，合入上述个人工程分支。原始 `SOURCE_BASELINE.json` 不改写，后续来源进度单独记录；本地构建清单重新生成。
+
 2026-10-29 当前用户授权先安装并测试原版，再在个人 fork 的独立分支进行工程优化。正式试用副本与本源码分开，测试数据、数据库、日志及运行环境不提交。下文原作者的历史授权记录是上游背景，不能替代当前用户的授权。工程改动与验证见 `ENGINEERING.md`；本分支不创建正式 Release 或推送上游更新通知。
 
 使用者只要求下载安装、启动或自用时，先遵循 `AI_INSTALL.md`。这是安装任务，不适用下文维护者的提交、推送和发布流程，不要求 GitHub 登录或发布权限。README 中的可复制安装指令是统一入口；修改安装流程时同步维护 `README.md` 与 `AI_INSTALL.md`，核对现有启动器和最新正式安装包。

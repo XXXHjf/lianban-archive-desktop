@@ -9,7 +9,7 @@ LEGACY_MODULES = {
     "app", "desktop", "database", "provider", "live_update", "live_pool", "sync_data",
     "industry", "registration", "concept_tags", "suspension", "intraday", "intraday_sources",
     "intraday_timeline", "relationships", "published_tags", "tag_management", "provinces",
-    "realtime", "collect_intraday", "import_manual", "backup_db",
+    "realtime", "collect_intraday", "import_manual", "backup_db", "shareholders", "shareholder_seed",
 }
 PURE_MODULES = {
     "lianban.archive.cycles", "lianban.archive.relationships", "lianban.intraday.rules",

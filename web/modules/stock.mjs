@@ -22,7 +22,7 @@ function showSuggestions(rows, query) {
   featureState.suggestions = rows;
   featureState.suggestionsQuery = query;
   featureState.suggestionIndex = -1;
-  $("stock-suggestions").innerHTML = rows.length ? rows.slice(0, 15).map((stock, index) => `<li role="presentation"><button type="button" role="option" aria-selected="false" id="suggestion-${index}" data-suggestion="${index}"><span class="suggestion-code">${features.format.escapeHTML(stock.code)}</span><span>${features.format.escapeHTML(stock.name)}</span><span class="suggestion-market">${features.format.escapeHTML(features.format.marketValue(stock.market))}</span></button></li>`).join("") : '<li role="presentation" class="suggestion-message">未找到已收录的股票，请尝试名称、代码或首字母。</li>';
+  $("stock-suggestions").innerHTML = rows.length ? rows.slice(0, 15).map((stock, index) => `<li role="presentation"><button type="button" role="option" aria-selected="false" id="suggestion-${index}" data-suggestion="${index}"><span class="suggestion-code">${features.format.escapeHTML(stock.code)}</span><span>${features.format.escapeHTML(stock.name)}</span></button>${features.shareholders.renderShareholderIcon(stock)}<span class="suggestion-market">${features.format.escapeHTML(features.format.marketValue(stock.market))}</span></li>`).join("") : '<li role="presentation" class="suggestion-message">未找到已收录的股票，请尝试名称、代码或首字母。</li>';
   $("stock-suggestions").hidden = false;
   $("stock-search").setAttribute("aria-expanded", "true");
 }
@@ -131,6 +131,7 @@ async function loadStock({remember = true, quiet = false} = {}) {
 }
 
 function renderStockProfile(stock, loading = false) {
+  $("stock-shareholder-icon").innerHTML = features.shareholders.renderShareholderIcon(stock);
   features.notes.renderStockHeaderNote(stock, loading);
   $("stock-initials-label").textContent = loading ? "…" : features.daily.nameInitials(stock) || "—";
   $("stock-blacklist-label").hidden = loading || stock.blacklisted !== true;
@@ -603,7 +604,7 @@ window.addEventListener("storage", event => {
 });
 },
 binding127() {
-document.addEventListener("click", (event) => { if (!event.target.closest(".stock-picker")) features.stock.hideSuggestions(); });
+document.addEventListener("click", (event) => { if (!event.target.closest(".stock-picker, #shareholder-tooltip, #shareholder-info-dialog")) features.stock.hideSuggestions(); });
 },
 binding128() {
 $("stock-relations").addEventListener("input", event => {
