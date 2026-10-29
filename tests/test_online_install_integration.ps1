@@ -63,6 +63,25 @@ function Assert-PersonalData([string]$Url,[string]$Code) {
     Assert-Integration (@($blacklist.rows|Where-Object code -eq $Code).Count -eq 1) 'Blacklist membership was lost.'
 }
 
+$minuteProbe=Join-Path $integrationRoot 'minute-probe.py'
+[IO.File]::WriteAllText($minuteProbe,@'
+import sqlite3
+import sys
+with sqlite3.connect(sys.argv[2]) as conn:
+    if sys.argv[1] == 'write':
+        conn.execute('CREATE TABLE migration_probe (value TEXT NOT NULL)')
+        conn.execute('INSERT INTO migration_probe VALUES (?)', ('retained minute history',))
+    else:
+        assert conn.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
+        assert conn.execute('SELECT value FROM migration_probe').fetchone()[0] == 'retained minute history'
+'@,[Text.UTF8Encoding]::new($false))
+function Invoke-MinuteProbe([string]$Root,[string]$Action) {
+    $runtime=Get-Content -LiteralPath (Join-Path $Root '.runtime\active.json') -Raw -Encoding UTF8|ConvertFrom-Json
+    $python=Resolve-LianbanChild $Root $runtime.python
+    & $python $minuteProbe $Action (Join-Path $Root 'data\intraday.sqlite3')
+    Assert-Integration ($LASTEXITCODE -eq 0) 'Minute database content or integrity was lost.'
+}
+
 try {
     Set-Fixture $ReleaseZip $sourceVersion
     $first=Install-LianbanOnline -InstallDir $integrationBase -NoBrowser -Port $WebsitePort
@@ -76,17 +95,22 @@ try {
     $null=Invoke-RestMethod ($first.Website+'/api/stock-tags') -Method Post -ContentType 'application/json' -Body (@{code=$code;tags=@('installer test tag');revision=$tag.revision}|ConvertTo-Json)
     $null=Invoke-RestMethod ($first.Website+'/api/stock-note') -Method Post -ContentType 'application/json' -Body (@{code=$code;content='online installer integration note';revision=$note.revision}|ConvertTo-Json)
     $null=Invoke-RestMethod ($first.Website+'/api/blacklist') -Method Post -ContentType 'application/json' -Body (@{code=$code;action='add'}|ConvertTo-Json)
+    Invoke-MinuteProbe $first.InstallFolder 'write'
     $repeat=Install-LianbanOnline -InstallDir $integrationBase -NoBrowser -Port $WebsitePort
     Assert-Integration ($repeat.Reused -and $repeat.InstallFolder -eq $first.InstallFolder) 'Repeat install must reuse the same copy.'
     Assert-PersonalData $repeat.Website $code
+    Invoke-MinuteProbe $repeat.InstallFolder 'read'
 
     $newZip=New-ReleaseFixture $nextVersion
     Set-Fixture $newZip $nextVersion
     $upgraded=Install-LianbanOnline -InstallDir $integrationBase -NoBrowser -Port $WebsitePort
     Assert-Integration ($upgraded.Version -eq $nextVersion -and $upgraded.InstallFolder -ne $first.InstallFolder) 'Upgrade did not create a separate version.'
     Assert-PersonalData $upgraded.Website $code
+    Invoke-MinuteProbe $upgraded.InstallFolder 'read'
     Assert-Integration (Test-Path -LiteralPath (Join-Path $first.InstallFolder 'data\archive.sqlite3')) 'Previous database was removed.'
     Assert-Integration (@(Get-ChildItem -LiteralPath (Join-Path $integrationBase 'backups') -Filter '*.sqlite3').Count -gt 0) 'No consistent database snapshot was retained.'
+    Assert-Integration (@(Get-ChildItem -LiteralPath (Join-Path $integrationBase 'backups') -Filter 'intraday-*.sqlite3').Count -gt 0) 'No minute database snapshot was retained.'
+    Invoke-MinuteProbe $first.InstallFolder 'read'
 
     Set-Fixture $newZip $brokenVersion -BadHash
     $rejected=$false
@@ -94,6 +118,7 @@ try {
     Assert-Integration $rejected 'Corrupt ZIP was not rejected.'
     Assert-Integration ((Get-LianbanActive $integrationBase).Root -eq $upgraded.InstallFolder) 'Bad download changed the active version.'
     Assert-PersonalData $upgraded.Website $code
+    Invoke-MinuteProbe $upgraded.InstallFolder 'read'
 
     $brokenZip=New-ReleaseFixture $brokenVersion -BrokenStart
     Set-Fixture $brokenZip $brokenVersion
@@ -105,6 +130,7 @@ try {
     $session=Get-LianbanSession $restored.Root
     Assert-Integration ($null -ne $session) 'Previous running version was not restarted after failure.'
     Assert-PersonalData $session.Url $code
+    Invoke-MinuteProbe $restored.Root 'read'
     Write-Host ('PASS: '+$checks+' end-to-end checks for fresh install, reuse, personal-data upgrade, corrupt download and failed-start recovery.')
 } finally {
     if (Test-Path -LiteralPath (Join-Path $integrationBase 'active-install.json')) {

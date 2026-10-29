@@ -12,6 +12,7 @@ import threading
 from urllib.parse import urlsplit
 from http.server import SimpleHTTPRequestHandler
 from update_notices import NoticeService
+from desktop_http import CompressedJSONMixin
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -31,7 +32,7 @@ def serve(port, no_updates=False):
     notices = NoticeService(version, ROOT/'data/update-notice-cache.json')
     notices.refresh()
 
-    class DesktopHandler(original_handler):
+    class DesktopHandler(CompressedJSONMixin, original_handler):
         def send_head(self):
             path = urlsplit(self.path).path
             if path in ('/', '/index.html', '/updates.js', '/updates.css'):

@@ -188,14 +188,24 @@ function Copy-LianbanPersonalDatabase([string]$OldRoot, [string]$NewRoot, [strin
     if (-not $python.StartsWith($runtimePrefix,[StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid previous runtime path.' }
     $backupDir = Join-Path $Base 'backups'
     [void][IO.Directory]::CreateDirectory($backupDir)
-    $snapshot = Join-Path $backupDir ('archive-'+[datetime]::UtcNow.ToString('yyyyMMddTHHmmssZ')+'-'+[guid]::NewGuid().ToString('N')+'.sqlite3')
-    & $python -c 'import sys; from backup_db import snapshot; snapshot(sys.argv[1], sys.argv[2])' $source $snapshot
-    if ($LASTEXITCODE -ne 0) { throw 'Personal database snapshot failed. Previous data was retained.' }
-    $target = Join-Path $NewRoot 'data\archive.sqlite3'
-    [IO.File]::Copy($snapshot,$target,$true)
-    if ((Get-LianbanHash $snapshot) -ne (Get-LianbanHash $target)) { throw 'Personal database copy failed.' }
-    Write-Host ('Personal database snapshot: '+$snapshot)
-    return $snapshot
+    $archiveSnapshot = $null
+    # The minute cache is a separate SQLite/WAL database. Preserve it with the
+    # same consistent snapshot mechanism, including when its main file is stale.
+    # Older installations without minute data continue to migrate normally.
+    foreach ($databaseName in @('archive.sqlite3','intraday.sqlite3')) {
+        $source = Join-Path $OldRoot ('data\'+$databaseName)
+        if (-not (Test-Path -LiteralPath $source)) { continue }
+        $label = [IO.Path]::GetFileNameWithoutExtension($databaseName)
+        $snapshot = Join-Path $backupDir ($label+'-'+[datetime]::UtcNow.ToString('yyyyMMddTHHmmssZ')+'-'+[guid]::NewGuid().ToString('N')+'.sqlite3')
+        & $python -c 'import sys; from backup_db import snapshot; snapshot(sys.argv[1], sys.argv[2])' $source $snapshot
+        if ($LASTEXITCODE -ne 0) { throw ('Database snapshot failed: '+$databaseName+'. Previous data was retained.') }
+        $target = Join-Path $NewRoot ('data\'+$databaseName)
+        [IO.File]::Copy($snapshot,$target,$true)
+        if ((Get-LianbanHash $snapshot) -ne (Get-LianbanHash $target)) { throw ('Database copy failed: '+$databaseName) }
+        Write-Host ('Database snapshot: '+$snapshot)
+        if ($databaseName -eq 'archive.sqlite3') { $archiveSnapshot = $snapshot }
+    }
+    return $archiveSnapshot
 }
 
 function Install-LianbanOnline {

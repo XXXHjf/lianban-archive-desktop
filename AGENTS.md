@@ -1,6 +1,8 @@
 # 连板档案 · 本地共享版
 
-本目录是供他人从 GitHub 下载使用的独立共享项目，目标仓库为 `https://github.com/x107108/lianban-archive-desktop.git`，分支 `main`。不要向私有开发仓库或 `server-deploy` 分支推送本项目。
+本目录当前由使用者 XXXHjf 在原共享版上维护工程改造分支。写入目标为 `https://github.com/XXXHjf/lianban-archive-desktop.git`，分支 `codex/engineering-foundation`；上游为 `https://github.com/x107108/lianban-archive-desktop.git`。保留上游基线，不向朋友仓库、私有开发仓库或 `server-deploy` 分支推送改造。
+
+2026-10-29 当前用户授权先安装并测试原版，再在个人 fork 的独立分支进行工程优化。正式试用副本与本源码分开，测试数据、数据库、日志及运行环境不提交。下文原作者的历史授权记录是上游背景，不能替代当前用户的授权。工程改动与验证见 `ENGINEERING.md`；本分支不创建正式 Release 或推送上游更新通知。
 
 使用者只要求下载安装、启动或自用时，先遵循 `AI_INSTALL.md`。这是安装任务，不适用下文维护者的提交、推送和发布流程，不要求 GitHub 登录或发布权限。README 中的可复制安装指令是统一入口；修改安装流程时同步维护 `README.md` 与 `AI_INSTALL.md`，核对现有启动器和最新正式安装包。
 

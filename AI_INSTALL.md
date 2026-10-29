@@ -1,5 +1,7 @@
 # AI Agent 安装执行说明
 
+> 若当前检出的是 XXXHjf 的 `codex/engineering-foundation`，这是基于 2026.10.28 的开发分支，并非新的正式 Release。其在线安装器仍下载上游正式包。安装本分支快照时，核对本分支 `BUNDLE.json`，使用本目录 `install.cmd` / `verify.cmd` / `start_demo.cmd`，并明确告知用户运行的是开发快照；工程变更见 `ENGINEERING.md`。
+
 本文供用户授权安装“连板档案 · 本地共享版”时使用。[README 中的简易安装教程](README.md#简易安装教程)是统一入口。目标是完成安装、启动并验证，而不是只解释步骤。
 
 README 的无网址简版通过 GitHub 作者 `x107108` 和项目名 `lianban-archive-desktop` 定位。Agent 收到指令后，用这两个标识共同找到公开仓库，读取本文，再执行以下安装流程。
