@@ -13,6 +13,7 @@ import app
 import database as db
 from lianban.profiles import shareholders as sh
 from lianban.readside import shareholders as queries
+from lianban.core.shareholders import exclusion_reason
 
 
 class ShareholderTests(unittest.TestCase):
@@ -42,6 +43,30 @@ class ShareholderTests(unittest.TestCase):
         with self.conn:
             self.conn.execute("INSERT OR REPLACE INTO live_pools VALUES (?,?,?,?,?,?)", (day,
                 json.dumps([{"code": code, "name": self.conn.execute("SELECT name FROM stocks WHERE code=?", (code,)).fetchone()[0]} for code in codes]), "synthetic", self.now.isoformat(), None, ""))
+
+    def test_low_specificity_accounts_are_traceable_but_never_trigger_alerts(self):
+        excluded = ["香港中央结算有限公司", "中信证券资产管理(香港)有限公司-客户资金",
+                    "中国工商银行股份有限公司－某某沪深300指数证券投资基金"]
+        self.seed(["000001", "000002", "000003", "000004"], {
+            "000001": excluded + ["实际共同机构"], "000002": excluded,
+            "000003": ["实际共同机构"], "000004": ["独立机构"]})
+        self.live(["000001", "000002", "000003"])
+        rows = {row["code"]: row for row in self.view()["rows"]}
+        self.assertEqual({h["exclusion_reason"] for h in rows["000002"]["holders"]},
+                         {"结算代持账户", "客户汇总账户", "指数基金/ETF"})
+        self.assertNotIn("exclusion_reason", rows["000003"]["holders"][0])
+        self.assertEqual(queries.today_alerts(self.conn, now=self.now)["rows"],
+                         [{"code": "000001", "types": ["其他"]}, {"code": "000003", "types": ["其他"]}])
+
+    def test_exclusion_rules_do_not_blanket_block_institutions_or_private_funds(self):
+        for name in ["中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司",
+                     "某某私募证券投资基金", "中国证券金融股份有限公司", "张三"]:
+            with self.subTest(name=name):
+                self.assertIsNone(exclusion_reason(name))
+        for name in ["香港中央结算（代理人）有限公司", "香港中央結算有限公司",
+                     "某券商客户信用交易担保证券账户", "某某ETF基金"]:
+            with self.subTest(name=name):
+                self.assertIsNotNone(exclusion_reason(name))
 
     def test_st_peers_do_not_affect_today_alerts_or_shareholder_counts(self):
         self.conn.execute("UPDATE stocks SET name='*ST测试' WHERE code='000003'")

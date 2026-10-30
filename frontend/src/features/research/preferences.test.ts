@@ -52,4 +52,20 @@ describe('shareholder classification and alert consistency', () => {
     expect(typeBlocked('企业')).toBe(true);
     expect(preferenceError.value).toContain('本次会话仍然生效');
   });
+  it('excludes low-specificity relationships even when other categories are allowed, with explicit opt-in', () => {
+    blockedTypes.value = { 其他: false };
+    const excluded = peer('000001', ['其他'], true);
+    excluded.holders[0]!.exclusion_reason = '结算代持账户';
+    const mixed = peer('000002', ['其他', '其他']);
+    mixed.holders[0]!.exclusion_reason = '客户汇总账户';
+    expect(
+      filterShareholders([excluded, mixed]).map((row) => [row.code, row.shared_count]),
+    ).toEqual([['000002', 1]]);
+    expect(filterShareholders([excluded, mixed], true).map((row) => row.shared_count)).toEqual([
+      1, 2,
+    ]);
+    expect(excluded.holders).toHaveLength(1);
+    blockedTypes.value = { 其他: true };
+    expect(filterShareholders([excluded, mixed], true)).toEqual([]);
+  });
 });

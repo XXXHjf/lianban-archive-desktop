@@ -20,10 +20,12 @@ export function typeBlocked(type: string): boolean {
   const value = blockedTypes.value[type];
   return typeof value === 'boolean' ? value : ['基金', '其他', 'QFII'].includes(type);
 }
-export function filterShareholders(rows: readonly Peer[]): Peer[] {
+export function filterShareholders(rows: readonly Peer[], showExcluded = false): Peer[] {
   return rows
     .map((peer) => {
-      const holders = peer.holders.filter((holder) => !typeBlocked(holder.type));
+      const holders = peer.holders.filter(
+        (holder) => !typeBlocked(holder.type) && (showExcluded || !holder.exclusion_reason),
+      );
       return { ...peer, holders, shared_count: holders.length };
     })
     .filter((peer) => peer.shared_count > 0)

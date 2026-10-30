@@ -11,6 +11,7 @@ const workspace = useWorkspace();
 const data = ref<Shareholders | null>(null),
   error = ref(''),
   loading = ref(false),
+  showExcluded = ref(false),
   limit = ref(50);
 let generation = 0;
 const channel = `research-shareholders-${Math.random().toString(36).slice(2)}`;
@@ -19,7 +20,7 @@ const types = computed(() =>
     ...new Set(data.value?.rows.flatMap((peer) => peer.holders.map((holder) => holder.type)) ?? []),
   ].sort((a, b) => a.localeCompare(b, 'zh-CN')),
 );
-const rows = computed(() => filterShareholders(data.value?.rows ?? []));
+const rows = computed(() => filterShareholders(data.value?.rows ?? [], showExcluded.value));
 const today = computed(() =>
   !data.value
     ? ''
@@ -37,7 +38,7 @@ const empty = computed(() => {
         : '股东资料正在获取，请稍后再查看';
   return !data.value.rows.length
     ? '在已取得资料的股票中，暂未发现共同股东'
-    : '当前分类下的共同股东已全部屏蔽，可取消勾选后查看关联股票';
+    : '当前筛选下暂无关联股票，可调整分类屏蔽或勾选“显示已排除账户”';
 });
 async function load() {
   const current = ++generation;
@@ -45,6 +46,7 @@ async function load() {
   error.value = '';
   data.value = null;
   limit.value = 50;
+  showExcluded.value = false;
   try {
     const result = await request<Shareholders>(
       query('/api/stock-shareholders', { code: props.stock.code }),
@@ -98,6 +100,7 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
                 .replace('T', ' ')
             }}
           </p>
+          <p>{{ data.scope_note }}</p>
         </el-collapse-item></el-collapse
       >
       <div class="toolbar">
@@ -111,6 +114,12 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
         ><span class="muted">{{ rows.length }} 只关联股票</span>
       </div>
       <el-alert v-if="preferenceError" :title="preferenceError" type="warning" :closable="false" />
+      <div class="toolbar">
+        <el-checkbox v-model="showExcluded" @change="limit = 50">显示已排除账户</el-checkbox>
+        <span class="muted"
+          >默认排除结算代持、客户汇总账户及指数基金/ETF；这些关系不触发同涨停提醒。分类屏蔽仍生效。</span
+        >
+      </div>
       <el-table :data="rows.slice(0, limit)" row-key="code" :empty-text="empty"
         ><el-table-column type="expand"
           ><template #default="{ row }"
@@ -135,9 +144,11 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
                     {{ report.date }}</span
                   ></template
                 ></el-table-column
-              ></el-table
-            ></template
-          ></el-table-column
+              ><el-table-column
+                prop="exclusion_reason"
+                label="排除原因"
+                min-width="130"
+              /> </el-table></template></el-table-column
         ><el-table-column label="股票" min-width="150"
           ><template #default="{ row }"
             ><StockLink

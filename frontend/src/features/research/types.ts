@@ -65,6 +65,7 @@ export interface Blacklist {
 export interface Holder {
   name: string;
   type: string;
+  exclusion_reason?: string;
   reports: { scope: string; date: string }[];
 }
 export interface Peer {

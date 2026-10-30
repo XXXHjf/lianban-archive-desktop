@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import re
 from lianban.core.clock import TZ
 from lianban.core.stock import is_st_name
-from lianban.core.shareholders import SOURCE, SCOPE_NOTE
+from lianban.core.shareholders import SOURCE, SCOPE_NOTE, exclusion_reason
 from lianban.storage.settings import get_settings
 from lianban.ingestion import live_pool
 
@@ -25,7 +25,9 @@ def today_alerts(conn, *, include_live=True, now=None):
     holders, alerts = {}, {}
     if len(codes) > 1:
         placeholders = ",".join("?" for _ in codes)
-        for row in conn.execute(f"SELECT code,holder_key,holder_type FROM stock_shareholders WHERE code IN ({placeholders})", sorted(codes)):
+        for row in conn.execute(f"SELECT code,holder_key,holder_name,holder_type FROM stock_shareholders WHERE code IN ({placeholders})", sorted(codes)):
+            if exclusion_reason(row["holder_name"]):
+                continue
             holders.setdefault(row["holder_key"], {}).setdefault(row["code"], set()).add(row["holder_type"])
         for stocks in holders.values():
             if len(stocks) < 2:
@@ -56,6 +58,9 @@ def stock_view(conn, code, *, include_live=True, now=None):
         peer = peers.setdefault(row["code"], {"code": row["code"], "name": row["name"], "holders": {},
                     "today_together": code in limit_codes and row["code"] in limit_codes})
         holder = peer["holders"].setdefault(row["holder_key"], {"name": row["holder_name"], "type": row["holder_type"], "reports": []})
+        reason = exclusion_reason(row["holder_name"])
+        if reason:
+            holder["exclusion_reason"] = reason
         holder["reports"].append({"scope": row["scope"], "date": row["report_date"]})
     rows = []
     for peer in peers.values():
