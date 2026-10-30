@@ -173,7 +173,7 @@ it('shows each stock once and applies board filters while topic controls are hid
   await nextTick();
   expect(wrapper.findAll('.ladder-stock')).toHaveLength(3);
   expect(wrapper.find('[aria-label="预览青岛食品周期"]').exists()).toBe(true);
-  expect(wrapper.get('.daily-stats').text()).toContain('涨停3只');
+  expect(wrapper.find('.daily-stats').exists()).toBe(false);
   expect(wrapper.get('.daily-topic-filter').isVisible()).toBe(false);
   expect(wrapper.find('[aria-label="筛选标签：汽车"]').exists()).toBe(false);
   workspace.patchRoute({ boards: '4' });

@@ -1,5 +1,5 @@
 {
-  "id": "476a477085a940d8",
+  "id": "2eedeec071204e6c",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -24,7 +24,7 @@
   "seed": "resources/archive-seed.sqlite3.gz",
   "seed_database_sha256": "3609a9850a808c1473fffe85ead105665c0c22c9048b92e4cffb76b045aae4e3",
   "sha256": {
-    "BUILD_BASELINE.json": "6491cb22e624763bd473b85c02ec2749e6e0ebe00566fc0bd92c1905f3f4f02e",
+    "BUILD_BASELINE.json": "8ea4c18f148bdbfa4623be7cd9ace3b6f96f4ab76a262e10e430b641d7824977",
     "SOURCE_BASELINE.json": "e0c72f68c79c666dcacdf7fa0b4c5096b4ad2ada53de1bef51d0aa9e06e60272",
     "VERSION.json": "6c1c984b01c3b636014551b53010732248a424f84085463c3af61316162b1d10",
     "app.py": "eaab5c82924b086ad5a7ff3034640827e89284d17bd70f72db397fbbad842d35",
@@ -155,7 +155,7 @@
     "web/assets/ChartPanel.css": "6c85caaf95c44dfaac76e3c1ff25b2f6aa93f4f48e248db4a5e50e73f194a66e",
     "web/assets/ChartPanel.js": "41a9a97e83560aade932484f00499b33fc3e41c1ee5d6022967d97d23852e4ca",
     "web/assets/DailyView.css": "13d9c511976d953c82f491f7b487a368a793ed561b66476866700c00938af79c",
-    "web/assets/DailyView.js": "ea245fa0d812bc450252404b4159ff071bcfdbe1858ae6d9e17e1aaef1caafb2",
+    "web/assets/DailyView.js": "e5ce8f0a76860029ed8d842cd7f6824ce006aea537d885538e819450d3b16a92",
     "web/assets/IntradayView.css": "6c641ffacb79ff43e61d5ee87e7ccab550f630f2a7670d69712cd08bc302448b",
     "web/assets/IntradayView.js": "188e715b1be10eac9dad31f5718db9ceb478fdefd0a44e79bc9445486baeb581",
     "web/assets/NotesEditor.css": "20ad63e7dd54221b613a86678f879cdef15a5db8079f930a1577bdf959ba1a41",
@@ -172,7 +172,7 @@
     "web/assets/TagsView.js": "25bac8b8f0892bbd6d41988219a49638afc0225aa60eb82a8a6544a3d4b1e151",
     "web/assets/_plugin-vue_export-helper.css": "8a1ea7643526a011c47e844644e0014b213304bc275f95052c2d13b2fd867e11",
     "web/assets/_plugin-vue_export-helper.js": "aa16fcd576e3039b84a42e74bd9df1a6a5cf4d48ae58b4712c7564c55328ed03",
-    "web/assets/build-info.json": "f4bfa41a972e6230f50898e54383272905ff54df41813e0b34896476496e861f",
+    "web/assets/build-info.json": "2b13b221b8b0295f890e26c08e33a2d7c87a89e6e53030a54993d8f129bf83e2",
     "web/assets/chart-controls.js": "2e8b0147a8fd44ab0c5a84e3deb3611e2b01ff32c57f8e88c4dc6099b974bbf4",
     "web/assets/chart-core.js": "fa6d61ef2919ca50936f87388c41a2c2bbfcea97af46cf302b87389af60ceb19",
     "web/assets/chart-renderer.js": "ebe0a89ab0180d55632bdc16fdbe9001d988addb0f95b6c2dec8dcd393a2cb2b",
@@ -190,7 +190,7 @@
     "web/assets/css6.css": "7b867275c1c189796947bc8bc834718b65cd59af9825b439a0f46d84273810ad",
     "web/assets/css6.js": "2481aa54599bfe78a4b6cfe45df0b0e6c16c189f5f2908083af1e2047c28aa87",
     "web/assets/debounce.js": "19194ad8301b5a68c4d5cd053265eff84bf103af024b0046fe791c7dadb3af1a",
-    "web/assets/frontend.css": "95e7d27ad85b463b973ae5e683b2e5ad73c190a9b88f39b6367848e12cf4df49",
+    "web/assets/frontend.css": "8a87dcf07ab7679d161675216964b13c32d1b33a5eaba295d751216db2405328",
     "web/assets/frontend.js": "2f44b49c134302da9fa1e521f3d18c6c08cbf2eaf3ff22d51b196a7c636954cb",
     "web/assets/helpers.js": "16fabec0d0d7ebb9ee8d451be3b7b34f878dae0a02468048079a56f5c17558b6",
     "web/assets/input.css": "5c1332148663146ad250803befe2077c194b7198a2c45008902547915c4b712a",

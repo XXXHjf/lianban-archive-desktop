@@ -314,24 +314,6 @@ function clearFilters() {
         }}</span
         ><span v-if="freshness" class="daily-meta">{{ freshness }}</span>
       </div>
-      <dl class="daily-stats" aria-label="当前筛选统计">
-        <div>
-          <dt>涨停</dt>
-          <dd>{{ data?.stats.total ?? '—' }}<small>只</small></dd>
-        </div>
-        <div>
-          <dt>连板</dt>
-          <dd>{{ data?.stats.consecutive ?? '—' }}<small>只</small></dd>
-        </div>
-        <div>
-          <dt>最高</dt>
-          <dd>{{ data?.stats.max_boards ?? '—' }}<small>板</small></dd>
-        </div>
-        <div>
-          <dt>首板</dt>
-          <dd>{{ data?.stats.first_boards ?? '—' }}<small>只</small></dd>
-        </div>
-      </dl>
       <p v-if="data?.suspended_rows?.length" class="daily-meta">
         当日最高 {{ data.trading_max_boards }} 板 · 停牌 {{ data.suspended_rows.length }}只
       </p>
