@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   blockedTypes,
+  accountsBlocked,
+  excludedAccountsKey,
   filterShareholders,
   preferenceError,
   setBlocked,
   typeBlocked,
+  shareholderAlertVisible,
 } from './preferences';
 import type { Peer } from './types';
 function peer(code: string, types: string[], together = false): Peer {
@@ -28,6 +31,17 @@ describe('shareholder classification and alert consistency', () => {
     blockedTypes.value = { 基金: false, 自然人: true };
     expect(typeBlocked('基金')).toBe(false);
     expect(typeBlocked('自然人')).toBe(true);
+  });
+  it('applies the account block and category blocks consistently to alerts', () => {
+    blockedTypes.value = { 其他: false };
+    const row = { types: [], excluded_types: ['其他'] };
+    expect(accountsBlocked()).toBe(true);
+    expect(shareholderAlertVisible(row)).toBe(false);
+    blockedTypes.value[excludedAccountsKey] = false;
+    expect(shareholderAlertVisible(row)).toBe(true);
+    blockedTypes.value.其他 = true;
+    expect(shareholderAlertVisible(row)).toBe(false);
+    expect(shareholderAlertVisible({ types: ['个人'], excluded_types: ['其他'] })).toBe(true);
   });
   it('drops empty peers, counts only unblocked holders and sorts today together first without changing API data', () => {
     const original = [

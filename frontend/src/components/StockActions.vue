@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useWorkspace } from '@/shared/workspace';
-import { typeBlocked } from '@/features/research/preferences';
+import { shareholderAlertVisible } from '@/features/research/preferences';
 import type { Stock } from '@/features/research/types';
 import NotePreview from '@/features/research/NotePreview.vue';
 import ShareholderPreview from '@/features/research/ShareholderPreview.vue';
 const props = defineProps<{ stock: Stock; compact?: boolean }>();
 const workspace = useWorkspace();
-const alert = computed(
-  () =>
-    workspace.meta.value?.shareholder_alerts?.rows
-      ?.find((row) => row.code === props.stock.code)
-      ?.types.some((type) => !typeBlocked(type)) ?? false,
+const alert = computed(() =>
+  shareholderAlertVisible(
+    workspace.meta.value?.shareholder_alerts?.rows?.find((row) => row.code === props.stock.code),
+  ),
 );
 </script>
 <template>

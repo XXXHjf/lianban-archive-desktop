@@ -4,14 +4,20 @@ import { request, query, abort } from '@/shared/api';
 import { errorMessage } from '@/shared/format';
 import { useWorkspace } from '@/shared/workspace';
 import StockLink from '@/components/StockLink.vue';
-import { typeBlocked, setBlocked, preferenceError, filterShareholders } from './preferences';
+import {
+  accountsBlocked,
+  excludedAccountsKey,
+  typeBlocked,
+  setBlocked,
+  preferenceError,
+  filterShareholders,
+} from './preferences';
 import type { Shareholders, Stock } from './types';
 const props = defineProps<{ stock: Stock }>();
 const workspace = useWorkspace();
 const data = ref<Shareholders | null>(null),
   error = ref(''),
   loading = ref(false),
-  showExcluded = ref(false),
   limit = ref(50);
 let generation = 0;
 const channel = `research-shareholders-${Math.random().toString(36).slice(2)}`;
@@ -20,7 +26,7 @@ const types = computed(() =>
     ...new Set(data.value?.rows.flatMap((peer) => peer.holders.map((holder) => holder.type)) ?? []),
   ].sort((a, b) => a.localeCompare(b, 'zh-CN')),
 );
-const rows = computed(() => filterShareholders(data.value?.rows ?? [], showExcluded.value));
+const rows = computed(() => filterShareholders(data.value?.rows ?? [], !accountsBlocked()));
 const today = computed(() =>
   !data.value
     ? ''
@@ -38,7 +44,7 @@ const empty = computed(() => {
         : '股东资料正在获取，请稍后再查看';
   return !data.value.rows.length
     ? '在已取得资料的股票中，暂未发现共同股东'
-    : '当前筛选下暂无关联股票，可调整分类屏蔽或勾选“显示已排除账户”';
+    : '当前筛选下暂无关联股票，可调整屏蔽选项后查看';
 });
 async function load() {
   const current = ++generation;
@@ -46,7 +52,6 @@ async function load() {
   error.value = '';
   data.value = null;
   limit.value = 50;
-  showExcluded.value = false;
   try {
     const result = await request<Shareholders>(
       query('/api/stock-shareholders', { code: props.stock.code }),
@@ -101,6 +106,9 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
             }}
           </p>
           <p>{{ data.scope_note }}</p>
+          <p>
+            “排除账户”包括结算代持、客户汇总账户、指数基金/ETF，以及中国信达和中国长城资产管理股份有限公司；分类屏蔽同时生效。
+          </p>
         </el-collapse-item></el-collapse
       >
       <div class="toolbar">
@@ -111,15 +119,13 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
           :model-value="typeBlocked(type)"
           @change="(value) => toggle(type, value === true)"
           >{{ type }}</el-checkbox
+        ><el-checkbox
+          :model-value="accountsBlocked()"
+          @change="(value) => toggle(excludedAccountsKey, value === true)"
+          >排除账户</el-checkbox
         ><span class="muted">{{ rows.length }} 只关联股票</span>
       </div>
       <el-alert v-if="preferenceError" :title="preferenceError" type="warning" :closable="false" />
-      <div class="toolbar">
-        <el-checkbox v-model="showExcluded" @change="limit = 50">显示已排除账户</el-checkbox>
-        <span class="muted"
-          >默认排除结算代持、客户汇总账户及指数基金/ETF；这些关系不触发同涨停提醒。分类屏蔽仍生效。</span
-        >
-      </div>
       <el-table :data="rows.slice(0, limit)" row-key="code" :empty-text="empty"
         ><el-table-column type="expand"
           ><template #default="{ row }"

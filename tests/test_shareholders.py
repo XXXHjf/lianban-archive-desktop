@@ -56,14 +56,16 @@ class ShareholderTests(unittest.TestCase):
                          {"结算代持账户", "客户汇总账户", "指数基金/ETF"})
         self.assertNotIn("exclusion_reason", rows["000003"]["holders"][0])
         self.assertEqual(queries.today_alerts(self.conn, now=self.now)["rows"],
-                         [{"code": "000001", "types": ["其他"]}, {"code": "000003", "types": ["其他"]}])
+                         [{"code": "000001", "types": ["其他"], "excluded_types": ["其他"]},
+                          {"code": "000002", "types": [], "excluded_types": ["其他"]},
+                          {"code": "000003", "types": ["其他"]}])
 
     def test_exclusion_rules_do_not_blanket_block_institutions_or_private_funds(self):
-        for name in ["中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司",
-                     "某某私募证券投资基金", "中国证券金融股份有限公司", "张三"]:
+        for name in ["某某私募证券投资基金", "中国证券金融股份有限公司", "张三"]:
             with self.subTest(name=name):
                 self.assertIsNone(exclusion_reason(name))
-        for name in ["香港中央结算（代理人）有限公司", "香港中央結算有限公司",
+        for name in ["中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司",
+                     "香港中央结算（代理人）有限公司", "香港中央結算有限公司",
                      "某券商客户信用交易担保证券账户", "某某ETF基金"]:
             with self.subTest(name=name):
                 self.assertIsNotNone(exclusion_reason(name))

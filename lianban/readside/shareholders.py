@@ -22,23 +22,24 @@ def today_limit_ups(conn, *, include_live=True, now=None):
 
 def today_alerts(conn, *, include_live=True, now=None):
     current, _, _, codes = today_limit_ups(conn, include_live=include_live, now=now)
-    holders, alerts = {}, {}
+    holders, alerts, excluded_alerts = {}, {}, {}
     if len(codes) > 1:
         placeholders = ",".join("?" for _ in codes)
         for row in conn.execute(f"SELECT code,holder_key,holder_name,holder_type FROM stock_shareholders WHERE code IN ({placeholders})", sorted(codes)):
-            if exclusion_reason(row["holder_name"]):
-                continue
-            holders.setdefault(row["holder_key"], {}).setdefault(row["code"], set()).add(row["holder_type"])
-        for stocks in holders.values():
+            key = (row["holder_key"], bool(exclusion_reason(row["holder_name"])))
+            holders.setdefault(key, {}).setdefault(row["code"], set()).add(row["holder_type"])
+        for (_, excluded), stocks in holders.items():
             if len(stocks) < 2:
                 continue
             for code in stocks:
                 for peer, types in stocks.items():
                     if peer != code:
-                        alerts.setdefault(code, set()).update(types)
+                        (excluded_alerts if excluded else alerts).setdefault(code, set()).update(types)
     # Return all qualifying categories once; each browser applies its own blocks.
     return {"today": current.date().isoformat(),
-            "rows": [{"code": code, "types": sorted(types)} for code, types in sorted(alerts.items())]}
+            "rows": [{"code": code, "types": sorted(alerts.get(code, set())),
+                      **({"excluded_types": sorted(excluded_alerts[code])} if code in excluded_alerts else {})}
+                     for code in sorted(alerts.keys() | excluded_alerts.keys())]}
 
 
 def stock_view(conn, code, *, include_live=True, now=None):

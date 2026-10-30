@@ -46,7 +46,7 @@ export interface Metadata {
     note?: string;
   };
   shareholder_alerts?: {
-    rows?: { code: string; types: string[] }[];
+    rows?: { code: string; types: string[]; excluded_types?: string[] }[];
     today?: string;
     date?: string;
     note?: string;

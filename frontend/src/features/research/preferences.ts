@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import type { Peer } from './types';
 const key = 'limit-up-archive.shareholder-blocked-types.v1';
+export const excludedAccountsKey = '__excluded_accounts__';
 function read(): Record<string, boolean> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(key) || '[]');
@@ -19,6 +20,19 @@ export const preferenceError = ref('');
 export function typeBlocked(type: string): boolean {
   const value = blockedTypes.value[type];
   return typeof value === 'boolean' ? value : ['基金', '其他', 'QFII'].includes(type);
+}
+export function accountsBlocked(): boolean {
+  return blockedTypes.value[excludedAccountsKey] ?? true;
+}
+export function shareholderAlertVisible(row?: {
+  types: string[];
+  excluded_types?: string[];
+}): boolean {
+  return (
+    !!row &&
+    (row.types.some((type) => !typeBlocked(type)) ||
+      (!accountsBlocked() && (row.excluded_types?.some((type) => !typeBlocked(type)) ?? false)))
+  );
 }
 export function filterShareholders(rows: readonly Peer[], showExcluded = false): Peer[] {
   return rows

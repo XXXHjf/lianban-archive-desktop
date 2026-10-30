@@ -28,7 +28,7 @@ afterEach(() => {
   blockedTypes.value = {};
 });
 
-it('hides settlement-only peers on load, reveals them on request, and resets for another stock', async () => {
+it('defaults to blocking accounts and retains the selection for another stock', async () => {
   blockedTypes.value = { 其他: false };
   const wrapper = mount(ShareholdersPanel, {
     props: { stock: { code: '000001' } },
@@ -51,11 +51,12 @@ it('hides settlement-only peers on load, reveals them on request, and resets for
   expect(wrapper.get('[data-peers]').text()).toContain('000003');
   const toggle = wrapper
     .findAllComponents(ElCheckbox)
-    .find((checkbox) => checkbox.text() === '显示已排除账户')!;
-  await toggle.get('input').setValue(true);
+    .find((checkbox) => checkbox.text() === '排除账户')!;
+  expect((toggle.get('input').element as HTMLInputElement).checked).toBe(true);
+  await toggle.get('input').setValue(false);
   expect(wrapper.get('[data-peers]').text()).toContain('000002');
   await wrapper.setProps({ stock: { code: '000004' } });
   await flushPromises();
-  expect(wrapper.get('[data-peers]').text()).not.toContain('000002');
+  expect(wrapper.get('[data-peers]').text()).toContain('000002');
   wrapper.unmount();
 });
