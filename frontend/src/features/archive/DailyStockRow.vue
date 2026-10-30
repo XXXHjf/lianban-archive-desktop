@@ -9,6 +9,7 @@ const props = defineProps<{
   active: boolean;
   highlight: boolean;
   topicFilter?: boolean;
+  showBoards?: boolean;
 }>();
 const emit = defineEmits<{
   preview: [stock: Stock, trigger: HTMLElement];
@@ -38,7 +39,7 @@ function chooseTopic(label: string) {
 }
 </script>
 <template>
-  <article class="ladder-stock" :class="{ 'is-selected': active }">
+  <article class="ladder-stock" :class="{ 'is-selected': active, 'has-boards': showBoards }">
     <div class="ladder-stock-identity">
       <button class="daily-stock-link" @click="ws.openStock(stock.code, stock.name)">
         {{ stock.name }}<span class="daily-code">{{ stock.code }}</span>
@@ -92,6 +93,9 @@ function chooseTopic(label: string) {
       </el-popover>
       <span v-if="stock.note" class="daily-meta">有备注</span>
     </div>
+    <span v-if="showBoards" class="matching-stock-boards">{{
+      stock.boards === 1 ? '首板' : stock.boards ? `${stock.boards}板` : '—'
+    }}</span>
     <el-button
       class="preview-stock"
       :type="active ? 'primary' : 'default'"

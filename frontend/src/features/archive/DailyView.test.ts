@@ -148,3 +148,43 @@ it('keeps topic filters inactive in other grouping modes and disables them while
   expect(wrapper.find('.daily-empty').exists()).toBe(true);
   dispose();
 });
+
+it('renders matching groups across board heights and hides groups reduced to one stock', async () => {
+  const data = fixture();
+  data.rows = [
+    { code: '002086', name: '东方海洋', boards: 2, initials: 'DFHY' },
+    { code: '002275', name: '桂林三金', boards: 5, initials: 'GLSJ' },
+    { code: '600261', name: '阳光照明', boards: 3, initials: 'YGZM' },
+    { code: '003032', name: '传智教育', boards: 1, initials: 'DFJY' },
+  ];
+  transport.request.mockResolvedValue(data);
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  workspace.patchRoute({ layout: 'code' });
+  await nextTick();
+  const group = wrapper.get('[aria-label="匹配分组 002"]');
+  expect(group.findAll('.ladder-stock').map((row) => row.text())).toEqual([
+    expect.stringContaining('桂林三金'),
+    expect.stringContaining('阳光照明'),
+    expect.stringContaining('东方海洋'),
+  ]);
+  expect(group.findAll('.matching-stock-boards').map((board) => board.text())).toEqual([
+    '5板',
+    '3板',
+    '2板',
+  ]);
+  expect(wrapper.find('[aria-label="匹配分组 00"]').exists()).toBe(false);
+  await group.get('[aria-label="预览桂林三金周期"]').trigger('click');
+  expect(wrapper.findComponent({ name: 'DailyCyclePreview' }).props('stock')?.code).toBe('002275');
+  workspace.patchRoute({ boards: '5' });
+  await nextTick();
+  expect(wrapper.get('.daily-empty').text()).toContain('没有符合要求的匹配分组');
+  expect(wrapper.get('.daily-results-caption').text()).toMatch(/0个分组\s*·\s*0只股票/);
+  const preview = wrapper.findComponent({ name: 'DailyCyclePreview' });
+  expect(preview.exists() ? preview.props('stock') : null).toBeNull();
+  workspace.patchRoute({ boards: '', layout: 'pinyin' });
+  await nextTick();
+  expect(wrapper.get('[aria-label="匹配分组 DF"]').findAll('.ladder-stock')).toHaveLength(2);
+  expect(wrapper.find('.ladder-band').exists()).toBe(false);
+  dispose();
+});

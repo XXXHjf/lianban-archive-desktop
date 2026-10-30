@@ -33,6 +33,32 @@ describe('daily grouping preserves evidence cohorts', () => {
     expect(result.some((group) => group.labels[0] === 'ABAB')).toBe(false);
     expect(result.find((group) => group.labels[0] === 'A')?.stocks).toHaveLength(2);
   });
+  it('keeps only shared matches, requires three code digits and sorts stocks by board height', () => {
+    const rows = [
+      stock('002086', 2, [], 'DFHY'),
+      stock('002275', 5, [], 'GLSJ'),
+      stock('600261', 3, [], 'YGZM'),
+      stock('003032', 1, [], 'DFJY'),
+      stock('999999', 4, [], 'X'),
+      stock('888888', 1, [], ''),
+    ];
+    const code = dailyGroups(rows, 'code', {}, hierarchy());
+    expect(code.every((group) => group.labels[0]!.length >= 3 && group.stocks.length >= 2)).toBe(
+      true,
+    );
+    expect(code.find((group) => group.labels[0] === '002')?.stocks.map((row) => row.code)).toEqual([
+      '002275',
+      '600261',
+      '002086',
+    ]);
+    expect(code.some((group) => group.labels[0] === '00')).toBe(false);
+    const pinyin = dailyGroups(rows, 'pinyin', {}, hierarchy());
+    expect(pinyin.find((group) => group.labels[0] === 'DF')?.stocks.map((row) => row.code)).toEqual(
+      ['002086', '003032'],
+    );
+    expect(pinyin.some((group) => group.labels[0] === 'X' || group.labels[0] === '#')).toBe(false);
+    expect(dailyGroups([rows[0]!], 'code', {}, hierarchy())).toEqual([]);
+  });
   it('retains parent columns, child leaves and identical child cohort merging', () => {
     const tags = hierarchy([
       { name: '设备', parent: '工业' },

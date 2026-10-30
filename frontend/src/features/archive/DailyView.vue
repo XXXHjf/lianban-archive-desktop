@@ -16,6 +16,7 @@ import {
   isArchiveDate,
   ladderBands,
   topicPath,
+  uniqueCount,
 } from './dailyPresentation';
 import type { DailyData, Stock } from './models';
 const emit = defineEmits<{ explain: [] }>();
@@ -33,6 +34,7 @@ const selectedStock = ref<Stock | null>(null);
 let trigger: HTMLElement | null = null;
 let pendingTool: { kind: 'note' | 'tags' | 'shareholders'; stock: Stock } | null = null;
 const expandedBands = ref<number[]>([]),
+  expandedMatches = ref(false),
   rowLimits = ref<Record<string, number>>({});
 const dates = computed(
   () => workspace.meta.value?.query_dates || workspace.meta.value?.dates || [],
@@ -48,6 +50,7 @@ const tags = computed(() =>
   hierarchy(workspace.meta.value?.tag_hierarchy, workspace.meta.value?.tag_order),
 );
 const industryMode = computed(() => route.value.layout === 'industry');
+const matchingMode = computed(() => ['pinyin', 'code'].includes(route.value.layout));
 const activeTopic = computed(() => (industryMode.value ? route.value.dailyTag : ''));
 const topics = computed(() => dailyTopics(archive.value?.rows || [], tags.value));
 const quickTopics = computed(() =>
@@ -65,6 +68,9 @@ const groups = computed(() =>
     data.value?.tag_board_counts || {},
     tags.value,
   ),
+);
+const visibleStocks = computed(() =>
+  matchingMode.value ? groups.value.flatMap((group) => group.stocks) : data.value?.rows || [],
 );
 const bands = computed(() =>
   ladderBands(
@@ -152,6 +158,7 @@ async function load() {
     selectedStock.value = null;
     previewOpen.value = false;
     expandedBands.value = [];
+    expandedMatches.value = false;
     rowLimits.value = {};
   }
   lastQuery = path;
@@ -163,7 +170,7 @@ async function load() {
       archive.value = result;
       if (selectedStock.value) {
         selectedStock.value =
-          [...(data.value?.rows || []), ...(data.value?.suspended_rows || [])].find(
+          [...visibleStocks.value, ...(data.value?.suspended_rows || [])].find(
             (row) => row.code === selectedStock.value?.code,
           ) || null;
         if (!selectedStock.value) previewOpen.value = false;
@@ -190,10 +197,11 @@ watch(
 );
 watch([() => route.value.layout, () => route.value.boards, () => route.value.dailyTag], () => {
   expandedBands.value = [];
+  expandedMatches.value = false;
   rowLimits.value = {};
   if (
     selectedStock.value &&
-    ![...(data.value?.rows || []), ...(data.value?.suspended_rows || [])].some(
+    ![...visibleStocks.value, ...(data.value?.suspended_rows || [])].some(
       (stock) => stock.code === selectedStock.value?.code,
     )
   ) {
@@ -501,93 +509,144 @@ function clearFilters() {
           <div class="daily-results-caption">
             <span
               ><template v-if="!industryMode">{{ groups.length }}个分组 · </template>
-              {{ data ? new Set(data.rows.map((row) => row.code)).size : '—' }}只股票</span
+              {{
+                data
+                  ? uniqueCount(matchingMode ? groups.flatMap((group) => group.stocks) : data.rows)
+                  : '—'
+              }}只股票</span
             >
           </div>
           <div v-if="loading && !data" class="daily-loading" role="status">
             <el-skeleton :rows="8" />
             <p>正在读取 {{ workspace.date.value }} 的梯队…</p>
           </div>
-          <div v-else-if="!bands.length && !error" class="daily-state daily-empty">
+          <div
+            v-else-if="!(matchingMode ? groups.length : bands.length) && !error"
+            class="daily-state daily-empty"
+          >
             <h2>
               {{
-                route.boards || filterCount || activeTopic
-                  ? '当前条件下没有匹配记录'
-                  : workspace.date.value
-                    ? '这个日期暂无已收录记录'
-                    : '先选择一个交易日'
+                matchingMode && data?.rows.length
+                  ? '当前条件下没有符合要求的匹配分组'
+                  : route.boards || filterCount || activeTopic
+                    ? '当前条件下没有匹配记录'
+                    : workspace.date.value
+                      ? '这个日期暂无已收录记录'
+                      : '先选择一个交易日'
               }}
             </h2>
             <el-button v-if="route.boards || filterCount || activeTopic" @click="clearFilters"
               >查看全部记录</el-button
             ><el-button
-              v-else
+              v-else-if="!data?.rows.length"
               :disabled="!dates.length"
               @click="workspace.openDate(dates.at(-1) || '')"
               >返回最新收录日</el-button
             >
           </div>
-          <section
-            v-for="band in bands"
-            :key="band.height"
-            class="ladder-band"
-            :class="{ 'topic-band': industryMode }"
-            :aria-label="`${band.height}板梯队`"
-          >
-            <header class="ladder-height">
-              <h2>
-                {{ band.height === 1 ? '首板' : band.height
-                }}<small v-if="band.height !== 1">板</small>
-              </h2>
-              <span>{{ band.count }}只</span>
-            </header>
-            <div class="ladder-band-groups">
-              <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
-                <span>股票</span><span>行业与标签</span><span>操作</span>
-              </div>
-              <section
-                v-for="group in expandedBands.includes(band.height)
-                  ? band.groups
-                  : band.groups.slice(0, 6)"
-                :key="groupIdentity(group.labels)"
-                class="ladder-group"
-              >
-                <header v-if="!industryMode" class="ladder-group-heading">
-                  <h3>{{ group.labels.join(' / ') }}</h3>
-                </header>
-                <div v-for="sub in group.sections" :key="groupIdentity(sub.labels)">
-                  <DailyStockRow
-                    v-for="stock in sub.stocks.slice(
-                      0,
-                      limit(band.height, group.labels, sub.labels),
-                    )"
-                    :key="stock.code"
-                    :stock="stock"
-                    :active="selectedStock?.code === stock.code"
-                    :highlight="!data?.provisional"
-                    :topic-filter="industryMode"
-                    @preview="select"
-                    @topic="chooseTopic"
-                  /><el-button
-                    v-if="sub.stocks.length > limit(band.height, group.labels, sub.labels)"
-                    link
-                    class="daily-show-more"
-                    @click="showRows(band.height, group.labels, sub.labels, sub.stocks.length)"
-                    >{{ industryMode ? '展开全部' : '查看本组全部'
-                    }}{{ sub.stocks.length }}只</el-button
-                  >
+          <template v-else-if="matchingMode">
+            <section
+              v-for="group in expandedMatches ? groups : groups.slice(0, 6)"
+              :key="groupIdentity(group.labels)"
+              class="matching-group"
+              :aria-label="`匹配分组 ${group.labels.join(' / ')}`"
+            >
+              <header class="matching-group-label">
+                <h2>{{ group.labels.join(' / ') }}</h2>
+                <span>{{ group.stocks.length }}只</span>
+              </header>
+              <div class="matching-group-content">
+                <div class="matching-column-headings" aria-hidden="true">
+                  <span>股票</span><span>行业与标签</span><span>板数</span><span>操作</span>
                 </div>
-              </section>
-              <el-button
-                v-if="band.groups.length > 6 && !expandedBands.includes(band.height)"
-                class="daily-show-more"
-                @click="expandedBands.push(band.height)"
-                >展开{{ band.height === 1 ? '首板' : `${band.height}板` }}全部{{
-                  band.groups.length
-                }}个分组</el-button
-              >
-            </div>
-          </section>
+                <DailyStockRow
+                  v-for="stock in group.stocks.slice(0, limit(0, group.labels, []))"
+                  :key="stock.code"
+                  :stock="stock"
+                  :active="selectedStock?.code === stock.code"
+                  :highlight="!data?.provisional"
+                  :show-boards="true"
+                  @preview="select"
+                />
+                <el-button
+                  v-if="group.stocks.length > limit(0, group.labels, [])"
+                  link
+                  class="daily-show-more"
+                  @click="showRows(0, group.labels, [], group.stocks.length)"
+                  >查看本组全部{{ group.stocks.length }}只</el-button
+                >
+              </div>
+            </section>
+            <el-button
+              v-if="groups.length > 6 && !expandedMatches"
+              class="daily-show-more"
+              @click="expandedMatches = true"
+              >展开全部{{ groups.length }}个分组</el-button
+            >
+          </template>
+          <template v-else>
+            <section
+              v-for="band in bands"
+              :key="band.height"
+              class="ladder-band"
+              :class="{ 'topic-band': industryMode }"
+              :aria-label="`${band.height}板梯队`"
+            >
+              <header class="ladder-height">
+                <h2>
+                  {{ band.height === 1 ? '首板' : band.height
+                  }}<small v-if="band.height !== 1">板</small>
+                </h2>
+                <span>{{ band.count }}只</span>
+              </header>
+              <div class="ladder-band-groups">
+                <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
+                  <span>股票</span><span>行业与标签</span><span>操作</span>
+                </div>
+                <section
+                  v-for="group in expandedBands.includes(band.height)
+                    ? band.groups
+                    : band.groups.slice(0, 6)"
+                  :key="groupIdentity(group.labels)"
+                  class="ladder-group"
+                >
+                  <header v-if="!industryMode" class="ladder-group-heading">
+                    <h3>{{ group.labels.join(' / ') }}</h3>
+                  </header>
+                  <div v-for="sub in group.sections" :key="groupIdentity(sub.labels)">
+                    <DailyStockRow
+                      v-for="stock in sub.stocks.slice(
+                        0,
+                        limit(band.height, group.labels, sub.labels),
+                      )"
+                      :key="stock.code"
+                      :stock="stock"
+                      :active="selectedStock?.code === stock.code"
+                      :highlight="!data?.provisional"
+                      :topic-filter="industryMode"
+                      @preview="select"
+                      @topic="chooseTopic"
+                    /><el-button
+                      v-if="sub.stocks.length > limit(band.height, group.labels, sub.labels)"
+                      link
+                      class="daily-show-more"
+                      @click="showRows(band.height, group.labels, sub.labels, sub.stocks.length)"
+                      >{{ industryMode ? '展开全部' : '查看本组全部'
+                      }}{{ sub.stocks.length }}只</el-button
+                    >
+                  </div>
+                </section>
+                <el-button
+                  v-if="band.groups.length > 6 && !expandedBands.includes(band.height)"
+                  class="daily-show-more"
+                  @click="expandedBands.push(band.height)"
+                  >展开{{ band.height === 1 ? '首板' : `${band.height}板` }}全部{{
+                    band.groups.length
+                  }}个分组</el-button
+                >
+              </div>
+            </section>
+          </template>
         </section>
       </div>
       <aside v-if="wide" class="daily-cycle-preview" aria-label="个股周期预览">

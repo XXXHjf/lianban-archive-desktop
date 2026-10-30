@@ -59,12 +59,13 @@ export function matchingGroups(
   groups: Map<string, Stock[]>,
   sequence: (s: Stock) => string,
   length: number,
+  minLength = 1,
 ): Group[] {
   const matches = new Map<string, Map<string, Stock>>();
   for (const [key, stocks] of groups) {
     if (key === '#') continue;
     const tokens = new Set<string>();
-    for (let n = Math.min(length, key.length); n >= 1; n--)
+    for (let n = Math.min(length, key.length); n >= minLength; n--)
       for (let i = 0; i <= key.length - n; i++) tokens.add(key.slice(i, i + n));
     for (const token of tokens) {
       if (!matches.has(token)) matches.set(token, new Map());
@@ -72,18 +73,18 @@ export function matchingGroups(
     }
   }
   const result = [...matches]
-    .filter(([token, stocks]) => token.length === 1 || stocks.size > 1)
+    .filter(([, stocks]) => stocks.size > 1)
     .sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0], 'en'))
     .map(([token, stocks]) => ({
       labels: [token],
       stocks: [...stocks.values()].sort(
         (a, b) =>
+          (b.boards || 0) - (a.boards || 0) ||
           sequence(a).indexOf(token) - sequence(b).indexOf(token) ||
           sequence(a).localeCompare(sequence(b), 'en') ||
           a.code.localeCompare(b.code),
       ),
     }));
-  if (groups.has('#')) result.push({ labels: ['#'], stocks: groups.get('#')! });
   return result;
 }
 export function dailyGroups(
@@ -137,6 +138,7 @@ export function dailyGroups(
       groups,
       mode === 'pinyin' ? initials : (stock) => stock.code,
       mode === 'pinyin' ? 4 : 6,
+      mode === 'code' ? 3 : 1,
     );
   function rank(label: string, stocks: Stock[]) {
     const counts = mode === 'industry' && label !== unknown ? tagBoards[label] : undefined;
