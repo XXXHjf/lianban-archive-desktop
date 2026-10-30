@@ -385,20 +385,6 @@
   color: var(--la-text-muted);
   font-variant-numeric: tabular-nums;
 }
-.topic-band.ladder-band {
-  display: block;
-}
-.topic-band .ladder-height {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: transparent;
-  margin-bottom: 12px;
-  padding: 4px 12px;
-}
-.topic-band .ladder-height h2 {
-  font-size: 26px;
-}
 .ladder-column-headings {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 48px;

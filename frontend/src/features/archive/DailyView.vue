@@ -348,7 +348,7 @@ function clearFilters() {
           <div class="daily-group-switch" role="group" aria-label="切换分组">
             <el-button
               v-for="mode in [
-                { value: 'industry', label: '行业 / 标签' },
+                { value: 'industry', label: '连板梯队' },
                 { value: 'region', label: '地区' },
                 { value: 'pinyin', label: '拼音' },
               ]"

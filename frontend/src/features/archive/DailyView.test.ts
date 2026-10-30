@@ -50,7 +50,7 @@ it('keeps three common grouping modes visible and clears selection when the quer
   transport.request.mockResolvedValue(fixture());
   const { wrapper, workspace, dispose } = setup();
   await flushPromises();
-  expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('行业 / 标签地区拼音');
+  expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('连板梯队地区拼音');
   await wrapper.get('[aria-label="预览光洋股份周期"]').trigger('click');
   expect(wrapper.findComponent({ name: 'DailyCyclePreview' }).props('stock')?.code).toBe('002708');
   workspace.openDate('2026-10-28');
