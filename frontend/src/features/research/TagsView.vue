@@ -170,8 +170,7 @@ async function writeMembership(code: string, action: 'add' | 'remove') {
       'research-tag-write',
     );
     if (!result) throw new Error('未能确认股票标签已保存，请刷新核实。');
-    feedback.value =
-      action === 'add' ? '已加入标签，其他标签已保留。' : '已移除该标签，其他标签已保留。';
+    feedback.value = action === 'add' ? '已加入标签。' : '已移除标签。';
     await afterWrite();
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -445,8 +444,7 @@ onBeforeUnmount(() => {
   <section class="stack">
     <div class="panel toolbar">
       <h2>标签管理</h2>
-      <span class="muted"
-        >{{ catalog?.total ?? 0 }} 个标签 · {{ catalog?.stocks ?? 0 }} 只股票 · 跨日期去重</span
+      <span class="muted">{{ catalog?.total ?? 0 }} 个标签 · {{ catalog?.stocks ?? 0 }} 只股票</span
       ><el-button :disabled="saving" @click="load().then(() => loadMembers(selected))"
         >刷新列表</el-button
       ><template v-if="editable"
@@ -578,7 +576,7 @@ onBeforeUnmount(() => {
       @closed="invalidateBatch"
       ><div class="stack">
         <p class="muted">
-          输入股票代码、全名或拼音首字母，以空格、换行、逗号分隔。先解析并核对，再批量保存。其他标签会保留。
+          输入股票代码、全名或拼音首字母，以空格、换行、逗号分隔。先解析并核对，再批量保存。
         </p>
         <el-select
           v-model="batchTag"
@@ -621,7 +619,7 @@ onBeforeUnmount(() => {
                   :key="option.code"
                   :label="`${option.name} ${option.code}`"
                   :value="option.code" /></el-select></template></el-table-column></el-table
-        ><span class="muted">已确认 {{ batchCodes.length }} 只（自动去重）</span>
+        ><span class="muted">已确认 {{ batchCodes.length }} 只</span>
       </div>
       <template #footer
         ><el-button :disabled="saving" @click="batchOpen = false">取消</el-button

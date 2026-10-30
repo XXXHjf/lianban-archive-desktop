@@ -36,14 +36,14 @@ const segments = computed(() => {
 });
 function description(round: Round) {
   if (round.outcome === 'win')
-    return `本票晋级 ${round.boards + 1} 板，本批次胜出记 1 轮，涉及 ${round.wins.length} 只对手。`;
+    return `本票晋级 ${round.boards + 1} 板 · 对手 ${round.wins.length}只。`;
   if (round.outcome === 'loss')
-    return `本票次日未入池，同梯队 ${round.losses.length} 只对手晋级 ${round.boards + 1} 板，本批次落后记 1 轮。`;
-  if (round.outcome === 'cutoff') return '后续结果超出当前收录范围，暂不计胜负。';
-  if (round.outcome === 'missing') return '下一交易日涨停池数据未确认，暂不计胜负。';
+    return `本票未入池 · ${round.losses.length} 只对手晋级 ${round.boards + 1}板。`;
+  if (round.outcome === 'cutoff') return '下一交易日尚未收录。';
+  if (round.outcome === 'missing') return '下一交易日数据缺失。';
   if (round.outcome === 'together')
-    return `本票与 ${round.together_count || 0} 只同梯队股票共同晋级，未形成单方胜负。`;
-  return round.outcome === 'no_peers' ? '' : '共同未入池或板数异常不计胜负。';
+    return `本票与 ${round.together_count || 0} 只同梯队股票共同晋级。`;
+  return '';
 }
 function cohorts(round: Round) {
   const rows = [...(round.cohort || [...round.wins, ...round.losses])];

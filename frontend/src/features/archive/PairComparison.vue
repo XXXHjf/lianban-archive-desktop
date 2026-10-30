@@ -145,13 +145,7 @@ function wheel(event: WheelEvent) {
           </tbody>
         </table>
       </div>
-      <p class="muted">
-        {{
-          segment.leader
-            ? '同期最高板：排除当前两票，按相交连续涨停周期最高板选取，并列时按较近涨停日期、代码选取。仅使用已收录数据。'
-            : '该周期暂无其他已收录的涨停股票。'
-        }}
-      </p>
+      <p v-if="!segment.leader" class="muted">暂无同期最高板</p>
       <div
         v-for="round in evidence.filter(
           (row) => row.date >= segment.start && row.date <= segment.end,
@@ -176,8 +170,7 @@ function wheel(event: WheelEvent) {
               ? `本票晋级 ${round.boards + 1} 板，对方未入池`
               : `对方晋级 ${round.boards + 1} 板，本票未入池`
           }}
-          · 待行情核实</span
-        >
+        </span>
       </div>
     </article>
   </div>

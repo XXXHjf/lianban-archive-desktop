@@ -26,7 +26,6 @@ function selected(stocks: Stock[], height: number) {
 }
 </script>
 <template>
-  <p class="daily-meta">完整高度 × 分组对照；可横向滚动。跨组归属保留，汇总按股票去重。</p>
   <el-scrollbar
     ><div class="matrix" :style="{ '--columns': groups.length }">
       <section v-for="height in heights" :key="height" class="height-row">

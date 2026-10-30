@@ -85,8 +85,8 @@ const statusLabel = computed(() =>
       : data.value.live
         ? '来源待更新'
         : data.value.data_status === 'ok'
-          ? '收盘归档'
-          : '覆盖待核实',
+          ? ''
+          : '数据缺失',
 );
 const freshness = computed(() => {
   if (!data.value) return '';
@@ -94,13 +94,14 @@ const freshness = computed(() => {
     workspace.meta.value?.live?.date === data.value.date
       ? workspace.meta.value.live
       : data.value.live;
-  if (data.value.provisional)
-    return `获取于 ${data.value.fetched_at?.slice(11, 19) || '时间待补充'} · 每分钟刷新 · 收盘后确认${live?.status === 'error' ? ' · 获取失败，保留上次数据并重试' : live?.status === 'waiting' ? ' · 来源待更新，保留上次数据并重试' : ''}`;
-  return data.value.live
-    ? '每分钟自动重试，缺失不等于没有涨停'
-    : data.value.data_status === 'ok'
-      ? '历史确认档案 · 分类资料以当前资料展示'
-      : '来源覆盖未确认，请查看数据口径';
+  if (!data.value.provisional && !data.value.live) return '';
+  const time = data.value.fetched_at?.slice(11, 19);
+  return [
+    time ? `更新于 ${time}` : '',
+    live?.status === 'error' ? '更新失败' : live?.status === 'waiting' ? '等待更新' : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 });
 let generation = 0,
   lastQuery = '';
@@ -241,7 +242,6 @@ function clearFilters() {
     <header class="daily-task-header">
       <div class="daily-title-row">
         <div class="daily-title">
-          <p class="daily-eyebrow">从市场高度，进入个股周期</p>
           <h1>当日梯队</h1>
         </div>
         <div class="daily-date-controls">
@@ -272,9 +272,10 @@ function clearFilters() {
       </div>
       <div class="daily-status-line" role="status">
         <strong>{{ workspace.date.value || '选择交易日' }}</strong
-        ><span class="daily-badge" :class="{ warning: uncertain }">{{ statusLabel }}</span
-        ><span class="daily-meta">{{ freshness }}</span
-        ><el-button link @click="emit('explain')">来源口径</el-button>
+        ><span v-if="statusLabel" class="daily-badge" :class="{ warning: uncertain }">{{
+          statusLabel
+        }}</span
+        ><span v-if="freshness" class="daily-meta">{{ freshness }}</span>
       </div>
       <p v-if="route.boards || filterCount" class="daily-meta">
         统计范围：{{ route.boards ? `精确${route.boards}板` : '全部板数'
@@ -299,13 +300,13 @@ function clearFilters() {
         </div>
       </dl>
       <p v-if="data?.suspended_rows?.length" class="daily-meta">
-        最高含停牌保留高度 · 当日交易最高 {{ data.trading_max_boards }} 板 · 停牌未计入涨停家数
+        当日最高 {{ data.trading_max_boards }} 板 · 停牌 {{ data.suspended_rows.length }}只
       </p>
       <p
         v-else-if="data && ['unknown', 'updating', 'error'].includes(data.suspension_status || '')"
         class="daily-meta"
       >
-        停牌资料待核实，当前筛选最高高度仅供参考。
+        {{ data.suspension_status === 'error' ? '停牌资料更新失败' : '停牌资料更新中' }}
       </p>
     </header>
     <div class="daily-main-layout">
@@ -335,9 +336,7 @@ function clearFilters() {
                   ><el-dropdown-item command="code">代码连续匹配分组</el-dropdown-item
                   ><el-dropdown-item command="matrix" :disabled="!data || !data.rows.length"
                     >完整分组对照</el-dropdown-item
-                  ><el-dropdown-item command="explain"
-                    >数据与统计说明</el-dropdown-item
-                  ></el-dropdown-menu
+                  ><el-dropdown-item command="explain">数据概况</el-dropdown-item></el-dropdown-menu
                 ></template
               ></el-dropdown
             >
@@ -398,14 +397,8 @@ function clearFilters() {
           <p v-if="data">仍展示 {{ data.date }} 的上次可用结果。</p>
           <el-button @click="load">重试当日档案</el-button>
         </div>
-        <div v-if="data && uncertain" class="daily-state warning" role="status">
-          <strong>{{ statusLabel }} · 请留意数据范围</strong>
-          <p>{{ data.coverage_note }}</p>
-        </div>
         <details v-if="data?.suspended_rows?.length" class="daily-suspensions">
-          <summary>
-            停牌保留高度 · {{ data.suspended_rows.length }}只 <span>不计入当日涨停家数</span>
-          </summary>
+          <summary>停牌保留高度 · {{ data.suspended_rows.length }}只</summary>
           <div class="daily-suspended-grid">
             <ArchiveCard
               v-for="stock in data.suspended_rows"
@@ -419,16 +412,7 @@ function clearFilters() {
           <div class="daily-results-caption">
             <span
               >{{ groups.length }}个分组 ·
-              {{ data ? new Set(data.rows.map((row) => row.code)).size : '—' }}只股票（去重）</span
-            ><span
-              >{{
-                route.layout === 'pinyin'
-                  ? '4→1个连续字母匹配'
-                  : route.layout === 'code'
-                    ? '6→1位连续数字匹配'
-                    : '按高度从高到低'
-              }}
-              · 跨组归属保留</span
+              {{ data ? new Set(data.rows.map((row) => row.code)).size : '—' }}只股票</span
             >
           </div>
           <div v-if="loading && !data" class="daily-loading" role="status">
@@ -445,7 +429,6 @@ function clearFilters() {
                     : '先选择一个交易日'
               }}
             </h2>
-            <p>无记录不等于当天没有涨停。可调整筛选、切换日期或查看来源覆盖。</p>
             <el-button v-if="route.boards || filterCount" @click="clearFilters"
               >查看全部记录</el-button
             ><el-button
@@ -557,11 +540,6 @@ function clearFilters() {
               >
             </div>
           </section>
-          <details v-if="data" class="daily-details daily-source">
-            <summary>来源与数据口径</summary>
-            <p>{{ data.coverage_note }}</p>
-            <p>分组可重复归属，统计按股票去重。仅供查询与复盘，不构成投资建议。</p>
-          </details>
         </section>
       </div>
       <aside v-if="wide" class="daily-cycle-preview" aria-label="个股周期预览">

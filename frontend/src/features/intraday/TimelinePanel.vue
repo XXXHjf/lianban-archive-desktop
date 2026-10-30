@@ -299,7 +299,7 @@ const option = computed<EChartsOption>(() => ({
       </p>
     </div>
     <el-collapse>
-      <el-collapse-item :title="`全天 ${events.length} 条分时记录（可键盘浏览）`" name="evidence">
+      <el-collapse-item :title="`全天 ${events.length} 条分时记录`" name="evidence">
         <el-table :data="events" max-height="420" stripe @row-click="select"
           ><el-table-column prop="time" label="时间" width="105" /><el-table-column
             label="股票"

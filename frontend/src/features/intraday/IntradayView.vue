@@ -646,7 +646,6 @@ onBeforeUnmount(() => {
         主板 {{ overview?.total || 0 }} 只 · 完整缓存 {{ overview?.ready || 0 }} 只 · 部分数据
         {{ overview?.partial || 0 }} 只 · 未缓存按需采集
       </p>
-      <p class="muted">{{ overview?.scope_note }} 已采集的数据可离线查看。</p>
       <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
     </section>
     <div class="minute-workspace">
@@ -795,20 +794,13 @@ onBeforeUnmount(() => {
             >
           </template>
           <p class="muted" :title="detail.reference_basis">
-            昨收参考 {{ detail.previous_close ? number(detail.previous_close, 2) : '—' }} ·
-            {{ detail.reference_basis
-            }}<span v-if="detail.reference_basis?.includes('未校正除权')">
-              · 除权日涨幅参考可能有差异</span
-            >
+            昨收 {{ detail.previous_close ? number(detail.previous_close, 2) : '—' }}
           </p>
           <p class="muted">
-            {{ detail.source || '本地分时档案' }} · {{ detail.note
+            {{ detail.source || ''
             }}<span v-if="detail.fetched_at">
-              · 采集于 {{ detail.fetched_at.slice(0, 19).replace('T', ' ') }}（北京时间）</span
-            ><span v-if="detail.provisional"> · 每分钟刷新，收盘前数据可能变化</span
-            ><span v-if="detail.refresh_error">
-              · 本次采集未完成，保留上次分时并自动重试：{{ detail.refresh_error }}</span
-            >
+              · 更新于 {{ detail.fetched_at.slice(0, 19).replace('T', ' ') }}</span
+            ><span v-if="detail.refresh_error"> · 更新失败：{{ detail.refresh_error }}</span>
           </p>
           <p v-if="detail.auction?.note" class="muted">
             竞价：{{ detail.auction.note }}（{{ detail.auction.status }}）

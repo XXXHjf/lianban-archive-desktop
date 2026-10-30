@@ -407,7 +407,6 @@ function cycleRounds(cycle: Cycle) {
           </div>
         </div>
       </section>
-      <el-alert :title="data.coverage_note" type="info" :closable="false" show-icon />
       <section class="panel">
         <h3>涨停高度轨迹</h3>
         <ChartPanel
@@ -432,13 +431,7 @@ function cycleRounds(cycle: Cycle) {
       </section>
       <section class="panel">
         <h3>连板周期与逐轮竞争</h3>
-        <p class="muted">{{ data.relationships.competition.scope_note }}</p>
-        <el-alert
-          title="按涨停池比较：未入池不等于未涨停，单方晋级结果仍需完整行情核实。"
-          type="warning"
-          :closable="false"
-          show-icon
-        /><el-empty v-if="!data.cycles.length" description="暂无已收录的连板周期" /><el-collapse
+        <el-empty v-if="!data.cycles.length" description="暂无已收录的连板周期" /><el-collapse
           v-model="expandedCycles"
           ><el-collapse-item
             v-for="cycle in data.cycles"
@@ -455,7 +448,6 @@ function cycleRounds(cycle: Cycle) {
             >
             <template v-if="expandedCycles.includes(cycle.start)">
               <p v-if="cycle.note" class="muted">{{ cycle.note }}</p>
-              <p class="muted">周期内已收录的最高高度；空白不代表断板。</p>
               <CompetitionRounds :rounds="cycleRounds(cycle)" /><el-empty
                 v-if="!cycleRounds(cycle).length"
                 description="该周期暂无已收录的竞争记录" /></template></el-collapse-item
@@ -499,11 +491,7 @@ function cycleRounds(cycle: Cycle) {
               : '正在整理同期竞争和同日涨停记录…'
           }}
         </p>
-        <el-alert
-          title="汇总胜出、落后与同日涨停记录，关联股票去重展示。最新日涨停优先；未入池不等于未涨停，胜负待行情核实。"
-          type="info"
-          :closable="false"
-        /><el-alert v-if="relationError" :title="relationError" type="error" :closable="false" />
+        <el-alert v-if="relationError" :title="relationError" type="error" :closable="false" />
         <div class="toolbar height-control">
           <span class="muted">工作区高度 {{ relationHeight }} px</span
           ><el-slider

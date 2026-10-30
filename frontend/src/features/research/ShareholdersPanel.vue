@@ -77,13 +77,13 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <template v-if="data">
       <el-collapse
-        ><el-collapse-item title="数据来源与口径说明" name="info"
+        ><el-collapse-item title="数据详情" name="info"
           ><p>
             {{ data.source }} · 已取得 {{ data.coverage }} / {{ data.requested }} 只股票{{
               data.status === 'updating'
                 ? ' · 正在更新'
                 : data.status === 'error'
-                  ? ' · 更新失败，保留已有缓存'
+                  ? ' · 更新失败'
                   : ''
             }}
           </p>
@@ -98,8 +98,7 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
                 .replace('T', ' ')
             }}
           </p>
-          <p>{{ data.scope_note }}</p></el-collapse-item
-        ></el-collapse
+        </el-collapse-item></el-collapse
       >
       <div class="toolbar">
         <strong>屏蔽分类</strong

@@ -158,20 +158,14 @@ onBeforeUnmount(() => {
           >
         </el-menu>
         <div class="sidebar-bottom">
-          <el-button text :icon="InfoFilled" @click="methodOpen = true">数据与统计说明</el-button
-          ><a
-            v-if="links.author_url"
-            :href="links.author_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            >作者主页</a
+          <el-button text :icon="InfoFilled" @click="methodOpen = true">数据概况</el-button
           ><a
             v-if="links.feedback_url"
             :href="links.feedback_url"
             target="_blank"
             rel="noopener noreferrer"
             >反馈建议</a
-          ><span class="local-label"><i></i> 本地运行 · 个人数据保存在本机</span>
+          >
         </div>
       </aside>
       <button
@@ -221,7 +215,6 @@ onBeforeUnmount(() => {
         <section v-if="route.view !== 'date'" class="intro">
           <div>
             <h1>{{ title }}</h1>
-            <p class="muted">从交易日看市场高度，从个股看连板轨迹。</p>
           </div>
           <div class="range">
             <span class="muted">历史数据范围</span
@@ -236,14 +229,6 @@ onBeforeUnmount(() => {
         <el-alert v-if="error" :title="error" type="error" show-icon :closable="false"
           ><el-button link @click="load">重新连接</el-button></el-alert
         >
-        <section v-if="route.view !== 'date'" class="disclaimer">
-          本人自用网站 ·
-          数据可能存在延迟、遗漏或错误，仅供查询、复盘与学习参考，不构成投资建议。<el-button
-            link
-            @click="methodOpen = true"
-            >查看说明</el-button
-          >
-        </section>
         <el-skeleton v-if="loading && !meta" :rows="8" animated />
         <template v-else-if="meta">
           <DailyView v-if="route.view === 'date'" @explain="methodOpen = true" />
@@ -253,12 +238,8 @@ onBeforeUnmount(() => {
           <BlacklistView v-else />
         </template>
         <el-empty v-else description="请启动本地服务后重新连接" />
-        <footer class="app-footer">
-          {{ meta?.coverage?.note || meta?.scope_note
-          }}<span
-            >历史表现不代表未来收益 ·
-            {{ meta?.archive_updated_at?.replace('T', ' ').slice(0, 16) }}</span
-          >
+        <footer v-if="meta?.archive_updated_at" class="app-footer">
+          更新于 {{ meta.archive_updated_at.replace('T', ' ').slice(0, 16) }}
         </footer>
       </main>
     </div>
@@ -279,30 +260,13 @@ onBeforeUnmount(() => {
         notice.updated_at?.replace('T', ' ').slice(0, 16)
       }}</small></el-dialog
     >
-    <el-dialog v-model="methodOpen" title="数据与统计说明" width="min(700px, 94vw)"
+    <el-dialog v-model="methodOpen" title="数据概况" width="min(700px, 94vw)"
       ><div class="stack">
         <p>
           历史数据范围：{{ dateLabel(meta?.available_start) }} —
           {{ dateLabel(meta?.available_end) }} · {{ number(meta?.coverage?.days) }} 个交易日 ·
           {{ number(meta?.coverage?.stocks) }} 只股票。
         </p>
-        <p>
-          本站仅提供数据查询、历史复盘与学习交流工具，所有数据、统计及相关内容仅供参考，不构成任何投资建议或收益承诺。请以官方披露及实际行情为准。
-        </p>
-        <p>{{ meta?.scope_note }}</p>
-        <p>
-          历史确认档案与盘中暂定快照分别展示。暂定数据在收盘后核验，采集失败或缺页不代表当天没有涨停。
-        </p>
-        <p>
-          个股轨迹只显示已收录的涨停日；空白不代表断板。梯队竞争根据涨停池推导，一方晋级、另一方未入池仍需完整行情核实。
-        </p>
-        <p>
-          标签、行业、地区和股东使用当前资料作展示，不代表历史时点分类。共同股东不代表控制关系，也不构成价格关联结论。
-        </p>
-        <p>
-          分时以实际缓存和来源为准，缺失不补造；图中滚轮、拖动与下方滑块用于查看范围，点击恢复全部范围可复位。
-        </p>
-        <p>备注、标签、黑名单保存在当前本地数据库；浏览器偏好仅保存在本机。</p>
       </div></el-dialog
     >
     <el-backtop :right="24" :bottom="24" />

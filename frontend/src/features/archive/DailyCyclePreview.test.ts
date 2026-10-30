@@ -52,7 +52,7 @@ it('rejects late results from the previously selected stock and names the archiv
   await flushPromises();
   expect(wrapper.text()).toContain('新股');
   expect(wrapper.text()).toContain('截至 2026-10-29');
-  expect(wrapper.text()).toContain('与所选交易日不同');
+  expect(wrapper.text()).toContain('所选交易日 2026-10-27');
   expect(wrapper.text()).toContain('研究当前周期');
   expect(wrapper.text()).not.toContain('旧股');
   await wrapper.get('.cycle-research').trigger('click');

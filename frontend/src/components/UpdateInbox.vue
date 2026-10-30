@@ -129,9 +129,7 @@ onBeforeUnmount(() => {
           >
           <p class="pre-wrap">{{ notice.notes }}</p>
           <a :href="notice.url" target="_blank" rel="noopener noreferrer">查看新版与下载</a
-          ><small class="muted"
-            >下载前请停止网站并备份个人数据；标签、黑名单和备注保存在本机。</small
-          >
+          ><small class="muted">下载前请停止网站并备份数据。</small>
         </section>
         <el-button :loading="busy" @click="check(true)">检查更新</el-button>
       </div></el-dialog

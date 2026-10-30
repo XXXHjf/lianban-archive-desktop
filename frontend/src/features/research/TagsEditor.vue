@@ -233,16 +233,7 @@ defineExpose({ finish, dirty, saving, save });
     <el-alert v-if="catalogError" :title="catalogError" type="warning" :closable="false" />
     <el-button v-if="!data && error" @click="load">重试读取</el-button>
     <template v-if="data">
-      <div class="muted">
-        {{
-          data.merge_defaults
-            ? '来源标签与个人标签合并，移除来源标签会保留排除设置。'
-            : data.customized
-              ? '当前使用个人标签。'
-              : '当前使用来源默认标签。'
-        }}<br />默认标签：{{ defaults.map(path).join('、') || '暂无' }}<br />{{ data.tags_source }}
-        {{ data.tags_as_of?.slice(0, 10) }}
-      </div>
+      <div class="muted">默认标签：{{ defaults.map(path).join('、') || '暂无' }}</div>
       <el-form :disabled="saving || !editable"
         ><div v-for="(tag, index) in draft" :key="index" class="draft-row">
           <el-input

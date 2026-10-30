@@ -37,8 +37,8 @@ const rounds = computed(() => {
     .slice(0, 1);
 });
 const outcomeLabels: Record<string, string> = {
-  win: '本票晋级，对方未入池 · 待核实',
-  loss: '对方晋级，本票未入池 · 待核实',
+  win: '本票晋级，对方未入池',
+  loss: '对方晋级，本票未入池',
   together: '同梯队共同晋级',
   cutoff: '后续结果待收录',
   missing: '下一交易日资料待补',
@@ -109,10 +109,7 @@ onBeforeUnmount(() => {
         ><el-button link @click="research">打开完整档案</el-button>
       </div>
       <template v-else-if="data">
-        <p class="daily-meta preview-asof">
-          历史确认档案 · 截至 {{ asOf
-          }}<span v-if="day !== asOf"><br />此预览为最近已收录周期，与所选交易日不同。</span>
-        </p>
+        <p class="daily-meta preview-asof">截至 {{ asOf }}</p>
         <el-button type="primary" class="cycle-research" @click="research">{{
           cycle ? (cycle.ongoing ? '研究当前周期' : '研究最近周期') : '查看完整个股档案'
         }}</el-button>
@@ -136,7 +133,6 @@ onBeforeUnmount(() => {
         </section>
         <section v-else class="daily-state">
           <h3>暂无已收录周期</h3>
-          <p>可进入完整档案查看已有涨停日。记录缺失不代表没有涨停。</p>
         </section>
         <section v-if="cycle" class="preview-section preview-rounds">
           <h3>逐轮竞争 · 最近一轮</h3>
@@ -150,7 +146,6 @@ onBeforeUnmount(() => {
             </p>
           </div>
           <p v-if="!rounds.length" class="daily-meta">此周期暂无已收录的逐轮竞争记录。</p>
-          <p class="daily-meta">仅按已收录涨停池比较，未入池不等于已确认断板。</p>
           <el-button link type="primary" @click="research">查看完整周期与逐轮记录</el-button>
         </section>
         <section class="preview-section">
@@ -176,22 +171,12 @@ onBeforeUnmount(() => {
             <summary>完整备注</summary>
             <p class="pre-wrap">{{ data.stock.note }}</p>
           </details>
-          <details class="daily-details">
-            <summary>资料与来源口径</summary>
-            <p>{{ data.coverage_note }}</p>
-            <p>分类资料为当前资料，不代表历史时点。</p>
-          </details>
         </section>
       </template>
     </template>
     <div v-else class="preview-invitation">
-      <p class="daily-eyebrow">从梯队进入研究</p>
-      <h2>先看梯队，再看周期。</h2>
-      <p>点击股票旁的“预览”，在这里查看当前或最近周期与关键竞争轮次。</p>
-      <div class="preview-path">
-        <span>选择股票</span><span>查看周期</span><span>研究逐轮竞争</span>
-      </div>
-      <p class="daily-meta">点击股票名称也可直接打开完整档案。</p>
+      <h2>选择股票</h2>
+      <p>点击“预览”查看周期。</p>
     </div>
   </div>
 </template>
