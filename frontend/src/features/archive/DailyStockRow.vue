@@ -48,6 +48,15 @@ function chooseTopic(label: string) {
       <span class="daily-meta">{{ region(stock) }} · {{ initials(stock) || '首字母待补充' }}</span>
     </div>
     <div class="ladder-stock-labels">
+      <button
+        v-for="node in stock.nodes || []"
+        :key="node.id"
+        class="ladder-node"
+        :title="`${node.date} 起始 · 查看节点成员`"
+        @click="emit('node', node.id)"
+      >
+        {{ node.name }}节点
+      </button>
       <span v-if="stock.blacklisted" class="daily-badge warning">黑名单</span>
       <span v-if="latest" class="daily-badge warning"
         >{{ ws.meta.value?.latest_date }} · {{ latest.boards }}板涨停</span
@@ -92,15 +101,6 @@ function chooseTopic(label: string) {
           >
         </div>
       </el-popover>
-      <button
-        v-for="node in stock.nodes || []"
-        :key="node.id"
-        class="ladder-node"
-        :title="`${node.date} 起始 · 查看节点成员`"
-        @click="emit('node', node.id)"
-      >
-        {{ node.name }}节点
-      </button>
       <span v-if="stock.note" class="daily-meta">有备注</span>
     </div>
     <span v-if="showBoards" class="matching-stock-boards">{{

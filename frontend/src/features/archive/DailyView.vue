@@ -573,12 +573,7 @@ function clearFilters() {
               v-for="band in bands"
               :key="band.height"
               class="ladder-band"
-              :class="{
-                'topic-band': industryMode,
-                'has-nodes': data?.nodes?.some(
-                  (n) => n.status === 'active' && n.height === band.height,
-                ),
-              }"
+              :class="{ 'topic-band': industryMode }"
               :aria-label="`${band.height}板梯队`"
             >
               <header class="ladder-height">
@@ -587,7 +582,15 @@ function clearFilters() {
                   }}<small v-if="band.height !== 1">板</small>
                 </h2>
                 <span>{{ band.count }}只</span>
-                <div class="ladder-node-list">
+              </header>
+              <div class="ladder-band-groups">
+                <div
+                  v-if="data?.rows.some((row) => row.boards === band.height && row.nodes?.length)"
+                  class="ladder-node-list"
+                  role="group"
+                  :aria-label="`${band.height}板梯队节点`"
+                >
+                  <span class="ladder-node-caption">梯队节点</span>
                   <button
                     v-for="node in data?.nodes?.filter(
                       (n) =>
@@ -603,8 +606,6 @@ function clearFilters() {
                     {{ node.name }}
                   </button>
                 </div>
-              </header>
-              <div class="ladder-band-groups">
                 <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
                   <span>股票</span><span>行业与标签</span><span>操作</span>
                 </div>

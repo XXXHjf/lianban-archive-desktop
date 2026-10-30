@@ -542,13 +542,18 @@
 }
 .ladder-node-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin-top: 8px;
-  padding-right: 4px;
+  padding: 8px 12px;
+  background: #fffbf5;
+  border-bottom: 1px solid #ffedd5;
 }
-.ladder-band.has-nodes {
-  grid-template-columns: 112px minmax(0, 1fr);
+.ladder-node-caption {
+  font-size: 12px;
+  line-height: 20px;
+  color: #92400e;
+  white-space: nowrap;
 }
 .ladder-node {
   max-width: 100%;
@@ -1170,8 +1175,8 @@
     grid-column: 2;
     grid-row: 1;
   }
-  .ladder-band.has-nodes {
-    grid-template-columns: 80px minmax(0, 1fr);
+  .ladder-node-list {
+    padding: 8px;
   }
   .daily-stock-link {
     min-height: 44px;
