@@ -46,6 +46,20 @@ function setup() {
   };
 }
 afterEach(() => vi.clearAllMocks());
+it('puts shareholder, intraday and preview actions on the stock row in order', async () => {
+  transport.request.mockResolvedValue(fixture());
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  const row = wrapper.get('.ladder-stock');
+  expect(row.get('.daily-stock-actions').text()).toBe('股东分时预览');
+  await row.get('[aria-label="查看光洋股份共同股东"]').trigger('click');
+  expect(workspace.editor.value?.kind).toBe('shareholders');
+  expect(workspace.editor.value?.stock.code).toBe('002708');
+  const openIntraday = vi.spyOn(workspace, 'openIntraday');
+  await row.get('[aria-label="查看光洋股份当日分时"]').trigger('click');
+  expect(openIntraday).toHaveBeenCalledWith('002708', '2026-10-29');
+  dispose();
+});
 it('keeps three common grouping modes visible and clears selection when the query day changes', async () => {
   transport.request.mockResolvedValue(fixture());
   const { wrapper, workspace, dispose } = setup();

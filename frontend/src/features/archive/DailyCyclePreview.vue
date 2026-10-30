@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
           <div class="preview-section-title">
             <h3>股票工具</h3>
             <el-dropdown trigger="click" @command="tool"
-              ><el-button aria-label="打开股票工具">备注 / 标签 / 股东</el-button
+              ><el-button aria-label="打开股票工具">备注 / 标签</el-button
               ><template #dropdown
                 ><el-dropdown-menu
                   ><el-dropdown-item command="note">查看与编辑备注</el-dropdown-item
@@ -160,8 +160,6 @@ onBeforeUnmount(() => {
                     v-if="ws.meta.value?.capabilities?.edit_tags !== false"
                     command="tags"
                     >标签与黑名单</el-dropdown-item
-                  ><el-dropdown-item command="shareholders"
-                    >共同股东</el-dropdown-item
                   ></el-dropdown-menu
                 ></template
               ></el-dropdown

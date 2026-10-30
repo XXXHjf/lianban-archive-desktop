@@ -390,7 +390,7 @@
 }
 .ladder-column-headings {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 48px;
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 160px;
   gap: 12px;
   padding: 10px 12px;
   background: var(--la-bg-subtle);
@@ -398,7 +398,7 @@
   font-size: 13px;
 }
 .topic-band .ladder-stock {
-  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 48px;
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 160px;
   gap: 12px;
   padding: 12px;
   min-height: 76px;
@@ -504,7 +504,7 @@
 .matching-column-headings,
 .matching-group .ladder-stock.has-boards {
   display: grid;
-  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) 52px 48px;
+  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) 52px 160px;
   align-items: center;
   gap: 8px;
 }
@@ -577,8 +577,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+}
+.daily-stock-actions .el-button + .el-button {
+  margin-left: 0;
 }
 .ladder-band:last-of-type .ladder-height h2 {
   font-size: 24px;
@@ -1116,7 +1119,7 @@
     display: none;
   }
   .matching-group .ladder-stock.has-boards {
-    grid-template-columns: minmax(0, 1fr) auto 48px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 4px 8px;
   }
   .matching-group .ladder-stock.has-boards .matching-stock-boards {
@@ -1159,7 +1162,7 @@
     display: none;
   }
   .topic-band .ladder-stock {
-    grid-template-columns: minmax(0, 1fr) 48px;
+    grid-template-columns: minmax(0, 1fr) auto;
     padding: 8px;
     gap: 4px 8px;
   }
