@@ -67,6 +67,7 @@ export interface RouteState {
   minuteCompare: string[];
   timelineGEM: boolean;
   tag: string;
+  dailyTag: string;
 }
 export type EditorKind = 'note' | 'tags' | 'shareholders';
 export interface EditorTarget {
@@ -100,6 +101,7 @@ export function parseRoute(search: string): RouteState {
     ],
     timelineGEM: p.get('timeline_gem') === '1',
     tag: p.get('tag') || '',
+    dailyTag: p.get('daily_tag') || '',
   };
 }
 export function routeURL(route: RouteState, pathname = '/') {
@@ -113,6 +115,7 @@ export function routeURL(route: RouteState, pathname = '/') {
     if (route.timelineGEM) p.set('timeline_gem', '1');
   }
   if (route.view === 'tags' && route.tag) p.set('tag', route.tag);
+  if (route.dailyTag) p.set('daily_tag', route.dailyTag);
   if (route.boards) p.set('boards', route.boards);
   if (route.layout !== 'industry') p.set('layout', route.layout);
   for (const [key, flag] of [

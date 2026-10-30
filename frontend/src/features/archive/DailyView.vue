@@ -9,12 +9,19 @@ import DailyStockRow from './DailyStockRow.vue';
 import DailyCyclePreview from './DailyCyclePreview.vue';
 import DailyMatrix from './DailyMatrix.vue';
 import { dailyGroups, hierarchy } from './helpers';
-import { groupIdentity, isArchiveDate, ladderBands } from './dailyPresentation';
+import {
+  dailyScope,
+  dailyTopics,
+  groupIdentity,
+  isArchiveDate,
+  ladderBands,
+  topicPath,
+} from './dailyPresentation';
 import type { DailyData, Stock } from './models';
 const emit = defineEmits<{ explain: [] }>();
 const workspace = useWorkspace(),
   route = workspace.route;
-const data = ref<DailyData | null>(null),
+const archive = ref<DailyData | null>(null),
   loading = ref(false),
   error = ref('');
 const filtersOpen = ref(false),
@@ -40,6 +47,17 @@ const next = computed(() => dates.value.find((day) => day > workspace.date.value
 const tags = computed(() =>
   hierarchy(workspace.meta.value?.tag_hierarchy, workspace.meta.value?.tag_order),
 );
+const industryMode = computed(() => route.value.layout === 'industry');
+const activeTopic = computed(() => (industryMode.value ? route.value.dailyTag : ''));
+const topics = computed(() => dailyTopics(archive.value?.rows || [], tags.value));
+const quickTopics = computed(() =>
+  topics.value.filter((topic) => topic.root === topic.label).slice(0, 4),
+);
+const data = computed(() =>
+  archive.value
+    ? dailyScope(archive.value, activeTopic.value, route.value.boards, tags.value)
+    : null,
+);
 const groups = computed(() =>
   dailyGroups(
     data.value?.rows || [],
@@ -50,7 +68,7 @@ const groups = computed(() =>
 );
 const bands = computed(() =>
   ladderBands(
-    groups.value,
+    industryMode.value ? [{ labels: [], stocks: data.value?.rows || [] }] : groups.value,
     route.value.layout,
     tags.value,
     !!data.value?.provisional,
@@ -109,13 +127,13 @@ async function load() {
   const id = ++generation;
   if (!workspace.date.value) {
     abort('archive-date');
-    data.value = null;
+    archive.value = null;
     loading.value = false;
     return;
   }
   if (!calendarDate.value) {
     abort('archive-date');
-    data.value = null;
+    archive.value = null;
     selectedStock.value = null;
     previewOpen.value = false;
     loading.value = false;
@@ -125,12 +143,12 @@ async function load() {
   }
   const path = query('/api/date', {
     date: workspace.date.value,
-    boards: route.value.boards,
+    boards: '',
     exclude_st: route.value.excludeST ? '1' : '0',
     exclude_gem: route.value.excludeGEM ? '1' : '0',
   });
   if (path !== lastQuery) {
-    data.value = null;
+    archive.value = null;
     selectedStock.value = null;
     previewOpen.value = false;
     expandedBands.value = [];
@@ -142,10 +160,10 @@ async function load() {
   try {
     const result = await request<DailyData>(path, 'archive-date');
     if (id === generation && result) {
-      data.value = result;
+      archive.value = result;
       if (selectedStock.value) {
         selectedStock.value =
-          [...result.rows, ...(result.suspended_rows || [])].find(
+          [...(data.value?.rows || []), ...(data.value?.suspended_rows || [])].find(
             (row) => row.code === selectedStock.value?.code,
           ) || null;
         if (!selectedStock.value) previewOpen.value = false;
@@ -158,26 +176,31 @@ async function load() {
   }
 }
 watch(
-  () => [
-    workspace.date.value,
-    route.value.boards,
-    route.value.excludeST,
-    route.value.excludeGEM,
-    workspace.revision.value,
-    workspace.meta.value?.archive_updated_at,
-    workspace.meta.value?.live?.fetched_at,
-    workspace.meta.value?.suspension_revision,
+  [
+    () => workspace.date.value,
+    () => route.value.excludeST,
+    () => route.value.excludeGEM,
+    () => workspace.revision.value,
+    () => workspace.meta.value?.archive_updated_at,
+    () => workspace.meta.value?.live?.fetched_at,
+    () => workspace.meta.value?.suspension_revision,
   ],
   load,
   { immediate: true },
 );
-watch(
-  () => route.value.layout,
-  () => {
-    expandedBands.value = [];
-    rowLimits.value = {};
-  },
-);
+watch([() => route.value.layout, () => route.value.boards, () => route.value.dailyTag], () => {
+  expandedBands.value = [];
+  rowLimits.value = {};
+  if (
+    selectedStock.value &&
+    ![...(data.value?.rows || []), ...(data.value?.suspended_rows || [])].some(
+      (stock) => stock.code === selectedStock.value?.code,
+    )
+  ) {
+    selectedStock.value = null;
+    previewOpen.value = false;
+  }
+});
 const interval = window.setInterval(() => {
   if (
     data.value?.provisional ||
@@ -225,7 +248,10 @@ function more(command: string) {
   else emit('explain');
 }
 function path(label: string) {
-  return [...tags.value.ancestors(label)].reverse().concat(label).join(' / ');
+  return topicPath(label, tags.value);
+}
+function chooseTopic(label: string) {
+  workspace.patchRoute({ layout: 'industry', dailyTag: label || '' });
 }
 function limit(height: number, root: string[], sub: string[]) {
   return rowLimits.value[JSON.stringify([height, root, sub])] || 12;
@@ -234,7 +260,7 @@ function showRows(height: number, root: string[], sub: string[], count: number) 
   rowLimits.value[JSON.stringify([height, root, sub])] = count;
 }
 function clearFilters() {
-  workspace.patchRoute({ excludeST: false, excludeGEM: false, boards: '' });
+  workspace.patchRoute({ excludeST: false, excludeGEM: false, boards: '', dailyTag: '' });
 }
 </script>
 <template>
@@ -277,9 +303,10 @@ function clearFilters() {
         }}</span
         ><span v-if="freshness" class="daily-meta">{{ freshness }}</span>
       </div>
-      <p v-if="route.boards || filterCount" class="daily-meta">
+      <p v-if="route.boards || filterCount || activeTopic" class="daily-meta">
         统计范围：{{ route.boards ? `精确${route.boards}板` : '全部板数'
-        }}{{ route.excludeST ? ' · 剔除ST' : '' }}{{ route.excludeGEM ? ' · 剔除创业板' : '' }}
+        }}{{ activeTopic ? ` · ${activeTopic}` : '' }}{{ route.excludeST ? ' · 剔除ST' : ''
+        }}{{ route.excludeGEM ? ' · 剔除创业板' : '' }}
       </p>
       <dl class="daily-stats" aria-label="当前筛选统计">
         <div>
@@ -391,6 +418,68 @@ function clearFilters() {
             }}</span
           >
         </div>
+        <div v-if="industryMode" class="daily-topic-filter" aria-label="行业与标签筛选">
+          <span class="daily-topic-label">行业 / 标签</span>
+          <el-select
+            :model-value="activeTopic"
+            class="daily-topic-search"
+            placeholder="搜索行业或标签"
+            aria-label="搜索行业或标签"
+            filterable
+            clearable
+            :disabled="loading && !data"
+            no-data-text="当日暂无标签"
+            no-match-text="没有匹配标签"
+            @update:model-value="chooseTopic"
+          >
+            <el-option
+              v-if="activeTopic && !topics.some((topic) => topic.label === activeTopic)"
+              :label="activeTopic"
+              :value="activeTopic"
+            />
+            <el-option
+              v-for="topic in topics"
+              :key="topic.label"
+              :label="path(topic.label)"
+              :value="topic.label"
+            >
+              <span>{{ path(topic.label) }}</span
+              ><span class="daily-topic-count">{{ topic.count }}</span>
+            </el-option>
+          </el-select>
+          <div class="daily-topic-pills" role="group" aria-label="常用行业与标签">
+            <button
+              :class="{ active: !activeTopic }"
+              :aria-pressed="!activeTopic"
+              :disabled="loading && !data"
+              @click="chooseTopic('')"
+            >
+              全部
+            </button>
+            <button
+              v-for="topic in quickTopics"
+              :key="topic.label"
+              :class="{ active: activeTopic === topic.label }"
+              :aria-pressed="activeTopic === topic.label"
+              :disabled="loading && !data"
+              @click="chooseTopic(topic.label)"
+            >
+              {{ topic.label }}
+            </button>
+          </div>
+          <el-dropdown
+            v-if="activeTopic && workspace.meta.value?.capabilities?.manage_tags !== false"
+            trigger="click"
+            @command="workspace.patchRoute({ view: 'tags', tag: activeTopic })"
+          >
+            <el-button text :icon="MoreFilled" :aria-label="`管理${activeTopic}标签`" /><template
+              #dropdown
+              ><el-dropdown-menu
+                ><el-dropdown-item>管理标签：{{ activeTopic }}</el-dropdown-item></el-dropdown-menu
+              ></template
+            >
+          </el-dropdown>
+        </div>
         <div v-if="error" class="daily-state error" role="alert">
           <h2>当日档案读取失败</h2>
           <p>{{ error }}</p>
@@ -411,7 +500,7 @@ function clearFilters() {
         <section class="daily-ladder" aria-label="当日梯队股票" :aria-busy="loading">
           <div class="daily-results-caption">
             <span
-              >{{ groups.length }}个分组 ·
+              ><template v-if="!industryMode">{{ groups.length }}个分组 · </template>
               {{ data ? new Set(data.rows.map((row) => row.code)).size : '—' }}只股票</span
             >
           </div>
@@ -422,14 +511,14 @@ function clearFilters() {
           <div v-else-if="!bands.length && !error" class="daily-state daily-empty">
             <h2>
               {{
-                route.boards || filterCount
+                route.boards || filterCount || activeTopic
                   ? '当前条件下没有匹配记录'
                   : workspace.date.value
                     ? '这个日期暂无已收录记录'
                     : '先选择一个交易日'
               }}
             </h2>
-            <el-button v-if="route.boards || filterCount" @click="clearFilters"
+            <el-button v-if="route.boards || filterCount || activeTopic" @click="clearFilters"
               >查看全部记录</el-button
             ><el-button
               v-else
@@ -442,6 +531,7 @@ function clearFilters() {
             v-for="band in bands"
             :key="band.height"
             class="ladder-band"
+            :class="{ 'topic-band': industryMode }"
             :aria-label="`${band.height}板梯队`"
           >
             <header class="ladder-height">
@@ -452,6 +542,9 @@ function clearFilters() {
               <span>{{ band.count }}只</span>
             </header>
             <div class="ladder-band-groups">
+              <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
+                <span>股票</span><span>行业与标签</span><span>操作</span>
+              </div>
               <section
                 v-for="group in expandedBands.includes(band.height)
                   ? band.groups
@@ -459,58 +552,10 @@ function clearFilters() {
                 :key="groupIdentity(group.labels)"
                 class="ladder-group"
               >
-                <header class="ladder-group-heading">
+                <header v-if="!industryMode" class="ladder-group-heading">
                   <h3>{{ group.labels.join(' / ') }}</h3>
-                  <el-dropdown
-                    v-if="
-                      route.layout === 'industry' &&
-                      group.labels[0] !== '独苗' &&
-                      workspace.meta.value?.capabilities?.manage_tags !== false
-                    "
-                    trigger="click"
-                    @command="(tag: string) => workspace.patchRoute({ view: 'tags', tag })"
-                    ><el-button
-                      text
-                      :icon="MoreFilled"
-                      :aria-label="`管理${group.labels.join('/')}标签`"
-                    /><template #dropdown
-                      ><el-dropdown-menu
-                        ><el-dropdown-item
-                          v-for="label in group.labels"
-                          :key="label"
-                          :command="label"
-                          >管理标签：{{ label }}</el-dropdown-item
-                        ></el-dropdown-menu
-                      ></template
-                    ></el-dropdown
-                  >
                 </header>
                 <div v-for="sub in group.sections" :key="groupIdentity(sub.labels)">
-                  <div
-                    v-if="sub.labels.length && sub.labels[0] !== group.labels[0]"
-                    class="ladder-subheading"
-                  >
-                    <span>{{ sub.labels.map(path).join(' / ') }}</span
-                    ><el-dropdown
-                      v-if="workspace.meta.value?.capabilities?.manage_tags !== false"
-                      trigger="click"
-                      @command="(tag: string) => workspace.patchRoute({ view: 'tags', tag })"
-                      ><el-button
-                        text
-                        :icon="MoreFilled"
-                        :aria-label="`管理${sub.labels.join('/')}子标签`"
-                      /><template #dropdown
-                        ><el-dropdown-menu
-                          ><el-dropdown-item
-                            v-for="label in sub.labels"
-                            :key="label"
-                            :command="label"
-                            >管理子标签：{{ label }}</el-dropdown-item
-                          ></el-dropdown-menu
-                        ></template
-                      ></el-dropdown
-                    >
-                  </div>
                   <DailyStockRow
                     v-for="stock in sub.stocks.slice(
                       0,
@@ -520,13 +565,16 @@ function clearFilters() {
                     :stock="stock"
                     :active="selectedStock?.code === stock.code"
                     :highlight="!data?.provisional"
+                    :topic-filter="industryMode"
                     @preview="select"
+                    @topic="chooseTopic"
                   /><el-button
                     v-if="sub.stocks.length > limit(band.height, group.labels, sub.labels)"
                     link
                     class="daily-show-more"
                     @click="showRows(band.height, group.labels, sub.labels, sub.stocks.length)"
-                    >查看本组全部{{ sub.stocks.length }}只</el-button
+                    >{{ industryMode ? '展开全部' : '查看本组全部'
+                    }}{{ sub.stocks.length }}只</el-button
                   >
                 </div>
               </section>

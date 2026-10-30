@@ -340,6 +340,123 @@
 .daily-board-bar > button span {
   font-variant-numeric: tabular-nums;
 }
+.daily-topic-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.daily-topic-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.daily-prototype .daily-topic-search {
+  width: 240px;
+  max-width: 100%;
+}
+.daily-topic-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.daily-topic-pills button {
+  font: inherit;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--la-bg-subtle);
+  color: var(--la-text-secondary);
+  min-height: 36px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.daily-topic-pills button.active {
+  color: var(--la-action-primary);
+  background: var(--la-bg-selected);
+  border-color: var(--la-action-primary);
+}
+.daily-topic-pills button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.daily-topic-count {
+  float: right;
+  margin-left: 16px;
+  color: var(--la-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.topic-band.ladder-band {
+  display: block;
+}
+.topic-band .ladder-height {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: transparent;
+  margin-bottom: 12px;
+  padding: 4px 12px;
+}
+.topic-band .ladder-height h2 {
+  font-size: 26px;
+}
+.ladder-column-headings {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 48px;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--la-bg-subtle);
+  color: var(--la-text-muted);
+  font-size: 13px;
+}
+.topic-band .ladder-stock {
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 48px;
+  gap: 12px;
+  padding: 12px;
+  min-height: 76px;
+}
+.topic-band .daily-stock-link {
+  color: var(--la-action-primary);
+}
+.daily-tag-filter {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.daily-tag-filter:hover,
+.daily-more-tags:hover {
+  color: var(--la-action-primary);
+  background: var(--la-bg-selected);
+}
+.daily-more-tags {
+  background: transparent;
+  color: var(--la-text-muted);
+  border: 0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  min-height: 24px;
+  cursor: pointer;
+}
+.daily-all-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.daily-all-tags > button,
+.daily-all-tags > span {
+  border: 0;
+  background: transparent;
+  color: var(--la-text-secondary);
+  font: inherit;
+  text-align: left;
+  padding: 8px;
+  cursor: pointer;
+}
+.daily-all-tags > button:hover {
+  color: var(--la-action-primary);
+  background: var(--la-bg-hover);
+}
 .daily-main-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -933,6 +1050,33 @@
   .ladder-stock {
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 8px 4px;
+  }
+  .daily-topic-filter {
+    gap: 8px;
+  }
+  .daily-prototype .daily-topic-search {
+    flex: 1;
+    min-width: 160px;
+  }
+  .daily-topic-pills {
+    flex-basis: 100%;
+    gap: 4px;
+  }
+  .daily-topic-pills button {
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+  .ladder-column-headings {
+    display: none;
+  }
+  .topic-band .ladder-stock {
+    grid-template-columns: minmax(0, 1fr) 48px;
+    padding: 8px;
+    gap: 4px 8px;
+  }
+  .daily-tag-filter,
+  .daily-more-tags {
+    min-height: 32px;
   }
   .ladder-stock-labels {
     grid-column: 1/-1;

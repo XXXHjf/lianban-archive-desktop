@@ -2,6 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createWorkspace, parseRoute, routeURL } from './workspace';
 afterEach(() => vi.unstubAllGlobals());
 describe('archive route compatibility', () => {
+  it('keeps the daily topic distinct from the management tag and round trips it through stock navigation', () => {
+    const route = parseRoute('?date=2026-10-29&daily_tag=机器人&boards=4&code=002708');
+    expect(parseRoute(routeURL(route).slice(1))).toEqual(route);
+    expect(route.dailyTag).toBe('机器人');
+    expect(route.tag).toBe('');
+    expect(parseRoute('?view=tags&tag=汽车&daily_tag=机器人').tag).toBe('汽车');
+  });
   it('round trips existing view/date/compare/filter query parameters', () => {
     const route = parseRoute(
       '?view=intraday&date=2026-10-28&minute_code=000678&minute_compare=000980,600519&timeline_gem=1&exclude_st=1&layout=region&relation_exclude_latest=1',
@@ -33,13 +40,14 @@ describe('archive route compatibility', () => {
     const workspace = createWorkspace();
     workspace.openStock('000678', '襄阳轴承');
     expect(workspace.route.value.view).toBe('stock');
-    location.search = '?date=2026-10-27&boards=3&exclude_gem=1';
+    location.search = '?date=2026-10-27&boards=3&exclude_gem=1&daily_tag=机器人';
     callbacks.get('popstate')?.();
     expect(workspace.route.value).toMatchObject({
       view: 'date',
       date: '2026-10-27',
       boards: '3',
       excludeGEM: true,
+      dailyTag: '机器人',
     });
     expect(history.pushState).toHaveBeenCalledTimes(1);
     workspace.dispose();
