@@ -91,7 +91,7 @@ class RuntimeAssemblyTests(unittest.TestCase):
         self.assertEqual(server.socket.fileno(), -1)
 
 
-    def test_http_serves_only_real_module_assets_with_javascript_mime(self):
+    def test_http_serves_only_real_bundled_assets_with_correct_mime(self):
         class QuietHandler(app.Handler):
             def log_message(self, *args):
                 pass
@@ -111,19 +111,24 @@ class RuntimeAssemblyTests(unittest.TestCase):
                 client.close()
 
         web = Path(__file__).resolve().parents[1] / "web"
-        module = next(iter(sorted((web / "modules").rglob("*.mjs"))))
-        status, content_type, body = request("/" + module.relative_to(web).as_posix() + "?v=test")
-        self.assertEqual(status, 200)
-        self.assertIn(content_type.split(";", 1)[0], ("text/javascript", "application/javascript"))
-        self.assertEqual(body, module.read_bytes())
-        for path in ("/modules/../realtime.js", "/modules/%2e%2e/realtime.js",
-                     "/modules/%2e%2e/%2e%2e/app.py", "/modules/..%5crealtime.js",
-                     "/modules/missing.mjs", "/modules/application.txt", "/realtime.js",
+        assets = [web / 'app.js', *sorted((web / 'assets').glob('*.js')), *sorted((web / 'assets').glob('*.css'))]
+        self.assertGreater(len(assets), 3)
+        for asset in assets:
+            with self.subTest(asset=asset.name):
+                status, content_type, body = request("/" + asset.relative_to(web).as_posix() + "?v=test")
+                self.assertEqual(status, 200)
+                allowed = ('text/css',) if asset.suffix == '.css' else ('text/javascript', 'application/javascript')
+                self.assertIn(content_type.split(';', 1)[0], allowed)
+                self.assertEqual(body, asset.read_bytes())
+        for path in ("/assets/../realtime.js", "/assets/%2e%2e/realtime.js",
+                     "/assets/%2e%2e/%2e%2e/app.py", "/assets/..%5crealtime.js",
+                     "/assets/missing.js", "/assets/application.txt", "/realtime.js",
+                     "/src/main.ts", "/frontend/package.json", "/modules/application.mjs",
                      "/SOURCE_BASELINE.json"):
             with self.subTest(path=path):
                 status, _, body = request(path)
                 self.assertEqual(status, 404)
-                self.assertNotEqual(body, module.read_bytes())
+                self.assertNotEqual(body, (web / 'app.js').read_bytes())
 
 
 if __name__ == "__main__":

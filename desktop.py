@@ -43,8 +43,9 @@ def serve(port, no_updates=False):
                 filename = 'index.html' if path in ('/', '/index.html') else path[1:]
                 raw = (ROOT/'web'/filename).read_bytes()
                 if filename == 'index.html':
-                    extension = ('<link rel="stylesheet" href="/updates.css?v=' + version + '">'
-                                 '<script src="/updates.js?v=' + version + '" defer></script>')
+                    # Vue owns the inbox UI; expose desktop capability without
+                    # injecting another renderer into its component tree.
+                    extension = '<meta name="lianban-desktop" content="' + version + '">'
                     raw = raw.replace(b'</head>', extension.encode('utf-8') + b'</head>', 1)
                 content_type = {'index.html':'text/html', 'updates.js':'text/javascript',
                                 'updates.css':'text/css', 'realtime.js':'text/javascript'}[filename]

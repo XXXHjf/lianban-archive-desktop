@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-const readModule = name => fs.readFileSync(require("node:path").join(__dirname,`../web/modules/${name}.mjs`),"utf8");
+const readModule = name => fs.readFileSync(require("node:path").join(__dirname,`./legacy_frontend/modules/${name}.mjs`),"utf8");
 const source = readModule("daily") + readModule("stock");
 const { install } = require("./frontend-harness.cjs");
 const tooltip = {hidden:true,innerHTML:"",style:{},getBoundingClientRect:()=>({width:530,height:400})};

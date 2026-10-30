@@ -14,7 +14,9 @@ class DistributionTests(unittest.TestCase):
         baseline=json.loads((ROOT/'BUILD_BASELINE.json').read_text(encoding='utf-8'))
         self.assertEqual(set(baseline['identity_sha256']), setup_shared.runtime_files(ROOT))
         self.assertIn('lianban/storage/connection.py',baseline['identity_sha256'])
-        self.assertIn('web/modules/application.mjs',baseline['identity_sha256'])
+        self.assertIn('web/app.js',baseline['identity_sha256'])
+        self.assertTrue(any(name.startswith('web/assets/') and name.endswith('.js') for name in baseline['identity_sha256']))
+        self.assertFalse(any(name.startswith('web/modules/') for name in baseline['identity_sha256']))
         for name,digest in baseline['identity_sha256'].items():
             self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest,name)
 

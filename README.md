@@ -1,6 +1,6 @@
 # 连板档案 · 本地共享版
 
-> 当前分支为 XXXHjf 的工程改造分支，基于上游 2026.10.28，已进行内部模块化重构。变更、验证及使用边界见 [ENGINEERING.md](ENGINEERING.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)。本分支尚未发布正式安装包，下方在线安装入口仍指向原作者正式版；试用本分支请下载完整分支源码后运行 `install.cmd`、`start_demo.cmd`。
+> 当前分支为 XXXHjf 的工程改造分支，基于上游 2026.10.28，已进行内部模块化重构及 Vue / Element Plus 前端标准化。变更、验证及使用边界见 [ENGINEERING.md](ENGINEERING.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，前端开发见 [frontend/README.md](frontend/README.md)。普通使用者仍不需要 Node 或前端构建。本分支尚未发布正式安装包，下方在线安装入口仍指向原作者正式版；试用本分支请下载完整分支源码后运行 `install.cmd`、`start_demo.cmd`。
 
 把本地测试版分享给其他人使用：当前共享版 **2026.10.28** 的页面和业务程序同步自测试版 **dfde734**，包含标签层级管理、主板分时、节点时间轴及备注历史。无需 Codex、账号、Token、Node.js，也无需预先安装 Python。
 

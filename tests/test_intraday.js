@@ -391,7 +391,7 @@ install(context, ["minuteRows","minuteDates","updateMinuteDateNavigation","chang
   const alone = context.minuteChartHTML(base);
   context.state.minuteCompareCodes = ["600002"];
   assert.deepEqual(primaryVolumeColors(compared), primaryVolumeColors(alone), "primary volume keeps its color when adding comparisons");
-  const css = fs.readFileSync(path.join(__dirname, "../web/styles.css"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "./legacy_frontend/styles.css"), "utf8");
   const primaryPriceColor = css.match(/\.minute-price-line\{[^}]*stroke:([^;]+)/)[1];
   assert.ok(primaryVolumeColors(compared).every(color => color === primaryPriceColor), "primary minute volume matches the actual price-line CSS color");
   assert.deepEqual(primaryAuctionVolumeColors(compared), [primaryPriceColor], "primary auction volume matches the price line");

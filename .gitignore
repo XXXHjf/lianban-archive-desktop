@@ -13,3 +13,5 @@ dist/
 *.p12
 *.lnk
 tests/test-data/
+node_modules/
+frontend/.cache/

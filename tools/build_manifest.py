@@ -7,6 +7,9 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from setup_shared import runtime_files
+from tools.check_frontend_build import verify_frontend_build
+if (ROOT/'frontend').is_dir():
+    verify_frontend_build(ROOT)
 baseline=json.loads((ROOT/'SOURCE_BASELINE.json').read_text(encoding='utf-8'))
 seed=json.loads((ROOT/'resources/archive-seed.sqlite3.json').read_text(encoding='utf-8'))
 dependencies=dict(line.strip().split('==') for line in (ROOT/'requirements.txt').read_text().splitlines() if line.strip())

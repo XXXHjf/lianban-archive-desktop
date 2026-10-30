@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
-const { createBrowserEnvironment } = require('../web/modules/environment.mjs');
-const { createApplication } = require('../web/modules/application.mjs');
+const { createBrowserEnvironment } = require('./legacy_frontend/modules/environment.mjs');
+const { createApplication } = require('./legacy_frontend/modules/application.mjs');
 
 const host = { Date, URL, URLSearchParams, AbortController, Option: function Option() {} };
 host.window = host;

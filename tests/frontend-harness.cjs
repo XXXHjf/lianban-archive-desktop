@@ -1,5 +1,5 @@
 // Tests import real feature factories. No application source fragments are evaluated.
-const { createApplication } = require('../web/modules/application.mjs');
+const { createApplication } = require('./legacy_frontend/modules/application.mjs');
 const { functionOwners, stateOwners, bindingOwners } = require('./frontend-contract.cjs');
 const applications = new WeakMap();
 

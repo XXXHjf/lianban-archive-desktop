@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { createApplication } = require('../web/modules/application.mjs');
+const { createApplication } = require('./legacy_frontend/modules/application.mjs');
 
 // Exercise the shipped event registrations, rather than replicas of handlers.
 function surface(selectors = []) {

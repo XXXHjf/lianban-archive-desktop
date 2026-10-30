@@ -165,8 +165,18 @@ def module_asset(path):
     return target.is_relative_to(base) and target.suffix == ".mjs" and target.is_file()
 
 
+def built_asset(path):
+    """Serve bundled frontend assets without exposing source or other files."""
+    decoded = unquote(path)
+    if not decoded.startswith("/assets/") or "\\" in decoded or "\x00" in decoded:
+        return False
+    base = (WEB / "assets").resolve()
+    target = (WEB / decoded.lstrip("/")).resolve()
+    return target.is_relative_to(base) and target.suffix in {".js", ".css", ".woff2"} and target.is_file()
+
+
 class Handler(SimpleHTTPRequestHandler):
-    extensions_map = {**SimpleHTTPRequestHandler.extensions_map, ".woff2": "font/woff2", ".mjs": "text/javascript"}
+    extensions_map = {**SimpleHTTPRequestHandler.extensions_map, ".woff2": "font/woff2", ".mjs": "text/javascript", ".js": "text/javascript", ".css": "text/css"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(WEB), **kwargs)
@@ -190,7 +200,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
-            if parsed.path in ("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico") or parsed.path in FONT_ASSETS | IMAGE_ASSETS or module_asset(parsed.path):
+            if parsed.path in ("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico") or parsed.path in FONT_ASSETS | IMAGE_ASSETS or module_asset(parsed.path) or built_asset(parsed.path):
                 return super().do_GET()
             return self.reply({"error": "页面不存在"}, 404)
         try:

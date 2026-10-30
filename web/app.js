@@ -1,4 +1,1 @@
-import { createApplication } from './modules/application.mjs';
-import { createBrowserEnvironment } from './modules/environment.mjs';
-
-createApplication(createBrowserEnvironment(globalThis)).start();
+import{t as e}from"./assets/frontend.js";e();

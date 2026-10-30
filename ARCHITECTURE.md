@@ -1,6 +1,6 @@
 # 连板档案的模块与开发边界
 
-本分支是一套本地模块化单体：一个 Python HTTP 服务、主档案与分时两份 SQLite，以及自托管原生网页。模块化调整不增加产品能力，不改变来源口径、用户记录、接口字段或页面布局。
+本分支是一套本地模块化单体：一个 Python HTTP 服务、主档案与分时两份 SQLite，以及本地托管的 Vue 网页。模块化调整不改变来源口径、用户记录或接口字段；前端标准化统一组件与交互，保持既有业务能力。
 
 ## 后端职责
 
@@ -41,24 +41,22 @@ HTTP v1 的现有返回字段继续兼容，包括元数据中的既有设置字
 
 ## 前端职责
 
-`web/app.js` 仅创建安全浏览器环境、组装应用并启动。`web/modules/` 使用浏览器原生 ES modules，无需 npm 安装或打包。
+当前前端使用 Vue 3 Composition API、TypeScript、Element Plus、ECharts 与 Vite。源码在 `frontend/`，`web/index.html`、`web/app.js` 与 `web/assets/` 是受校验的构建产物，禁止手工修改产物。安装包包含本地依赖，普通使用者无需 Node、npm 或联网 CDN。
 
-| 模块 | 所有权 |
+| 位置 | 所有权 |
 | --- | --- |
-| `application.mjs` | 创建特性实例，维持现有事件注册和启动顺序 |
-| `environment.mjs` | 浏览器原生接收者、方法绑定、惰性存储访问；存储被禁用时保留降级行为 |
-| `api.mjs` | 请求通道、取消、超时和错误转换 |
-| `navigation.mjs` | 当前视图、URL、浏览器前进后退 |
-| `preferences.mjs` / `format.mjs` | 偏好持久化、转义与展示格式 |
-| `shell.mjs` | 元数据、公共说明、整体协调与初始化 |
-| `daily.mjs` / `stock.mjs` | 各自的查询、筛选、周期与关系显示状态 |
-| `intraday.mjs` | 分时、对比、时间轴、任务及过期响应保护状态 |
-| `tags.mjs` / `notes.mjs` / `blacklist.mjs` | 各自编辑、修订、请求和事件 |
-| `shareholders.mjs` | 共同股东浮窗、分类偏好、今日提示和请求生命周期；通过元数据及公开特性方法协作 |
+| `frontend/src/App.vue` | 外壳、导航、元数据刷新、公告和说明；异步加载特性组件 |
+| `shared/workspace.ts` | 类型化的跨特性导航与编辑入口、URL 兼容、前进后退、全局元数据；特性私有数据不放入这里 |
+| `shared/api.ts` | HTTP 传输、按通道取消、超时、结构化错误与修订冲突；不隐藏写入失败 |
+| `shared/preferences.ts` / `format.ts` | 兼容旧本地偏好键、存储不可用降级、安全链接与展示格式 |
+| `components/` | 搜索、股票链接/操作、统一图表与桌面站内信；复用组件通过 props/emits 协作 |
+| `features/archive/` | 交易日、分组矩阵、个股、周期、梯队及股票对比；纯分组/关系模型与视图分开 |
+| `features/intraday/` | 目录、分时采集和对比、时间轴；纯时间/数据模型与组件分开 |
+| `features/research/` | 标签层级/成员/批量、备注历史/草稿/冲突、黑名单、共同股东和分类偏好 |
 
-每个特性闭包持有自己的 `featureState`，公开 `read/write` 只接受该模块拥有的字段。跨特性协作使用显式功能方法及受限状态接口；不要恢复一个通用可变全局 `state`。浏览器全局对象由环境注入，构造器不绑定，原生方法绑定真实 Window，访问 localStorage 时才触发其 getter。
+Element Plus 负责表单、表格、滚动容器、滑块、弹窗和反馈，避免各页面重新实现同一交互。ECharts 负责图表缩放、拖动、图例和提示；`ChartPanel` 统一延迟初始化、自动调整尺寸、图表联动、保留查看范围及释放资源。明确的定位/缩放命令可以覆盖原范围，切换主票或日期可通过 `resetKey` 复位。
 
-既有 JavaScript 回归通过真实工厂和命名方法运行。`tests/frontend-contract.cjs`、`frontend-harness.cjs` 仅用于隔离测试，不进入运行时网页或分发清单。不再通过 `indexOf/slice` 抽取 `app.js` 中的一段函数作为实现。
+各特性在自己的 Composition API 状态中管理请求、编辑和展示；跨特性通过 workspace 公开动作及组件 props/emits 协作。旧原生 renderer 原样移动至 `tests/legacy_frontend/`，仅作历史行为参考，不由 Vue 导入、不通过 HTTP 暴露、不进入分发。历史 Node 测试不能证明新 Vue 页面正确，必须同时运行 `frontend/src/**/*.test.ts`、类型/规范检查、构建与实际浏览器路径。
 
 旧 `realtime.py` / `web/realtime.js` 保留为历史兼容扩展及对应测试，正常入口使用 `ingestion.live_pool`，不加载旧扩展。清理旧扩展需另行核对支持入口与旧安装数据，不在这次结构拆分中直接删除。
 
@@ -68,7 +66,9 @@ HTTP v1 的现有返回字段继续兼容，包括元数据中的既有设置字
 
 `BUILD_BASELINE.json` 记录本分支全部根运行模块、`lianban/**/*.py` 和网页资产；`BUNDLE.json` 再覆盖代码、资源、随包 Python、wheels、种子库及安装脚本。校验会独立枚举实际运行文件，因此新增模块缺入清单也会失败。
 
-修改运行代码或网页之后先执行 `python tools/build_manifest.py`，再执行 `python tools/check_all.py`。后者使用当前 Python 运行完整 unittest，并使用 Node 运行所有 JavaScript 测试，任意检查失败都会返回非零。Node.js 24 是本轮实际验证的开发环境；普通使用者仍不需要 Node。
+前端修改先在 `frontend/` 执行 `npm ci`（首次）和 `npm run build`，再在根目录执行 `python tools/build_manifest.py` 与 `python tools/check_all.py`。`web/assets/build-info.json` 记录源码、锁文件、构建配置的散列；`tools/check_frontend_build.py` 拒绝源码与构建产物不一致。运行包还附带第三方许可说明。
+
+统一检查运行 Vue 类型检查、ESLint、Vitest、完整 Python unittest 和历史 JavaScript 参考回归，任一失败返回非零。Node.js 24 是本轮实际开发环境，普通使用者不需要 Node。具体工程命令及组件规范见 `frontend/README.md`。
 
 `python tools/check_compatibility.py --baseline-ref b04ba1f` 在 `.build/` 中提取固定旧模块，使用相同公开种子库及发布标签，对照元数据、日期、个股、股票对比和标签目录。子进程禁止网络；完整 JSON 与计时留在忽略目录，不提交个人数据。
 
