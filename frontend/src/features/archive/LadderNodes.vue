@@ -137,12 +137,12 @@ defineExpose({ open });
 </script>
 <template>
   <div class="node-toolbar">
-    <el-button v-if="editable" size="small" @click="adding">添加节点</el-button>
-    <el-button size="small" @click="open()">节点记录</el-button>
     <span v-if="data.provisional" class="daily-meta">节点在收盘确认后更新</span>
     <span v-else-if="data.node_check?.status === 'pending'" class="daily-meta"
       >节点待判定 · 可在记录中重试</span
     >
+    <el-button v-if="editable" size="small" @click="adding">添加节点</el-button>
+    <el-button size="small" @click="open()">节点记录</el-button>
   </div>
   <el-drawer v-model="recordsOpen" title="梯队节点记录" size="min(640px, 96vw)">
     <p>截至 {{ data.date }} · 失效节点仅在记录中留存。</p>
@@ -256,7 +256,10 @@ defineExpose({ open });
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 8px 0 16px;
+  justify-content: flex-end;
+}
+.node-toolbar .el-button + .el-button {
+  margin-left: 0;
 }
 .node-record {
   padding: 16px 0;

@@ -308,17 +308,12 @@ function clearFilters() {
           >
         </div>
       </div>
-      <div class="daily-status-line" role="status">
-        <strong>{{ workspace.date.value || '选择交易日' }}</strong
-        ><span v-if="statusLabel" class="daily-badge" :class="{ warning: uncertain }">{{
+      <div v-if="statusLabel || freshness" class="daily-status-line" role="status">
+        <span v-if="statusLabel" class="daily-badge" :class="{ warning: uncertain }">{{
           statusLabel
         }}</span
         ><span v-if="freshness" class="daily-meta">{{ freshness }}</span>
       </div>
-      <p v-if="route.boards || filterCount || activeTopic" class="daily-meta">
-        统计范围：{{ route.boards ? `精确${route.boards}板` : '全部板数'
-        }}{{ activeTopic ? ` · ${activeTopic}` : '' }}{{ route.excludeGEM ? ' · 剔除创业板' : '' }}
-      </p>
       <dl class="daily-stats" aria-label="当前筛选统计">
         <div>
           <dt>涨停</dt>
@@ -413,6 +408,9 @@ function clearFilters() {
             {{ option.boards === 1 ? '首板' : `${option.boards}板` }}
             <span>{{ option.count }}</span></button
           ><span v-if="filterCount" class="daily-filter-summary">已剔除 创业板</span>
+          <div v-if="data" class="daily-board-node-actions" role="group" aria-label="梯队节点操作">
+            <LadderNodes ref="nodePanel" :data="data" @changed="load" />
+          </div>
         </div>
         <div
           :hidden="!topicFilterVisible || !industryMode"
@@ -497,7 +495,6 @@ function clearFilters() {
             />
           </div>
         </details>
-        <LadderNodes v-if="data" ref="nodePanel" :data="data" @changed="load" />
         <section class="daily-ladder" aria-label="当日梯队股票" :aria-busy="loading">
           <div v-if="loading && !data" class="daily-loading" role="status">
             <el-skeleton :rows="8" />

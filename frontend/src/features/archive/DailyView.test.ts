@@ -47,6 +47,20 @@ function setup() {
   };
 }
 afterEach(() => vi.clearAllMocks());
+it('keeps node controls on the board filter row without repeating the date or scope', async () => {
+  transport.request.mockResolvedValue(fixture());
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  const boardBar = wrapper.get('.daily-board-bar');
+  expect(boardBar.get('.daily-board-node-actions').text()).toContain('添加节点');
+  expect(boardBar.get('.daily-board-node-actions').text()).toContain('节点记录');
+  workspace.patchRoute({ boards: '4' });
+  await nextTick();
+  expect(wrapper.text()).not.toContain('统计范围：');
+  expect(wrapper.find('.daily-status-line strong').exists()).toBe(false);
+  expect(wrapper.find('[aria-label="查询交易日期"]').exists()).toBe(true);
+  dispose();
+});
 it('shows a red dot only for a non-excluded, unblocked holder with another stock up today', async () => {
   transport.request.mockResolvedValue(fixture());
   const { wrapper, workspace, dispose } = setup();
