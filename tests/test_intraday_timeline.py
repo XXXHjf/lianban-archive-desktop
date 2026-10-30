@@ -236,7 +236,7 @@ class TimelineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 app.read_api(SimpleNamespace(db_path=path), "/api/intraday/timeline?date=2026-10-23&" + query)
         intraday_sources.save_catalog(path, [{"code": "000001", "name": "ST当前股"}], 1)
-        self.assertEqual(timeline.timeline(path, "2026-10-23")["coverage"]["total"], 0)
+        self.assertEqual(timeline.timeline(path, "2026-10-23")["coverage"]["total"], 1)
 
 
 if __name__ == "__main__":

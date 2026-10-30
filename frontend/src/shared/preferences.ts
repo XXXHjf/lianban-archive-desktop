@@ -1,3 +1,5 @@
+import { isST } from './format';
+
 export function readPreference<T>(
   key: string,
   fallback: T,
@@ -22,7 +24,7 @@ export interface RecentStock {
   name: string;
 }
 const recentKey = 'limit-up-archive.recent-stocks.v1';
-export function recentStocks() {
+function storedRecentStocks() {
   return readPreference<RecentStock[]>(
     recentKey,
     [],
@@ -37,10 +39,13 @@ export function recentStocks() {
       ),
   ).slice(0, 10);
 }
+export function recentStocks() {
+  return storedRecentStocks().filter((item) => !isST(item.name));
+}
 export function rememberStock(stock: RecentStock) {
-  if (!stock.name.trim()) return;
+  if (!stock.name.trim() || isST(stock.name)) return;
   writePreference(
     recentKey,
-    [stock, ...recentStocks().filter((item) => item.code !== stock.code)].slice(0, 10),
+    [stock, ...storedRecentStocks().filter((item) => item.code !== stock.code)].slice(0, 10),
   );
 }

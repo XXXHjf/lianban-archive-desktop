@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from lianban.readside.stock_profiles import enrich_stock_profiles
+from lianban.core.stock import is_st_name
 
 from lianban.research import tags as db
 from lianban.research.presentation import stock_initials
@@ -101,6 +102,7 @@ def _inventory(conn):
 
 def catalog(conn):
     groups, revision = _inventory(conn)
+    groups = {key: {**group, "rows": [row for row in group["rows"] if not is_st_name(row["name"])]} for key, group in groups.items()}
     nodes = hierarchy(conn)
     tags = sorted(({"name": group["name"], "count": len({r["code"] for key in descendants(nodes, group["name"]) for r in groups.get(key, {}).get("rows", [])})} for group in groups.values()),
                   key=lambda tag: (-tag["count"], tag["name"].casefold()))
@@ -115,8 +117,8 @@ def members(conn, name):
     if group is None:
         raise ValueError("这个标签已不存在，请刷新标签列表")
     keys = descendants(hierarchy(conn), group["name"])
-    union = {r["code"]: r for key in keys for r in groups.get(key, {}).get("rows", [])}
-    direct = {r["code"] for r in group["rows"]}
+    union = {r["code"]: r for key in keys for r in groups.get(key, {}).get("rows", []) if not is_st_name(r["name"])}
+    direct = {r["code"] for r in group["rows"] if not is_st_name(r["name"])}
     rows = [{"code": r["code"], "name": r["name"], "initials": stock_initials(r["name"]), "direct": r["code"] in direct,
              "registered_province": r.get("registered_province", "")} for _, r in sorted(union.items())]
     return {"name": group["name"], "rows": rows, "count": len(rows), "direct_count": len(direct), "revision": revision}

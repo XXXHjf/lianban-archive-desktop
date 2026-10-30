@@ -82,7 +82,7 @@ const bands = computed(() =>
     workspace.meta.value?.latest_date || '',
   ),
 );
-const filterCount = computed(() => Number(route.value.excludeST) + Number(route.value.excludeGEM));
+const filterCount = computed(() => Number(route.value.excludeGEM));
 const knownMode = computed(() => ['industry', 'region', 'pinyin'].includes(route.value.layout));
 const boardOptions = computed(() => {
   const counts = [...(data.value?.board_counts || [])];
@@ -150,7 +150,7 @@ async function load() {
   const path = query('/api/date', {
     date: workspace.date.value,
     boards: '',
-    exclude_st: route.value.excludeST ? '1' : '0',
+    exclude_st: '1',
     exclude_gem: route.value.excludeGEM ? '1' : '0',
   });
   if (path !== lastQuery) {
@@ -185,7 +185,6 @@ async function load() {
 watch(
   [
     () => workspace.date.value,
-    () => route.value.excludeST,
     () => route.value.excludeGEM,
     () => workspace.revision.value,
     () => workspace.meta.value?.archive_updated_at,
@@ -313,8 +312,7 @@ function clearFilters() {
       </div>
       <p v-if="route.boards || filterCount || activeTopic" class="daily-meta">
         统计范围：{{ route.boards ? `精确${route.boards}板` : '全部板数'
-        }}{{ activeTopic ? ` · ${activeTopic}` : '' }}{{ route.excludeST ? ' · 剔除ST' : ''
-        }}{{ route.excludeGEM ? ' · 剔除创业板' : '' }}
+        }}{{ activeTopic ? ` · ${activeTopic}` : '' }}{{ route.excludeGEM ? ' · 剔除创业板' : '' }}
       </p>
       <dl class="daily-stats" aria-label="当前筛选统计">
         <div>
@@ -390,10 +388,6 @@ function clearFilters() {
         <div v-if="filtersOpen" class="daily-filter-panel">
           <div class="daily-filter-checks">
             <el-checkbox
-              :model-value="route.excludeST"
-              @update:model-value="(value) => workspace.patchRoute({ excludeST: !!value })"
-              >剔除 ST</el-checkbox
-            ><el-checkbox
               :model-value="route.excludeGEM"
               @update:model-value="(value) => workspace.patchRoute({ excludeGEM: !!value })"
               >剔除创业板</el-checkbox
@@ -417,14 +411,7 @@ function clearFilters() {
           >
             {{ option.boards === 1 ? '首板' : `${option.boards}板` }}
             <span>{{ option.count }}</span></button
-          ><span v-if="filterCount" class="daily-filter-summary"
-            >已剔除
-            {{
-              [route.excludeST ? 'ST' : '', route.excludeGEM ? '创业板' : '']
-                .filter(Boolean)
-                .join('、')
-            }}</span
-          >
+          ><span v-if="filterCount" class="daily-filter-summary">已剔除 创业板</span>
         </div>
         <div v-if="industryMode" class="daily-topic-filter" aria-label="行业与标签筛选">
           <span class="daily-topic-label">行业 / 标签</span>

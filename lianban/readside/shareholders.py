@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 import re
 from lianban.core.clock import TZ
+from lianban.core.stock import is_st_name
 from lianban.core.shareholders import SOURCE, SCOPE_NOTE
 from lianban.storage.settings import get_settings
 from lianban.ingestion import live_pool
@@ -13,9 +14,9 @@ def today_limit_ups(conn, *, include_live=True, now=None):
     confirmed = conn.execute("SELECT fetched_at FROM days WHERE date=? AND status='ok'", (today,)).fetchone()
     pool = live_pool.snapshot(conn, today) if include_live and not confirmed else None
     if confirmed:
-        limit_codes = {r[0] for r in conn.execute("SELECT code FROM events WHERE date=?", (today,))}
+        limit_codes = {r["code"] for r in conn.execute("SELECT code,name FROM events WHERE date=?", (today,)) if not is_st_name(r["name"])}
     else:
-        limit_codes = {r["code"] for r in pool["records"]} if pool else set()
+        limit_codes = {r["code"] for r in pool["records"] if not is_st_name(r["name"])} if pool else set()
     return current, confirmed, pool, limit_codes
 
 
@@ -50,6 +51,8 @@ def stock_view(conn, code, *, include_live=True, now=None):
         "FROM stock_shareholders p JOIN stocks s ON s.code=p.code "
         "WHERE p.code<>? AND p.holder_key IN (SELECT holder_key FROM stock_shareholders WHERE code=?)", (code, code))
     for row in matches:
+        if is_st_name(row["name"]):
+            continue
         peer = peers.setdefault(row["code"], {"code": row["code"], "name": row["name"], "holders": {},
                     "today_together": code in limit_codes and row["code"] in limit_codes})
         holder = peer["holders"].setdefault(row["holder_key"], {"name": row["holder_name"], "type": row["holder_type"], "reports": []})
@@ -60,10 +63,11 @@ def stock_view(conn, code, *, include_live=True, now=None):
         peer["shared_count"] = len(peer["holders"])
         rows.append(peer)
     rows.sort(key=lambda p: (not p["today_together"], -p["shared_count"], p["code"]))
+    conn.create_function("is_st_name", 1, is_st_name, deterministic=True)
     return {"code": code, "profiles": profiles, "rows": rows, "total": len(rows),
             "status": settings.get("shareholder_status", "empty"), "source": SOURCE, "scope_note": SCOPE_NOTE,
             "today": today, "today_status": "confirmed" if confirmed else "provisional" if pool else "unavailable",
             "today_fetched_at": confirmed[0] if confirmed else pool["fetched_at"] if pool else None,
             "today_stale": bool(pool and current - datetime.fromisoformat(pool["fetched_at"]) > timedelta(minutes=3)),
-            "coverage": conn.execute("SELECT COUNT(DISTINCT code) FROM stock_shareholders").fetchone()[0],
-            "requested": conn.execute("SELECT COUNT(*) FROM stocks").fetchone()[0]}
+            "coverage": conn.execute("SELECT COUNT(DISTINCT p.code) FROM stock_shareholders p JOIN stocks s ON s.code=p.code WHERE NOT is_st_name(s.name)").fetchone()[0],
+            "requested": conn.execute("SELECT COUNT(*) FROM stocks WHERE NOT is_st_name(name)").fetchone()[0]}

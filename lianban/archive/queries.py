@@ -39,13 +39,14 @@ def meta(conn):
     settings.pop("site_links", None)  # Link configuration has its own public, filtered response.
     start, end = settings["range_start"], settings["range_end"]
     dates = [r[0] for r in conn.execute("SELECT date FROM days WHERE status='ok' AND date BETWEEN ? AND ? ORDER BY date", (start, end))]
-    counts = conn.execute("SELECT COUNT(*) records, COUNT(DISTINCT code) stocks FROM events WHERE date BETWEEN ? AND ?", (start, end)).fetchone()
+    conn.create_function("is_st_name", 1, is_st_name, deterministic=True)
+    counts = conn.execute("SELECT COUNT(*) records, COUNT(DISTINCT code) stocks FROM events WHERE date BETWEEN ? AND ? AND NOT is_st_name(name)", (start, end)).fetchone()
     attempts = Counter(r["status"] for r in conn.execute("SELECT status FROM days WHERE date BETWEEN ? AND ?", (start, end)))
     last = conn.execute("SELECT MAX(fetched_at) FROM days").fetchone()[0]
     archive_updated = conn.execute("SELECT MAX(fetched_at) FROM days WHERE status='ok'").fetchone()[0]
     latest_limit_ups = [dict(r) for r in conn.execute(
-        "SELECT code,boards FROM events WHERE date=? ORDER BY code", (dates[-1],))] if dates else []
-    examples = [dict(r) for r in conn.execute("SELECT e.code,s.name,MAX(e.boards) highest,COUNT(*) observations FROM events e JOIN stocks s USING(code) WHERE date BETWEEN ? AND ? GROUP BY e.code ORDER BY highest DESC,observations DESC LIMIT 6", (start, end))]
+        "SELECT code,boards FROM events WHERE date=? AND NOT is_st_name(name) ORDER BY code", (dates[-1],))] if dates else []
+    examples = [dict(r) for r in conn.execute("SELECT e.code,(SELECT e2.name FROM events e2 WHERE e2.code=e.code AND e2.date BETWEEN ? AND ? AND NOT is_st_name(e2.name) ORDER BY e2.date DESC LIMIT 1) name,MAX(e.boards) highest,COUNT(*) observations FROM events e WHERE e.date BETWEEN ? AND ? AND NOT is_st_name(e.name) GROUP BY e.code ORDER BY highest DESC,observations DESC LIMIT 6", (start, end, start, end))]
     return {**settings, "latest_date": dates[-1] if dates else None, "dates": dates,
             "suspension_updating": conn.execute("SELECT COUNT(*) FROM suspension_days WHERE status='updating'").fetchone()[0],
             "available_start": dates[0] if dates else None, "available_end": dates[-1] if dates else None,
@@ -69,7 +70,7 @@ def date_view(conn, day, min_boards=1, market="all", query="", exclude_st=False,
     enrich_stock_profiles(conn, rows)
     rows = [r for r in rows if (market == "all" or r["market"] == market)
             and (not query or query.casefold() in (r["code"] + r["name"]).casefold())
-            and (not exclude_st or not is_st_name(r["name"]))
+            and not is_st_name(r["name"])
             and (not exclude_gem or market_for(r["code"]) != "创业板")]
     board_counts = Counter(r["boards"] for r in rows)
     available_total = len(rows)
@@ -94,7 +95,7 @@ def date_view(conn, day, min_boards=1, market="all", query="", exclude_st=False,
     suspended = [r for r in suspended_leaders(conn, day) if r["boards"] >= min_boards
                  and (boards is None or r["boards"] == boards) and (market == "all" or r["market"] == market)
                  and (not query or query.casefold() in (r["code"] + r["name"]).casefold())
-                 and (not exclude_st or not is_st_name(r["name"]))
+                 and not is_st_name(r["name"])
                  and (not exclude_gem or market_for(r["code"]) != "创业板")]
     blacklist_codes = {r[0] for r in conn.execute("SELECT code FROM stock_blacklist")}
     for row in [*rows, *suspended]:
@@ -128,17 +129,18 @@ def search_stocks(conn, query=""):
     initials = re.sub(r"\s+", "", query).upper()
     use_initials = bool(re.fullmatch(r"[A-Z]+", initials))
     conn.create_function("stock_initials", 1, stock_initials, deterministic=True)
+    conn.create_function("is_st_name", 1, is_st_name, deterministic=True)
     # Match past source-provided names too, rather than only today's name.
     pattern = "%" + query + "%"
     if use_initials:
-        rows = conn.execute("SELECT s.code,s.name,s.market FROM stocks s WHERE s.code LIKE ? OR s.name LIKE ? "
+        rows = conn.execute("SELECT s.code,s.name,s.market FROM stocks s WHERE NOT is_st_name(s.name) AND (s.code LIKE ? OR s.name LIKE ? "
                             "OR stock_initials(s.name) LIKE ? OR EXISTS(SELECT 1 FROM events e WHERE e.code=s.code "
-                            "AND (e.name LIKE ? OR stock_initials(e.name) LIKE ?)) "
+                            "AND NOT is_st_name(e.name) AND (e.name LIKE ? OR stock_initials(e.name) LIKE ?))) "
                             "ORDER BY CASE WHEN stock_initials(s.name)=? THEN 0 ELSE 1 END,s.last_seen DESC,s.code LIMIT 40",
                             (pattern, pattern, "%" + initials + "%", pattern, "%" + initials + "%", initials))
     else:
-        rows = conn.execute("SELECT s.code,s.name,s.market FROM stocks s WHERE s.code LIKE ? OR s.name LIKE ? "
-                            "OR EXISTS(SELECT 1 FROM events e WHERE e.code=s.code AND e.name LIKE ?) "
+        rows = conn.execute("SELECT s.code,s.name,s.market FROM stocks s WHERE NOT is_st_name(s.name) AND (s.code LIKE ? OR s.name LIKE ? "
+                            "OR EXISTS(SELECT 1 FROM events e WHERE e.code=s.code AND NOT is_st_name(e.name) AND e.name LIKE ?)) "
                             "ORDER BY CASE WHEN s.code=? OR s.name=? THEN 0 ELSE 1 END,s.last_seen DESC,s.code LIMIT 40",
                             (pattern, pattern, pattern, query, query))
     return {"rows": [{**dict(r), "initials": stock_initials(r["name"])} for r in rows]}
@@ -148,16 +150,25 @@ def stock_view(conn, code, start, end):
     settings = get_settings(conn)
     stock = conn.execute("SELECT code,name,market FROM stocks WHERE code=?", (code,)).fetchone()
     stock = dict(stock) if stock else {"code": code, "name": "尚未收录", "market": market_for(code)}
+    if is_st_name(stock["name"]):
+        previous = conn.execute("SELECT name FROM events WHERE code=? AND date BETWEEN ? AND ? ORDER BY date DESC", (code, start, end))
+        name = next((row["name"] for row in previous if not is_st_name(row["name"])), None)
+        if name is None:
+            raise ValueError("该股票在所选范围内没有非 ST 档案")
+        stock["name"] = name
     stock["initials"] = stock_initials(stock["name"])
     stock["blacklisted"] = conn.execute("SELECT 1 FROM stock_blacklist WHERE code=?", (code,)).fetchone() is not None
     enrich_stock_profiles(conn, [stock])
     # Previous observations establish the first board, but later observations would leak future heights.
-    all_rows = [dict(r) for r in conn.execute("SELECT * FROM events WHERE code=? AND date<=? ORDER BY date", (code, end))]
+    source_rows = [dict(r) for r in conn.execute("SELECT * FROM events WHERE code=? AND date<=? ORDER BY date", (code, end))]
+    all_rows = [row for row in source_rows if not is_st_name(row["name"])]
     available_dates = [r[0] for r in conn.execute("SELECT date FROM days WHERE status='ok' ORDER BY date")]
     # A never-fetched trading day is a gap too. Use the provider calendar when available.
     all_dates = sorted(set(settings.get("calendar_dates", []) + available_dates))
     indices = {day: i for i, day in enumerate(all_dates)}
     attempted = {r["date"]: r["status"] for r in conn.execute("SELECT date,status FROM days")}
+    # Excluded ST days are not evidence that a visible cycle has ended.
+    attempted.update({row["date"]: "excluded_st" for row in source_rows if is_st_name(row["name"])})
     visible_cycles, latest = observed_cycles(all_rows, all_dates, available_dates, attempted, start, end)
     rows = [r for r in all_rows if start <= r["date"] <= end]
     note = settings["scope_note"] + " 个股列表仅显示已收录的涨停日；空白不代表断板。"

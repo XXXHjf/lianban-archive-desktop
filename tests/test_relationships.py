@@ -166,15 +166,25 @@ class RelationshipTests(unittest.TestCase):
         self.save("2026-07-24", [event(boards=3)])
         result = self.relations()
         self.assertEqual([r["code"] for r in result["competition"]["wins"]], ["000001"])
-        self.assertEqual(result["cooccurrences"]["stock_count"], 5)
+        self.assertEqual(result["cooccurrences"]["stock_count"], 4)
 
     def test_historical_st_name_controls_group_not_latest_stock_name(self):
         self.save(self.start, [event("600001", "ST测试甲"), event("000001", "*ST测试乙"), event("000002", "普通股")])
         self.save("2026-07-24", [event("600001", "ST测试甲", 3)])
         self.save("2026-07-30", [event("000001", "摘帽名称", 1)])
-        result = self.relations(end="2026-07-24")["competition"]
-        self.assertEqual([r["code"] for r in result["wins"]], ["000001"])
-        self.assertEqual(result["wins"][0]["name"], "*ST测试乙")
+        with self.assertRaisesRegex(ValueError, "没有非 ST 档案"):
+            self.relations(end="2026-07-24")
+        self.assertEqual(self.relations("000001")["competition"]["rounds"][-1]["date"], "2026-07-30")
+
+    def test_next_day_st_is_not_mistaken_for_absence_in_a_prior_non_st_round(self):
+        self.save(self.start, [event(), event("000001", "普通对手")])
+        self.save("2026-07-24", [event(boards=3), event("000001", "*ST对手", 3)])
+        result = self.relations()["competition"]
+        first = next(row for row in result["rounds"] if row["date"] == self.start)
+        self.assertEqual(first["outcome"], "unresolved")
+        self.assertEqual(next(row for row in first["cohort"] if row["code"] == "000001")["promotion_status"], "pending")
+        self.assertEqual(result["win_count"], 0)
+        self.assertNotIn("*ST对手", str(result))
 
     def test_both_promoting_or_both_absent_create_no_win_or_loss(self):
         self.save(self.start, [event(), event("000001", "对手乙")])

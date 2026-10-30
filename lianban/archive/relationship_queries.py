@@ -1,5 +1,6 @@
 """Read bounded historical facts, then delegate inference to pure rules."""
 from . import relationships as rules
+from lianban.core.stock import is_st_name
 
 
 def _coverage(conn, end, start=None):
@@ -27,7 +28,7 @@ def stock_pair_comparison(conn, code, peer_code, start, end, settings, exclude_s
     coverage = _coverage(conn, end)
     # Full pair histories establish runs that may start before the requested
     # range. Only periods containing a shared in-range observation are retained.
-    pair = _observations(conn, "e.code IN (?,?) AND e.date<=?", (code, peer_code, end), pair_history=True)
+    pair = [row for row in _observations(conn, "e.code IN (?,?) AND e.date<=?", (code, peer_code, end), pair_history=True) if not is_st_name(row['name'])]
     result = rules.stock_pair_comparison(pair, coverage, code, peer_code, start, end, settings,
                                          exclude_st, exclude_gem, include_period_leaders=False)
     segments = result["segments"]
@@ -43,5 +44,6 @@ def stock_pair_comparison(conn, code, peer_code, start, end, settings, exclude_s
     for offset in range(0, len(candidates), 500):
         batch = candidates[offset:offset + 500]
         observations.extend(_observations(conn, "e.date<=? AND e.code IN (" + ",".join("?" for _ in batch) + ")", [end, *batch], pair_history=True))
-    rules.complete_period_leaders(observations, segments, code, peer_code, end, coverage, settings, exclude_st, exclude_gem)
+    observations = [row for row in observations if not is_st_name(row['name'])]
+    rules.complete_period_leaders(observations, segments, code, peer_code, end, coverage, settings, True, exclude_gem)
     return result

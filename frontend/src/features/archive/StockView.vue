@@ -47,7 +47,7 @@ const peers = computed(() =>
   mergePeers(relations.value, route.value.code)
     .filter(
       (peer) =>
-        (!route.value.relationExcludeST || !isST(peer.name)) &&
+        !isST(peer.name) &&
         (!route.value.relationExcludeGEM || !isGEM(peer.code)) &&
         (!peerQuery.value.trim() ||
           `${peer.name} ${peer.code}`.toLowerCase().includes(peerQuery.value.trim().toLowerCase())),
@@ -201,7 +201,7 @@ async function loadComparison(retry = false) {
   const params = {
     code,
     peer,
-    exclude_st: route.value.relationExcludeST ? '1' : '0',
+    exclude_st: '1',
     exclude_gem: route.value.relationExcludeGEM ? '1' : '0',
     exclude_latest: route.value.relationExcludeLatest ? '1' : '0',
   };
@@ -460,10 +460,6 @@ function cycleRounds(cycle: Cycle) {
         </div>
         <div class="toolbar">
           <el-checkbox
-            :model-value="route.relationExcludeST"
-            @update:model-value="(value) => workspace.patchRoute({ relationExcludeST: !!value })"
-            >剔除 ST</el-checkbox
-          ><el-checkbox
             :model-value="route.relationExcludeGEM"
             @update:model-value="(value) => workspace.patchRoute({ relationExcludeGEM: !!value })"
             >剔除创业板</el-checkbox

@@ -36,7 +36,7 @@ def overview(archive_path, day=None, *, include_live=False):
         if snapshot:
             events = {r["code"]: dict(r) for r in snapshot["records"]}
         if universe and selected:
-            rows = [{"date": selected, "boards": 0, "industry": None, **{k: r[k] for k in ("code", "name", "market")}, **events.get(r["code"], {})} for r in universe if not db.is_st_name(r["name"])]
+            rows = [{"date": selected, "boards": 0, "industry": None, **{k: r[k] for k in ("code", "name", "market")}, **events.get(r["code"], {})} for r in universe]
         else:
             rows = [r for r in events.values() if is_mainboard(r["code"])]
         rows = [r for r in rows if not db.is_st_name(r["name"])]
@@ -62,8 +62,6 @@ def stock_view(archive_path, day, code, *, include_live=False):
     if not isinstance(code, str) or not re.fullmatch(r"[0-9]{6}", code):
         raise ValueError("请输入六位股票代码")
     member = next((r for r in catalog(archive_path) if r["code"] == code), None)
-    if member and db.is_st_name(member["name"]):
-        raise ValueError("分时数据已剔除 ST、*ST 股票")
     with closing(db.connect(archive_path)) as conn:
         if day not in trading_dates(conn, include_live=include_live):
             raise ValueError("该日期不在项目已知交易日历中，请选择交易日")

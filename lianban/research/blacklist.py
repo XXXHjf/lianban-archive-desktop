@@ -4,11 +4,12 @@ import re
 from lianban.core.clock import TZ, now_iso
 from lianban.storage.transaction import transaction
 from lianban.readside.stock_profiles import enrich_stock_profiles
+from lianban.core.stock import is_st_name
 
 def get_blacklist(conn):
     rows = [dict(row) for row in conn.execute(
         "SELECT b.code,s.name,s.market,b.created_at FROM stock_blacklist b "
-        "JOIN stocks s ON s.code=b.code ORDER BY b.created_at DESC,b.code")]
+        "JOIN stocks s ON s.code=b.code ORDER BY b.created_at DESC,b.code") if not is_st_name(row["name"])]
     for offset in range(0, len(rows), 500):
         enrich_stock_profiles(conn, rows[offset:offset + 500])
     return {"rows": rows, "total": len(rows)}

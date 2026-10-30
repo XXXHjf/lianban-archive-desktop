@@ -41,7 +41,16 @@ class ShareholderTests(unittest.TestCase):
         import json
         with self.conn:
             self.conn.execute("INSERT OR REPLACE INTO live_pools VALUES (?,?,?,?,?,?)", (day,
-                json.dumps([{"code": code} for code in codes]), "synthetic", self.now.isoformat(), None, ""))
+                json.dumps([{"code": code, "name": self.conn.execute("SELECT name FROM stocks WHERE code=?", (code,)).fetchone()[0]} for code in codes]), "synthetic", self.now.isoformat(), None, ""))
+
+    def test_st_peers_do_not_affect_today_alerts_or_shareholder_counts(self):
+        self.conn.execute("UPDATE stocks SET name='*ST测试' WHERE code='000003'")
+        self.conn.commit()
+        self.live(["000001", "000003"])
+        self.assertEqual(queries.today_alerts(self.conn, now=self.now)["rows"], [])
+        result = self.view()
+        self.assertNotIn("000003", [row["code"] for row in result["rows"]])
+        self.assertEqual(result["requested"], 3)
 
     def test_deduplication_and_current_snapshot_not_all_history(self):
         result = self.view()

@@ -207,10 +207,11 @@ class IntradayTests(unittest.TestCase):
             for row in rows:
                 minute.save_session(conn, row, complete_points(), "synthetic", "cached.json")
         overview = minute.overview(self.path, "2026-10-21")
-        self.assertEqual([row["code"] for row in overview["rows"]], ["600001"])
-        self.assertEqual((overview["total"], overview["ready"], overview["missing"]), (1, 1, 0))
+        self.assertEqual([row["code"] for row in overview["rows"]], ["600001", "600002"])
+        self.assertEqual((overview["total"], overview["ready"], overview["missing"]), (2, 2, 0))
+        self.assertEqual(minute.stock_view(self.path, "2026-10-21", "600002")["stock"]["name"], "历史普通股")
         with patch.object(sources, "fetch_json", side_effect=AssertionError("ST must not be collected")) as fetch:
-            for code in ("600002", "600003", "000002"):
+            for code in ("600003", "000002"):
                 with self.subTest(code=code), self.assertRaisesRegex(ValueError, "已剔除 ST"):
                     minute.stock_view(self.path, "2026-10-21", code)
                 with self.subTest(code=code), self.assertRaisesRegex(ValueError, "已剔除 ST"):
@@ -228,7 +229,7 @@ class IntradayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "已剔除 ST"):
             minute.stock_view(self.path, "2026-10-21", "600002")
 
-    def test_batch_collection_skips_st_by_current_and_selected_day_names(self):
+    def test_batch_collection_uses_selected_day_names(self):
         with closing(db.initialize(self.path)) as conn:
             db.save_day(conn, "2026-10-21", [event(), {**event(), "code": "600002", "name": "*ST当日"},
                         {**event(), "code": "600003", "name": "历史普通股"}], "synthetic")
@@ -237,9 +238,9 @@ class IntradayTests(unittest.TestCase):
                                         {"code": "600003", "name": " st 当前股"}], 3)
         with patch("lianban.intraday.batch.fetch_stock", return_value=([], [])) as fetch:
             report = collect(self.path, ["2026-10-21"], force=True)
-        self.assertEqual(fetch.call_count, 1)
-        self.assertEqual([r["code"] for r in fetch.call_args.args[0]], ["600001"])
-        self.assertEqual(report["days"][0]["total"], 1)
+        self.assertEqual(fetch.call_count, 2)
+        self.assertEqual({call.args[0][0]["code"] for call in fetch.call_args_list}, {"600001", "600003"})
+        self.assertEqual(report["days"][0]["total"], 2)
 
     def test_auction_is_independent_date_checked_match_and_never_copies_0930(self):
         payload = [{"symbol": "sh600001", "ticktime": "09:25:00", "price": "11", "volume": "100"}]

@@ -27,6 +27,22 @@ it('keeps the original recent-stock key and deduplicates in newest-first order',
   expect(recentStocks().map((stock) => stock.code)).toEqual(['000678', '000980']);
   expect(stored.has('limit-up-archive.recent-stocks.v1')).toBe(true);
 });
+it('hides ST names from recent stocks without removing saved entries', () => {
+  const key = 'limit-up-archive.recent-stocks.v1';
+  const stored = new Map<string, string>([
+    [key, JSON.stringify([{ code: '600001', name: '*ST测试' }])],
+  ]);
+  vi.stubGlobal('localStorage', {
+    getItem: (name: string) => stored.get(name),
+    setItem: (name: string, value: string) => stored.set(name, value),
+  });
+  rememberStock({ code: '002000', name: '盛通股份' });
+  expect(recentStocks().map((stock) => stock.name)).toEqual(['盛通股份']);
+  expect(JSON.parse(stored.get(key)!)).toEqual([
+    { code: '002000', name: '盛通股份' },
+    { code: '600001', name: '*ST测试' },
+  ]);
+});
 it('rejects configured links that can execute code or expose credentials', () => {
   for (const link of [
     'javascript:alert(1)',

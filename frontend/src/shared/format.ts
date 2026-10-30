@@ -20,7 +20,7 @@ export function money(value: unknown) {
       : number(n, 2);
 }
 export function isST(name: string) {
-  return /^(?:\*?ST|SST|S\*ST)/i.test(name.trim());
+  return /^(?:S\*ST|SST|\*ST|ST)/i.test(name.normalize('NFKC').replace(/\s+/g, ''));
 }
 export function isGEM(code: string) {
   return /^(300|301)/.test(code);

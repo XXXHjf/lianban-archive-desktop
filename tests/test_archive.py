@@ -95,7 +95,7 @@ class ArchiveTests(unittest.TestCase):
             self.assertEqual(rows[0]["code"], "600802")
             self.assertEqual(rows[0]["initials"], "FJSN")
         self.assertEqual(db.search_stocks(self.conn, "CQYH")["rows"][0]["name"], "重庆银行")
-        self.assertEqual(db.search_stocks(self.conn, "JK")["rows"][0]["name"], "*ST金科")
+        self.assertEqual(db.search_stocks(self.conn, "JK")["rows"], [])
         self.save("2025-10-15", [event("600802", "测试新名")])
         self.assertEqual(db.search_stocks(self.conn, "FJSN")["rows"][0]["name"], "测试新名")
         self.assertEqual(db.date_view(self.conn, "2025-10-14")["rows"][0]["name"], "福建水泥")
@@ -133,7 +133,7 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual([row["code"] for row in historical["rows"]], ["600001"])
         self.assertEqual([row["code"] for row in current["rows"]], ["000001"])
         self.assertEqual(historical["stats"]["total"], 1)
-        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 3)
+        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 1)
 
     def test_gem_exclusion_keeps_counts_tags_and_facts_consistent(self):
         self.save("2025-10-14", [event("000001", "普通深市", boards=1),
@@ -145,17 +145,17 @@ class ArchiveTests(unittest.TestCase):
         db.save_stock_tags(self.conn, "300001", ["创业专属"], 0)
         before = [tuple(row) for row in self.conn.execute("SELECT * FROM events ORDER BY date,code")]
         filtered = db.date_view(self.conn, "2025-10-14", exclude_gem=True)
-        self.assertEqual({row["code"] for row in filtered["rows"]}, {"000001", "600001", "688001", "920001"})
-        self.assertEqual(filtered["stats"], {"total": 4, "consecutive": 2, "max_boards": 2, "first_boards": 2})
-        self.assertEqual(filtered["available_total"], 4)
-        self.assertEqual(filtered["board_counts"], [{"boards": 1, "count": 2}, {"boards": 2, "count": 2}])
+        self.assertEqual({row["code"] for row in filtered["rows"]}, {"000001", "688001", "920001"})
+        self.assertEqual(filtered["stats"], {"total": 3, "consecutive": 1, "max_boards": 2, "first_boards": 2})
+        self.assertEqual(filtered["available_total"], 3)
+        self.assertEqual(filtered["board_counts"], [{"boards": 1, "count": 2}, {"boards": 2, "count": 1}])
         self.assertNotIn("创业专属", filtered["tag_board_counts"])
         combined = db.date_view(self.conn, "2025-10-14", exclude_gem=True, exclude_st=True, boards=2)
         self.assertEqual([row["code"] for row in combined["rows"]], ["688001"])
         self.assertEqual(combined["available_total"], 3)
         self.assertEqual(combined["board_counts"], [{"boards": 1, "count": 2}, {"boards": 2, "count": 1}])
         self.assertEqual(db.date_view(self.conn, "2025-10-14", market="gem", exclude_gem=True)["rows"], [])
-        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 6)
+        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 5)
         self.assertEqual(before, [tuple(row) for row in self.conn.execute("SELECT * FROM events ORDER BY date,code")])
 
     def test_exact_board_selection_keeps_counts_for_the_other_board_chips(self):
@@ -183,7 +183,7 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual([row["code"] for row in filtered["rows"]], ["600004"])
         self.assertEqual(filtered["stats"]["total"], 1)
         self.assertEqual(filtered["board_counts"], [{"boards": 1, "count": 1}])
-        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 4)
+        self.assertEqual(len(db.date_view(self.conn, "2025-10-14")["rows"]), 1)
 
     def test_missing_day_remains_distinct_from_confirmed_empty_day(self):
         self.save("2025-10-14", [])

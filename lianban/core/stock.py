@@ -1,8 +1,10 @@
 """Stock identification and pool-record validation, independent of persistence."""
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 import math
 import re
+import unicodedata
 
 
 def market_for(code):
@@ -15,8 +17,10 @@ def market_for(code):
     return "沪市主板" if code.startswith("6") else "深市主板"
 
 
+@lru_cache(maxsize=20000)
 def is_st_name(name):
-    return bool(re.match(r"^\*?ST", re.sub(r"\s+", "", name).upper()))
+    normalized = re.sub(r"\s+", "", unicodedata.normalize("NFKC", name or "")).upper()
+    return bool(re.match(r"^(?:S\*ST|SST|\*ST|ST)", normalized))
 
 
 def validated_records(day, records, source):

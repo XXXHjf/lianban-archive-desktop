@@ -123,8 +123,8 @@ class ComparisonTests(unittest.TestCase):
         self.save(self.days[2], 1, 1, [("600001", "* ST 测试", 10), ("300001", "创业甲", 9),
                   ("301001", "创业乙", 8), ("688001", "科创样本", 7), ("600002", "普通样本", 6)])
         before = [tuple(row) for row in self.conn.execute("SELECT * FROM events ORDER BY date,code")]
-        for filters, expected in [({}, "600001"), ({"exclude_st": True}, "300001"),
-                                  ({"exclude_gem": True}, "600001"),
+        for filters, expected in [({}, "300001"), ({"exclude_st": True}, "300001"),
+                                  ({"exclude_gem": True}, "688001"),
                                   ({"exclude_st": True, "exclude_gem": True}, "688001")]:
             with self.subTest(filters=filters):
                 result = self.comparison(**filters)["segments"][0]
@@ -164,7 +164,7 @@ class ComparisonTests(unittest.TestCase):
         with patch.object(app,"connect",side_effect=connect_copy):
             response=app.read_api(SimpleNamespace(db_path=":memory:",read_only=True),"/api/comparison?code=600668&peer=000530")
             self.assertEqual(len(response["segments"]),1)
-            self.assertEqual(response["segments"][0]["leader"]["code"], "300001")
+            self.assertEqual(response["segments"][0]["leader"]["code"], "600003")
             filtered=app.read_api(SimpleNamespace(db_path=":memory:"),"/api/comparison?code=600668&peer=000530&exclude_st=1&exclude_gem=1")
             self.assertEqual(filtered["segments"][0]["leader"]["code"], "600003")
             for invalid_filter in ("exclude_st=2", "exclude_gem=bad"):

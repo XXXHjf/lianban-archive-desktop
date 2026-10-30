@@ -1,4 +1,5 @@
 import type { EChartsOption, SeriesOption } from 'echarts';
+import { isST } from '@/shared/format';
 import type { MinuteDetail, MinutePoint, MinuteStock, TimelineData, TimelineEvent } from './types';
 
 export const colors = [
@@ -85,7 +86,7 @@ export function stockRows(
   return rows
     .filter(
       (row) =>
-        !/^(?:\*?ST|SST|S\*ST)/i.test(row.name.trim()) &&
+        !isST(row.name) &&
         (!term || `${row.code} ${row.name} ${row.initials || ''}`.toUpperCase().includes(term)),
     )
     .sort(

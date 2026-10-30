@@ -69,14 +69,13 @@ def fetch_stock(events, raw_dir):
 
 def collect(archive_path, dates, *, force=False, workers=3):
     dates = sorted(set(intraday.validate_day(day) for day in dates))
-    excluded_st = {r["code"] for r in intraday.catalog(archive_path) if db.is_st_name(r["name"])}
     with closing(db.connect(archive_path)) as archive:
         events = []
         for day in dates:
             status = archive.execute("SELECT status FROM days WHERE date=?", (day,)).fetchone()
             if not status or status["status"] != "ok":
                 raise ValueError(f"{day} 尚无通过校验的收盘涨停池，请先更新档案")
-            events.extend(dict(r) for r in archive.execute("SELECT * FROM events WHERE date=? ORDER BY code", (day,)) if not db.is_st_name(r["name"]) and r["code"] not in excluded_st)
+            events.extend(dict(r) for r in archive.execute("SELECT * FROM events WHERE date=? ORDER BY code", (day,)) if not db.is_st_name(r["name"]))
     raw_dir = Path(archive_path).resolve().parent / "intraday_raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     with closing(intraday.initialize(intraday.store_path(archive_path))) as conn:

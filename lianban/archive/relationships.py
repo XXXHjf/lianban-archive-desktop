@@ -7,13 +7,13 @@ from __future__ import annotations
 from collections import defaultdict
 from bisect import bisect_left, bisect_right
 from .models import Observation, CoverageStatus
-import re
+from lianban.core.stock import is_st_name
 
 def competition_group(row):
     market = row['market']
     if market in ('沪市主板', '深市主板'):
         market = '主板'
-    risk_warning = 'ST' in row['name'].upper().replace(' ', '')
+    risk_warning = is_st_name(row['name'])
     return (market, risk_warning)
 
 def _add_period_leaders(observations, segments, code, peer_code, end, indices, exclude_st=False, exclude_gem=False):
@@ -34,7 +34,7 @@ def _add_period_leaders(observations, segments, code, peer_code, end, indices, e
         for row in chronological[first:last]:
             if row['code'] in (code, peer_code):
                 continue
-            if exclude_st and re.match('^\\*?ST', re.sub('\\s+', '', row['name']).upper()) or (exclude_gem and row['code'].startswith(('300', '301'))):
+            if (exclude_st and is_st_name(row['name'])) or (exclude_gem and row['code'].startswith(('300', '301'))):
                 continue
             members.add(row['code'])
         for member in members:
@@ -42,7 +42,7 @@ def _add_period_leaders(observations, segments, code, peer_code, end, indices, e
     ranks = {}
 
     def consider(run):
-        if exclude_st and re.match('^\\*?ST', re.sub('\\s+', '', run['name']).upper()):
+        if exclude_st and is_st_name(run['name']):
             return
         dates = run['dates']
         height = dates[-1]['boards']
@@ -134,7 +134,7 @@ def stock_relationships(observations: list[Observation], coverage: dict[str, Cov
     target_days = []
     for row in rows:
         by_date[row['date']][row['code']] = row
-        if row['code'] == code:
+        if row['code'] == code and not is_st_name(row['name']):
             target_days.append(row)
     coverage = {row['date']: row['status'] for row in [{'date': day, 'status': status} for day, status in coverage.items() if start <= day <= end]}
     calendar = sorted(set(settings.get('calendar_dates', [])) | set(coverage))
@@ -143,29 +143,40 @@ def stock_relationships(observations: list[Observation], coverage: dict[str, Cov
     for target in target_days:
         day, height = (target['date'], target['boards'])
         for peer in by_date[day].values():
-            if peer['code'] == code:
+            if peer['code'] == code or is_st_name(peer['name']):
                 continue
             common = cooccurrences.setdefault(peer['code'], {'code': peer['code'], 'name': peer['name'], 'market': peer['market'], 'dates': []})
             common['name'] = peer['name']
             common['dates'].append({'date': day, 'target_boards': height, 'peer_boards': peer['boards']})
-        peers = [peer for peer in by_date[day].values() if peer['code'] != code and peer['boards'] == height and (competition_group(peer) == competition_group(target))]
+        peers = [peer for peer in by_date[day].values() if peer['code'] != code and not is_st_name(peer['name']) and peer['boards'] == height and (competition_group(peer) == competition_group(target))]
         next_day = next_dates.get(day)
         within_range = bool(next_day and next_day <= end)
         ready = within_range and coverage.get(next_day) == 'ok'
         next_rows = by_date.get(next_day, {}) if ready else {}
-        target_next = next_rows.get(code)
+        raw_target_next = next_rows.get(code)
+        target_next_excluded = bool(raw_target_next and is_st_name(raw_target_next['name']))
+        target_next = None if target_next_excluded else raw_target_next
         target_advanced = bool(target_next and target_next['boards'] == height + 1)
         round_record = {'date': day, 'next_date': next_day if within_range else None, 'next_trading_date': next_day, 'boards': height, 'peer_count': len(peers), 'wins': [], 'losses': [], 'together_count': 0, 'unresolved_count': 0, 'status': 'compared' if ready else 'missing' if within_range else 'cutoff', 'target_next_boards': target_next['boards'] if target_next else None}
         round_record['cohort'] = []
         for member in [target, *peers]:
             following = next_rows.get(member['code'])
-            promotion = 'pending' if not ready else 'advanced' if following and following['boards'] == height + 1 else 'other_height' if following else 'not_in_pool'
+            if following and is_st_name(following['name']):
+                following = None
+                promotion = 'pending'
+            else:
+                promotion = 'pending' if not ready else 'advanced' if following and following['boards'] == height + 1 else 'other_height' if following else 'not_in_pool'
             round_record['cohort'].append({'code': member['code'], 'name': member['name'], 'boards': height, 'next_boards': following['boards'] if following else None, 'promotion_status': promotion, 'is_target': member['code'] == code})
         for peer in peers:
             peer_next = next_rows.get(peer['code'])
+            peer_next_excluded = bool(peer_next and is_st_name(peer_next['name']))
+            if peer_next_excluded:
+                peer_next = None
             peer_advanced = bool(peer_next and peer_next['boards'] == height + 1)
             outcome = None
-            if ready and target_advanced and (peer_next is None):
+            if target_next_excluded or peer_next_excluded:
+                round_record['unresolved_count'] += 1
+            elif ready and target_advanced and (peer_next is None):
                 outcome = 'wins'
             elif ready and peer_advanced and (target_next is None):
                 outcome = 'losses'
@@ -229,7 +240,7 @@ def stock_relationships(observations: list[Observation], coverage: dict[str, Cov
             empty_reasons[outcome] = f'已收录数据可比较的 {len(comparable)} 轮中，本票均晋级，暂无输给对手的记录。'
         else:
             empty_reasons[outcome] = f'已比较轮次中没有符合单方晋级条件的{title}记录；共同晋级或共同未入池不计胜负。'
-    return {'range_start': start, 'range_end': end, 'target_limit_days': len(target_days), 'competition': {**results, 'rounds': list(reversed(rounds)), 'win_count': sum((row['count'] for row in results['wins'])), 'loss_count': sum((row['count'] for row in results['losses'])), 'win_round_count': sum((row['outcome'] == 'win' for row in rounds)), 'loss_round_count': sum((row['outcome'] == 'loss' for row in rounds)), 'pending_rounds': len(pending), 'compared_rounds': len(comparable), 'empty_reasons': empty_reasons, 'next_result_date': next_result_date, 'verification': 'pending', 'scope_note': '同日同板数，下一交易日单方晋级；沪深主板合并，ST 与普通股分开比较。每个晋级批次计 1 轮胜负，同一轮涉及的对手另行列出。胜负按涨停池记录比较，未入池一方待行情核实，不代表已确认断板。'}, 'cooccurrences': {'rows': common_rows, 'stock_count': len(common_rows), 'scope_note': '统计本票涨停时，同日被收录的其他股票；全市场、不限板数，每只股票每天计 1 次，不含本票。'}}
+    return {'range_start': start, 'range_end': end, 'target_limit_days': len(target_days), 'competition': {**results, 'rounds': list(reversed(rounds)), 'win_count': sum((row['count'] for row in results['wins'])), 'loss_count': sum((row['count'] for row in results['losses'])), 'win_round_count': sum((row['outcome'] == 'win' for row in rounds)), 'loss_round_count': sum((row['outcome'] == 'loss' for row in rounds)), 'pending_rounds': len(pending), 'compared_rounds': len(comparable), 'empty_reasons': empty_reasons, 'next_result_date': next_result_date, 'verification': 'pending', 'scope_note': '同日同板数，下一交易日单方晋级；沪深主板合并，ST 记录不参与当日比较。每个晋级批次计 1 轮胜负，同一轮涉及的对手另行列出。胜负按涨停池记录比较，未入池一方待行情核实，不代表已确认断板。'}, 'cooccurrences': {'rows': common_rows, 'stock_count': len(common_rows), 'scope_note': '统计本票涨停时，同日被收录的其他股票；全市场、不限板数，每只股票每天计 1 次，不含本票。'}}
 
 
 def complete_period_leaders(observations, segments, code, peer_code, end, coverage, settings, exclude_st=False, exclude_gem=False):

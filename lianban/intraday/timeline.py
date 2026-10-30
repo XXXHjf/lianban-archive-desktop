@@ -62,7 +62,6 @@ def timeline(archive_path, day, window=2, multiple=3, *, exclude_gem=True, inclu
     if not isinstance(exclude_gem, bool):
         raise ValueError("创业板屏蔽选项无效")
     multiple = float(multiple)
-    excluded = {r["code"] for r in intraday.catalog(archive_path) if db.is_st_name(r["name"])}
     with closing(db.connect(archive_path)) as conn:
         if day not in intraday.trading_dates(conn, include_live=include_live):
             raise ValueError("该日期不在项目已知交易日历中")
@@ -70,7 +69,7 @@ def timeline(archive_path, day, window=2, multiple=3, *, exclude_gem=True, inclu
         records = snapshot["records"] if snapshot else conn.execute("SELECT date,code,name,boards,close,first_time,last_time,open_times FROM events WHERE date=? ORDER BY boards DESC,code", (day,))
         pool = [dict(r) for r in records
                 if (intraday.is_mainboard(r["code"]) or not exclude_gem and db.market_for(r["code"]) == "创业板")
-                and not db.is_st_name(r["name"]) and r["code"] not in excluded]
+                and not db.is_st_name(r["name"])]
         db.enrich_stock_profiles(conn, pool)
     time_coverage = {"cached": False, "missing": sum(not r.get("first_time") for r in pool)} if snapshot else enrich_seal_times(archive_path, day, pool)
     if snapshot:

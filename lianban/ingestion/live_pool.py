@@ -7,7 +7,7 @@ import threading
 
 from lianban.config import DEFAULT_DB
 from lianban.core.clock import TZ, now_iso
-from lianban.core.stock import validated_records
+from lianban.core.stock import is_st_name, validated_records
 from lianban.storage import connect
 from lianban.storage.settings import get_settings, set_settings
 
@@ -87,7 +87,7 @@ def metadata(conn, *, now=None):
             "status": settings.get("live_update_status", "starting"),
             "polling": polling_time(current) and settings.get("live_calendar_date") == today and bool(settings.get("live_is_trading_day")),
             "fetched_at": pool["fetched_at"] if pool else None, "source": pool["source"] if pool else None,
-            "checked_at": settings.get("live_update_checked_at"), "count": len(pool["records"]) if pool else None,
+            "checked_at": settings.get("live_update_checked_at"), "count": sum(not is_st_name(row["name"]) for row in pool["records"]) if pool else None,
             "note": NOTE, "error": settings.get("live_update_error"),
             "stale": bool(pool and current - datetime.fromisoformat(pool["fetched_at"]) > timedelta(minutes=3))}
 
