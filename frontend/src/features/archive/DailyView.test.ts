@@ -50,7 +50,7 @@ it('keeps three common grouping modes visible and clears selection when the quer
   transport.request.mockResolvedValue(fixture());
   const { wrapper, workspace, dispose } = setup();
   await flushPromises();
-  expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('连板梯队地区拼音');
+  expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('连板梯队地区拼音代码匹配');
   await wrapper.get('[aria-label="预览光洋股份周期"]').trigger('click');
   expect(wrapper.findComponent({ name: 'DailyCyclePreview' }).props('stock')?.code).toBe('002708');
   workspace.openDate('2026-10-28');
@@ -58,6 +58,20 @@ it('keeps three common grouping modes visible and clears selection when the quer
   expect(wrapper.find('.ladder-stock.is-selected').exists()).toBe(false);
   const preview = wrapper.findComponent({ name: 'DailyCyclePreview' });
   expect(preview.exists() ? preview.props('stock') : null).toBeNull();
+  dispose();
+});
+it('offers code matching as a direct grouping button', async () => {
+  transport.request.mockResolvedValue(fixture());
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  const button = wrapper
+    .findAll('[aria-label="切换分组"] button')
+    .find((item) => item.text() === '代码匹配');
+  expect(button).toBeDefined();
+  await button!.trigger('click');
+  expect(workspace.route.value.layout).toBe('code');
+  expect(button!.attributes('aria-pressed')).toBe('true');
+  expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('更多');
   dispose();
 });
 it('does not present request failure as an empty market or retain data under a different date', async () => {

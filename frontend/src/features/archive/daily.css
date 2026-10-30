@@ -1039,6 +1039,7 @@
   .daily-group-switch {
     width: 100%;
     gap: 4px;
+    flex-wrap: wrap;
   }
   .daily-group-switch > .el-button {
     flex: 1;

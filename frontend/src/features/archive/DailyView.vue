@@ -83,7 +83,6 @@ const bands = computed(() =>
   ),
 );
 const filterCount = computed(() => Number(route.value.excludeGEM));
-const knownMode = computed(() => ['industry', 'region', 'pinyin'].includes(route.value.layout));
 const boardOptions = computed(() => {
   const counts = [...(data.value?.board_counts || [])];
   if (route.value.boards && !counts.some((item) => String(item.boards) === route.value.boards))
@@ -250,8 +249,7 @@ function openTool(kind: 'note' | 'tags' | 'shareholders', stock: Stock) {
   }
 }
 function more(command: string) {
-  if (command === 'code') workspace.patchRoute({ layout: 'code' });
-  else if (command === 'matrix') matrixOpen.value = true;
+  if (command === 'matrix') matrixOpen.value = true;
   else emit('explain');
 }
 function path(label: string) {
@@ -351,6 +349,7 @@ function clearFilters() {
                 { value: 'industry', label: '连板梯队' },
                 { value: 'region', label: '地区' },
                 { value: 'pinyin', label: '拼音' },
+                { value: 'code', label: '代码匹配' },
               ]"
               :key="mode.value"
               :type="route.layout === mode.value ? 'primary' : 'default'"
@@ -359,14 +358,9 @@ function clearFilters() {
               @click="workspace.patchRoute({ layout: mode.value })"
               >{{ mode.label }}</el-button
             ><el-dropdown trigger="click" @command="more"
-              ><el-button
-                :icon="MoreFilled"
-                :type="knownMode ? 'default' : 'primary'"
-                :plain="!knownMode"
-                >{{ knownMode ? '更多' : '代码分组' }}</el-button
+              ><el-button :icon="MoreFilled">更多</el-button
               ><template #dropdown
                 ><el-dropdown-menu
-                  ><el-dropdown-item command="code">代码连续匹配分组</el-dropdown-item
                   ><el-dropdown-item command="matrix" :disabled="!data || !data.rows.length"
                     >完整分组对照</el-dropdown-item
                   ><el-dropdown-item command="explain">数据概况</el-dropdown-item></el-dropdown-menu
