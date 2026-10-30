@@ -128,7 +128,7 @@ it('clears old results when the primary stock changes and accepts only the new s
   defer = true;
   workspace.openStock('000980', '众泰汽车');
   await nextTick();
-  expect(wrapper.findAll('h2').map((node) => node.text())).toEqual(['个股档案']);
+  expect(wrapper.findAll('h2').map((node) => node.text())).toEqual(['档案查询']);
   pending?.resolve(fixture('000980', '众泰汽车'));
   await flushPromises();
   expect(wrapper.findAll('h2').some((node) => node.text().includes('众泰汽车'))).toBe(true);

@@ -384,7 +384,7 @@ defineExpose({ finish, discard, dirty, saving: closingBlocked, busy: saving });
   gap: 8px;
 }
 .compose {
-  background: #f7f6f2;
+  background: var(--la-bg-subtle);
 }
 .preserve {
   white-space: pre-wrap;

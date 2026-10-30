@@ -7,8 +7,8 @@
 :root {
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 13px;
-  color: #242b36;
-  background: #f7f6f2;
+  color: var(--la-text-primary);
+  background: var(--la-bg-surface);
   --el-font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   --el-color-primary: #2563eb;
   --el-border-radius-base: 5px;
@@ -445,5 +445,315 @@ a:focus-visible {
   .stock-search {
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+}
+
+:root {
+  --la-bg-canvas: #f4f6f9;
+  --la-bg-surface: #fff;
+  --la-bg-subtle: #f8fafc;
+  --la-bg-hover: #f1f5f9;
+  --la-bg-selected: #eff6ff;
+  --la-text-primary: #17212f;
+  --la-text-secondary: #475569;
+  --la-text-muted: #596779;
+  --la-border-subtle: #dbe2ea;
+  --la-border-strong: #7b8899;
+  --la-divider: #e8edf3;
+  --la-action-primary: #1d4ed8;
+  --la-action-hover: #1e40af;
+  --la-action-pressed: #1e3a8a;
+  --la-success-fg: #166534;
+  --la-success-bg: #f0fdf4;
+  --la-warning-fg: #92400e;
+  --la-warning-bg: #fffbeb;
+  --la-error-fg: #b42318;
+  --la-error-bg: #fef3f2;
+  --la-market-up: #b42318;
+  --la-market-down: #166534;
+  --la-radius-control: 6px;
+  --la-radius-panel: 8px;
+  --la-space-1: 4px;
+  --la-space-2: 8px;
+  --la-space-3: 12px;
+  --la-space-4: 16px;
+  --la-space-6: 24px;
+  --la-space-8: 32px;
+}
+.workspace-theme {
+  background: var(--la-bg-surface);
+}
+.workspace-theme .app-sidebar {
+  width: 168px;
+  padding: 24px 12px;
+  background: var(--la-bg-subtle);
+}
+.workspace-theme .brand {
+  padding: 0 0 28px;
+  gap: 8px;
+  font-size: 18px;
+}
+.workspace-theme .brand small {
+  color: var(--la-text-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.workspace-theme .main-menu {
+  --el-menu-active-color: var(--la-action-primary);
+}
+.workspace-theme .main-menu .el-menu-item {
+  padding: 0 12px;
+  font-size: 14px;
+}
+.workspace-theme .sidebar-bottom {
+  gap: 16px;
+}
+.workspace-theme .sidebar-bottom .el-button {
+  font-size: 13px;
+  padding: 0;
+}
+.workspace-theme .sidebar-bottom > a,
+.workspace-theme .local-label {
+  padding-left: 0;
+  color: var(--la-text-muted);
+  font-size: 12px;
+}
+.workspace-theme .main-content {
+  margin-left: 168px;
+  padding: 0 32px 32px;
+  width: calc(100% - 168px);
+}
+.workspace-theme .main-content > * {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.workspace-theme .topbar {
+  min-height: 68px;
+  height: auto;
+  padding: 12px 0;
+  gap: 16px;
+  border-color: var(--la-divider);
+}
+.workspace-theme .topbar > .row {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.workspace-theme .topbar .stock-search {
+  width: min(100%, 400px);
+  min-width: 0;
+}
+.workspace-theme .topbar-right {
+  flex-shrink: 0;
+  gap: 0;
+}
+.workspace-theme .topbar-right .el-button {
+  font-size: 13px;
+}
+.workspace-theme .muted {
+  color: var(--la-text-muted);
+  font-size: 13px;
+}
+.workspace-theme .mobile-menu {
+  display: none;
+}
+.workspace-theme .app-footer {
+  color: var(--la-text-muted);
+  font-size: 12px;
+  border-top: 1px solid var(--la-divider);
+  padding-top: 16px;
+  line-height: 1.7;
+}
+.workspace-theme button:focus-visible,
+.workspace-theme a:focus-visible,
+.daily-overlay button:focus-visible,
+.daily-overlay a:focus-visible,
+.workspace-theme summary:focus-visible,
+.daily-overlay summary:focus-visible {
+  outline: 2px solid var(--la-action-primary);
+  outline-offset: 2px;
+}
+
+/* Shared component tokens from the approved daily workspace, including teleports. */
+:root {
+  --el-color-primary: var(--la-action-primary);
+  --el-color-primary-dark-2: var(--la-action-hover);
+  --el-color-primary-light-9: var(--la-bg-selected);
+  --el-color-primary-light-3: #1e40af;
+  --el-color-success: var(--la-success-fg);
+  --el-color-warning: var(--la-warning-fg);
+  --el-color-danger: var(--la-error-fg);
+  --el-text-color-primary: var(--la-text-primary);
+  --el-text-color-regular: var(--la-text-secondary);
+  --el-text-color-secondary: var(--la-text-muted);
+  --el-text-color-placeholder: var(--la-text-muted);
+  --el-text-color-disabled: var(--la-text-muted);
+  --el-border-color: var(--la-border-strong);
+  --el-border-radius-base: var(--la-radius-control);
+  --el-font-size-base: 14px;
+  --el-component-size: 36px;
+  --el-disabled-bg-color: #e8edf3;
+  --el-disabled-text-color: var(--la-text-muted);
+  color: var(--la-text-primary);
+  font-size: 14px;
+}
+
+.workspace-theme .workspace-intro {
+  padding: 24px 0 16px;
+  border-bottom: 1px solid var(--la-divider);
+  margin-bottom: 12px;
+}
+.workspace-intro h1 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.workspace-theme .stack {
+  gap: 24px;
+}
+.workspace-theme .panel,
+.workspace-theme .stat {
+  border-color: var(--la-border-subtle);
+  border-radius: var(--la-radius-panel);
+  padding: 20px 24px;
+  background: var(--la-bg-surface);
+}
+.workspace-theme .page-controls {
+  border: 0;
+  border-radius: 0;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--la-divider);
+}
+.workspace-theme .panel-header {
+  margin-bottom: 16px;
+}
+.workspace-theme .stack > .panel-header {
+  margin-bottom: 0;
+}
+.workspace-theme h2 {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+.workspace-theme h3 {
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.workspace-theme h2 small,
+.workspace-theme h3 small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--la-text-muted);
+}
+.workspace-theme .toolbar {
+  gap: 8px;
+}
+.workspace-theme .toolbar > .el-button + .el-button {
+  margin-left: 0;
+}
+.workspace-theme .stock-tags .el-tag {
+  font-size: 12px;
+}
+.workspace-theme .stock-tags .el-tag.el-tag--info,
+.el-tag.el-tag--info {
+  font-size: 12px;
+  color: var(--la-text-muted);
+  background: var(--la-bg-hover);
+  border-color: transparent;
+}
+.workspace-theme .el-table,
+.el-overlay .el-table {
+  --el-table-border-color: var(--la-divider);
+  --el-table-header-bg-color: var(--la-bg-subtle);
+  --el-table-row-hover-bg-color: var(--la-bg-subtle);
+  --el-table-tr-bg-color: var(--la-bg-surface);
+  --el-table-header-text-color: var(--la-text-muted);
+  --el-table-text-color: var(--la-text-secondary);
+  font-size: 14px;
+}
+.workspace-theme .el-table th.el-table__cell,
+.el-overlay .el-table th.el-table__cell {
+  padding: 10px 0;
+  background: var(--la-bg-subtle);
+  font-size: 13px;
+  font-weight: 400;
+}
+.workspace-theme .el-table td.el-table__cell,
+.el-overlay .el-table td.el-table__cell {
+  padding: 12px 0;
+}
+.workspace-theme .el-form-item__label,
+.el-overlay .el-form-item__label {
+  font-size: 14px;
+}
+.workspace-theme .el-tree {
+  --el-tree-node-content-height: 36px;
+  --el-tree-node-hover-bg-color: var(--la-bg-hover);
+  --el-tree-text-color: var(--la-text-secondary);
+}
+.workspace-theme .el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
+  background: var(--la-bg-selected);
+  color: var(--la-action-primary);
+}
+.el-overlay .el-dialog,
+.el-overlay .el-drawer,
+:root .el-popover.el-popper,
+.el-overlay .el-message-box {
+  color: var(--la-text-primary);
+  border-radius: var(--la-radius-panel);
+  font-size: 14px;
+}
+.el-dialog .el-dialog__header,
+.el-drawer .el-drawer__header {
+  border-bottom: 1px solid var(--la-divider);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+.el-dialog .el-dialog__title,
+.el-drawer .el-drawer__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.el-collapse {
+  --el-collapse-border-color: var(--la-divider);
+  --el-collapse-header-font-size: 14px;
+  --el-collapse-content-font-size: 14px;
+  --el-collapse-header-text-color: var(--la-text-primary);
+  --el-collapse-content-text-color: var(--la-text-secondary);
+}
+.positive {
+  color: var(--la-market-up);
+}
+.negative {
+  color: var(--la-market-down);
+}
+@media (max-width: 767px) {
+  .workspace-theme .workspace-intro {
+    padding-top: 16px;
+  }
+  .workspace-intro h1 {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  .workspace-theme .panel,
+  .workspace-theme .stat {
+    padding: 16px;
+  }
+  .workspace-theme .page-controls {
+    padding: 0 0 12px;
+  }
+  .workspace-theme .stack {
+    gap: 16px;
+  }
+  .el-dialog {
+    max-width: calc(100vw - 24px);
+  }
+  .el-dialog__body {
+    max-height: 72dvh;
+    overflow: auto;
   }
 }

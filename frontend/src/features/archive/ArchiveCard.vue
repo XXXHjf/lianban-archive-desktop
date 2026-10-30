@@ -54,7 +54,7 @@ const latest = computed(
 <style scoped>
 .archive-card {
   padding: 10px;
-  border: 1px solid #e4e5e7;
+  border: 1px solid var(--la-border-subtle);
   background: white;
   display: grid;
   gap: 6px;
@@ -64,24 +64,24 @@ const latest = computed(
   justify-content: space-between;
 }
 .latest {
-  border-left: 3px solid #d64639;
+  border-left: 3px solid var(--la-market-up);
 }
 .blacklisted {
-  background: #f6f4f2;
+  background: var(--la-bg-subtle);
 }
 .mono {
-  font-size: 11px;
+  font-size: 13px;
 }
 .note {
-  font-size: 12px;
+  font-size: 14px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 0;
 }
 .suspension {
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px;
-  background: #fff4dc;
-  color: #865800;
+  background: var(--la-warning-bg);
+  color: var(--la-warning-fg);
 }
 </style>

@@ -57,10 +57,10 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <section v-loading="loading" class="panel stack">
+  <section v-loading="loading" class="panel stack page-controls">
     <div class="panel-header">
       <h2>
-        黑名单 <small>{{ data?.total ?? 0 }} 只</small>
+        股票列表 <small>{{ data?.total ?? 0 }} 只</small>
       </h2>
       <el-button :disabled="saving" @click="load">刷新列表</el-button>
     </div>
@@ -95,7 +95,7 @@ onBeforeUnmount(() => {
       <el-table-column label="标签" min-width="200"
         ><template #default="{ row }"
           ><div class="stock-tags">
-            <el-tag v-for="tag in row.tags" :key="tag" size="small">{{ tag }}</el-tag>
+            <el-tag v-for="tag in row.tags" :key="tag" type="info" size="small">{{ tag }}</el-tag>
           </div></template
         ></el-table-column
       >

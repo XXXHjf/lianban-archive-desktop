@@ -177,7 +177,7 @@ function wheel(event: WheelEvent) {
 </template>
 <style scoped>
 .segment {
-  border: 1px solid #dfe2e7;
+  border: 1px solid var(--la-border-subtle);
   padding: 12px;
   background: white;
 }
@@ -192,11 +192,11 @@ table {
   border-collapse: collapse;
   width: max-content;
   min-width: 100%;
-  font-size: 12px;
+  font-size: 14px;
 }
 th,
 td {
-  border: 1px solid #e4e5e7;
+  border: 1px solid var(--la-border-subtle);
   padding: 6px;
   min-width: 65px;
   text-align: center;
@@ -204,20 +204,20 @@ td {
 th:first-child {
   position: sticky;
   left: 0;
-  background: #fafaf8;
+  background: var(--la-bg-subtle);
   min-width: 170px;
   z-index: 1;
 }
 .common {
-  background: #fff2db;
+  background: var(--la-warning-bg);
 }
 .segment p {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
 }
 .evidence {
-  font-size: 12px;
-  border-top: 1px solid #eee;
+  font-size: 14px;
+  border-top: 1px solid var(--la-divider);
   padding: 8px 0;
   display: flex;
   gap: 6px;

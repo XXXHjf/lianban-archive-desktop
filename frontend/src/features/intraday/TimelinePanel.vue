@@ -325,6 +325,7 @@ const option = computed<EChartsOption>(() => ({
         <StockLink :code="row.stock.code" :name="row.stock.name" /><el-tag
           v-for="tag in visibleTags(row.stock, workspace.meta.value?.tag_hierarchy)"
           :key="tag"
+          type="info"
           size="small"
           >{{ tag }}</el-tag
         ><span
@@ -346,8 +347,8 @@ const option = computed<EChartsOption>(() => ({
 }
 .selected-event {
   padding: 12px;
-  background: #f7f6f2;
-  border-left: 3px solid #2563eb;
+  background: var(--la-bg-subtle);
+  border-left: 3px solid var(--la-action-primary);
 }
 .tag-list {
   display: flex;
@@ -360,7 +361,7 @@ const option = computed<EChartsOption>(() => ({
   align-items: center;
 }
 h2 {
-  font-size: 16px;
+  font-size: 18px;
   margin: 0;
 }
 p {

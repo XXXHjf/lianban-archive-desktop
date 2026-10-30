@@ -129,13 +129,13 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <el-config-provider :locale="zhCn" :size="route.view === 'date' ? 'default' : 'small'">
+  <el-config-provider :locale="zhCn" size="default">
     <a href="#main" class="skip-link">跳到主要内容</a>
-    <div class="workbench" :class="{ 'daily-prototype': route.view === 'date' }">
+    <div class="workbench workspace-theme">
       <aside
         class="app-sidebar"
         :class="{ 'is-open': menuOpen }"
-        :inert="!menuOpen && shellWidth < (route.view === 'date' ? 768 : 760)"
+        :inert="!menuOpen && shellWidth < 768"
         aria-label="主导航"
       >
         <a class="brand" href="/" @click.prevent="navigate('date')"
@@ -182,28 +182,24 @@ onBeforeUnmount(() => {
               :icon="MenuIcon"
               aria-label="打开导航"
               @click="menuOpen = !menuOpen"
-            /><template v-if="route.view !== 'date'"
-              ><span class="muted">市场研究 /</span><span>{{ title }}</span></template
-            >
-            <template v-else
-              ><StockSearch v-model="search" @select="selectStock" /><el-popover
-                trigger="click"
-                width="280"
-                ><template #reference
-                  ><el-button text aria-label="最近查看的股票">最近</el-button></template
+            />
+            <StockSearch v-model="search" @select="selectStock" /><el-popover
+              trigger="click"
+              width="280"
+              ><template #reference
+                ><el-button text aria-label="最近查看的股票">最近</el-button></template
+              >
+              <div class="daily-recent">
+                <strong>最近查看</strong
+                ><el-button
+                  v-for="stock in recent"
+                  :key="stock.code"
+                  link
+                  @click="selectStock(stock)"
+                  >{{ stock.name }} {{ stock.code }}</el-button
                 >
-                <div class="daily-recent">
-                  <strong>最近查看</strong
-                  ><el-button
-                    v-for="stock in recent"
-                    :key="stock.code"
-                    link
-                    @click="selectStock(stock)"
-                    >{{ stock.name }} {{ stock.code }}</el-button
-                  >
-                  <p v-if="!recent.length">暂无最近查看记录</p>
-                </div></el-popover
-              ></template
+                <p v-if="!recent.length">暂无最近查看记录</p>
+              </div></el-popover
             >
           </div>
           <div class="topbar-right">
@@ -212,18 +208,9 @@ onBeforeUnmount(() => {
             ><el-button text :icon="Refresh" :loading="loading" @click="load">刷新状态</el-button>
           </div>
         </header>
-        <section v-if="route.view !== 'date'" class="intro">
+        <section v-if="route.view !== 'date'" class="intro workspace-intro">
           <div>
             <h1>{{ title }}</h1>
-          </div>
-          <div class="range">
-            <span class="muted">历史数据范围</span
-            ><strong
-              >{{ dateLabel(meta?.available_start) }} — {{ dateLabel(meta?.available_end) }}</strong
-            ><small class="muted"
-              >{{ number(meta?.coverage?.days) }} 个交易日 ·
-              {{ number(meta?.coverage?.stocks) }} 只股票</small
-            >
           </div>
         </section>
         <el-alert v-if="error" :title="error" type="error" show-icon :closable="false"

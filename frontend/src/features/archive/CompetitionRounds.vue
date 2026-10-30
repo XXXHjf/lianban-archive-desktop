@@ -146,11 +146,11 @@ function cohorts(round: Round) {
 }
 .round {
   padding: 12px;
-  border: 1px solid #e2e4e8;
+  border: 1px solid var(--la-border-subtle);
   background: #fff;
 }
 .round p {
-  font-size: 12px;
+  font-size: 14px;
   margin: 8px 0;
 }
 .round .row {
@@ -166,13 +166,13 @@ function cohorts(round: Round) {
 }
 .cohort-stock {
   padding: 8px;
-  background: #f5f5f3;
+  background: var(--la-bg-subtle);
   line-height: 1.8;
 }
 .cohort-stock > .el-tag {
   margin-left: 6px;
 }
 .cohort-stock .muted {
-  font-size: 11px;
+  font-size: 13px;
 }
 </style>

@@ -17,7 +17,7 @@ const workspace = useWorkspace();
 }
 .mono {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
 }
 </style>

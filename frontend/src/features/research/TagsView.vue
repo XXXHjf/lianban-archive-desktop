@@ -442,8 +442,8 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="stack">
-    <div class="panel toolbar">
-      <h2>标签管理</h2>
+    <div class="panel toolbar page-controls">
+      <h2>标签目录</h2>
       <span class="muted">{{ catalog?.total ?? 0 }} 个标签 · {{ catalog?.stocks ?? 0 }} 只股票</span
       ><el-button :disabled="saving" @click="load().then(() => loadMembers(selected))"
         >刷新列表</el-button
@@ -644,7 +644,7 @@ onBeforeUnmount(() => {
 .tag-layout {
   display: grid;
   grid-template-columns: minmax(230px, 28%) minmax(0, 1fr);
-  gap: 12px;
+  gap: 24px;
 }
 .el-form-item :deep(.el-form-item__content) {
   gap: 8px;
@@ -657,7 +657,7 @@ onBeforeUnmount(() => {
   max-height: 70vh;
   overflow: auto;
 }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .tag-layout {
     grid-template-columns: 1fr;
   }

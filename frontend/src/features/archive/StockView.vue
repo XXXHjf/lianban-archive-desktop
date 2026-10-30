@@ -344,9 +344,9 @@ function cycleRounds(cycle: Cycle) {
 </script>
 <template>
   <div class="stack">
-    <section class="panel">
+    <section class="panel page-controls">
       <div class="panel-header">
-        <h2>个股档案</h2>
+        <h2>档案查询</h2>
         <el-button @click="workspace.openDate(workspace.date.value)">返回日期</el-button>
       </div>
       <div class="toolbar">
@@ -616,8 +616,11 @@ function cycleRounds(cycle: Cycle) {
   </div>
 </template>
 <style scoped>
+.stat-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .recent {
-  font-size: 12px;
+  font-size: 14px;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -633,7 +636,7 @@ function cycleRounds(cycle: Cycle) {
   padding: 4px;
 }
 .cycle-title strong {
-  color: #c84038;
+  color: var(--la-market-up);
 }
 .height-control {
   margin: 12px 0;
@@ -646,15 +649,15 @@ function cycleRounds(cycle: Cycle) {
   grid-template-columns: 250px minmax(0, 1fr);
   height: var(--relation-height);
   min-height: 600px;
-  border: 1px solid #dce0e5;
+  border: 1px solid var(--la-border-subtle);
 }
 .peer-sidebar {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid #dce0e5;
+  border-right: 1px solid var(--la-border-subtle);
   padding: 12px;
-  background: #fafaf8;
+  background: var(--la-bg-subtle);
   gap: 8px;
 }
 .peer-sidebar h4,
@@ -672,32 +675,32 @@ function cycleRounds(cycle: Cycle) {
   width: 100%;
   text-align: left;
   background: white;
-  border: 1px solid #e0e3e8;
+  border: 1px solid var(--la-border-subtle);
   padding: 12px;
   margin: 6px 0;
   cursor: pointer;
-  color: #242b36;
+  color: var(--la-text-primary);
   font: inherit;
 }
 .peer-button.selected {
-  border-color: #2563eb;
-  background: #edf3ff;
+  border-color: var(--la-action-primary);
+  background: var(--la-bg-selected);
 }
 .peer-button.latest {
-  border-left: 3px solid #d84c42;
+  border-left: 3px solid var(--la-market-up);
 }
 .peer-button small {
-  color: #727b86;
+  color: var(--la-text-muted);
 }
 .metrics {
   display: flex;
   justify-content: space-between;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .latest-note {
-  font-size: 11px;
-  color: #c84038;
+  font-size: 13px;
+  color: var(--la-market-up);
   margin-top: 4px;
 }
 .peer-detail {
@@ -724,7 +727,10 @@ function cycleRounds(cycle: Cycle) {
     grid-template-columns: 210px minmax(0, 1fr);
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .relation-workspace {
     grid-template-columns: 1fr;
     height: auto;
@@ -732,14 +738,14 @@ function cycleRounds(cycle: Cycle) {
   .peer-sidebar {
     height: 340px;
     border-right: 0;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--la-divider);
   }
   .peer-detail {
     height: var(--relation-height);
   }
   .cycle-title {
     gap: 8px;
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 </style>

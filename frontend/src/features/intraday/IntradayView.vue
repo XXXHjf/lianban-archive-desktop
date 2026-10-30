@@ -620,9 +620,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="stack intraday-view">
-    <section class="panel stack">
+    <section class="panel stack page-controls">
       <div class="panel-header">
-        <h1>分时档案</h1>
+        <h2>分时工作台</h2>
         <div class="toolbar">
           <el-button
             :disabled="!dates.some((value) => value < day)"
@@ -720,6 +720,7 @@ onBeforeUnmount(() => {
             <el-tag
               v-for="tag in visibleTags(detail.stock, workspace.meta.value?.tag_hierarchy)"
               :key="tag"
+              type="info"
               size="small"
               >{{ tag }}</el-tag
             ><span v-if="detail.stock.note" class="muted">{{ detail.stock.note }}</span>
@@ -878,12 +879,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-h1 {
-  font-size: 20px;
-  margin: 0;
-}
 h2 {
-  font-size: 16px;
+  font-size: 18px;
   margin: 0;
 }
 h2 .el-tag {
@@ -895,7 +892,7 @@ p {
 .minute-workspace {
   display: grid;
   grid-template-columns: 230px minmax(420px, 1fr) 230px;
-  gap: 12px;
+  gap: 24px;
   align-items: start;
 }
 .catalog-list,
@@ -930,20 +927,20 @@ p {
   max-width: 90px;
 }
 .catalog-row small {
-  font-size: 11px;
+  font-size: 13px;
 }
 .compare-row {
   display: flex;
   flex-direction: column;
   gap: 0;
   min-height: 48px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--la-divider);
 }
 .compare-row :deep(.el-checkbox) {
   height: 28px;
 }
 .compare-row small {
-  font-size: 11px;
+  font-size: 13px;
 }
 .minute-scrubber {
   display: flex;
