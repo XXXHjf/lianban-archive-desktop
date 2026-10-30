@@ -13,16 +13,25 @@ def exclusion_reason(name):
     """Conservative name-based exclusions, independent of provider categories.
 
     These describe low-specificity relationships, not beneficial-owner identity.
-    The two named asset managers are explicitly excluded by user preference.
+    Named institutions are excluded as low-priority research candidates.
     """
     normalized = unicodedata.normalize("NFKC", name).replace(" ", "").casefold()
     if normalized in {
         "香港中央结算有限公司", "香港中央结算(代理人)有限公司",
         "香港中央結算有限公司", "香港中央結算(代理人)有限公司",
+        "hksccnomineeslimited", "hksccnomineeslimited(香港中央结算(代理人)有限公司)",
+        "香港中央结算(代理人)有限公司(hksccnomineeslimited)",
+        "bankofchinanomineespteltd", "dbsnomineespteltd", "rafflesnominees(pte)limited",
+        "shenwanhongyuannominees(h.k.)limited",
     }:
         return "结算代持账户"
-    if normalized in {"中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司"}:
+    if normalized in {"中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司",
+                      "中国中信金融资产管理股份有限公司", "中国华融资产管理股份有限公司",
+                      "中国东方资产管理股份有限公司"}:
         return "指定排除机构"
+    if normalized in {"中国证券金融股份有限公司", "中央汇金投资有限责任公司",
+                      "中央汇金资产管理有限责任公司"}:
+        return "政策性长期机构"
     if re.search(r"(?:客户资金|客户交易结算资金|客户信用交易担保证券账户)$", normalized):
         return "客户汇总账户"
     if "基金" in normalized and ("指数" in normalized or "etf" in normalized):

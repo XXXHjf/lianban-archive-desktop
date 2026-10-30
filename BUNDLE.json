@@ -1,5 +1,5 @@
 {
-  "id": "4ef3025887b19e93",
+  "id": "5b05d01ee61caa83",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -24,7 +24,7 @@
   "seed": "resources/archive-seed.sqlite3.gz",
   "seed_database_sha256": "3609a9850a808c1473fffe85ead105665c0c22c9048b92e4cffb76b045aae4e3",
   "sha256": {
-    "BUILD_BASELINE.json": "6b135bb0c10428ebb467ed549a278adc7965bb3241e92a0650b36996be3692b6",
+    "BUILD_BASELINE.json": "a393c44b5eb338d1326b6492dc3d2b20b4737758efc3bd0639984c3deedac201",
     "SOURCE_BASELINE.json": "e0c72f68c79c666dcacdf7fa0b4c5096b4ad2ada53de1bef51d0aa9e06e60272",
     "VERSION.json": "6c1c984b01c3b636014551b53010732248a424f84085463c3af61316162b1d10",
     "app.py": "eaab5c82924b086ad5a7ff3034640827e89284d17bd70f72db397fbbad842d35",
@@ -59,7 +59,7 @@
     "lianban/core/__init__.py": "493a54114fd6403524ec1952035ed62ddc6240121d2a522ec4e9a4127b66c938",
     "lianban/core/clock.py": "4cecfc262d5e31741b42149a66c25e7a655bf119f874871f0241366161fc2da6",
     "lianban/core/province.py": "e3fc2108bd9ddea86f3c081a40cfc524ed58b1cdfd07a308d5e857348757b02c",
-    "lianban/core/shareholders.py": "790025f0f654c8f9c3fb3e719e5db0041628598dd65111f54b8f9395d19a1def",
+    "lianban/core/shareholders.py": "87711116da5cafefddb6bd04303c0a6f05db3434e2da0fb36fb3ff307ea03fad",
     "lianban/core/stock.py": "fca4a749c1223b4ec93a35cf20275ffb3e311a6810a288565410a8a2a52725d6",
     "lianban/ingestion/__init__.py": "49313fa3488af052f2c35b17d3645eb84686696b6b1c745e92406569d4ba48a1",
     "lianban/ingestion/archive_update.py": "5c385f137923e3dd1ea4814a6c48bda089f802f8bf141a5ae0ccc02bf15d0244",
@@ -161,7 +161,7 @@
     "web/assets/NotesEditor.css": "20ad63e7dd54221b613a86678f879cdef15a5db8079f930a1577bdf959ba1a41",
     "web/assets/NotesEditor.js": "1d89c291db239be6afb49c06fc0432e46e35d7e2c7a860a892a363f159d83ca3",
     "web/assets/ShareholdersPanel.css": "85e0d402080f329d7830295fa9f3f15075e37967e7fdd7c6d5c0ac756d7104e8",
-    "web/assets/ShareholdersPanel.js": "5c88f713ef6866fb6f5b643c1fb70fcd0abfd4f2fe2bbc52edc9b7693071cf89",
+    "web/assets/ShareholdersPanel.js": "d1f25fb418320999778efd58f0da7bcd7cdbebf9311394ea18062dd399892f85",
     "web/assets/StockActions.css": "b54ecb4d105a3c280c724a96c9c41db265f872f5e7223fc6b7849db47fd87648",
     "web/assets/StockActions.js": "8cca23a8e2eecb7715b018513afa39c45964b626c74880fce9787c70720e2a68",
     "web/assets/StockView.css": "6269601b7936ff12933d6eefb9b5e4b55b9c32b6c27d39c981171d650e5bbbac",
@@ -172,7 +172,7 @@
     "web/assets/TagsView.js": "8a8fd7a8b4041552a605a062b6f2313eff3a57c83e42f169fe92dbb16895ea8c",
     "web/assets/_plugin-vue_export-helper.css": "8a1ea7643526a011c47e844644e0014b213304bc275f95052c2d13b2fd867e11",
     "web/assets/_plugin-vue_export-helper.js": "aa16fcd576e3039b84a42e74bd9df1a6a5cf4d48ae58b4712c7564c55328ed03",
-    "web/assets/build-info.json": "97302bdc91fb1eae177939a91656c07a079f7ccda089fb466ee9ed6ce8bab611",
+    "web/assets/build-info.json": "3b7c17ebd9473391c4f1746b3be6131d4bea4b0184cc0910ee57d44d960b504e",
     "web/assets/chart-controls.js": "2e8b0147a8fd44ab0c5a84e3deb3611e2b01ff32c57f8e88c4dc6099b974bbf4",
     "web/assets/chart-core.js": "fa6d61ef2919ca50936f87388c41a2c2bbfcea97af46cf302b87389af60ceb19",
     "web/assets/chart-renderer.js": "ebe0a89ab0180d55632bdc16fdbe9001d988addb0f95b6c2dec8dcd393a2cb2b",

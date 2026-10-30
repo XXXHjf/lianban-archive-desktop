@@ -107,7 +107,7 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
           </p>
           <p>{{ data.scope_note }}</p>
           <p>
-            “排除账户”包括结算代持、客户汇总账户、指数基金/ETF，以及中国信达和中国长城资产管理股份有限公司；分类屏蔽同时生效。
+            “排除账户”包括结算代持、客户汇总账户、指数基金/ETF，以及指定金融资产管理和政策性长期机构；分类屏蔽同时生效。具体原因见展开明细。
           </p>
         </el-collapse-item></el-collapse
       >

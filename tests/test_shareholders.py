@@ -61,10 +61,17 @@ class ShareholderTests(unittest.TestCase):
                           {"code": "000003", "types": ["其他"]}])
 
     def test_exclusion_rules_do_not_blanket_block_institutions_or_private_funds(self):
-        for name in ["某某私募证券投资基金", "中国证券金融股份有限公司", "张三"]:
+        for name in ["某某私募证券投资基金", "张三"]:
             with self.subTest(name=name):
                 self.assertIsNone(exclusion_reason(name))
         for name in ["中国信达资产管理股份有限公司", "中国长城资产管理股份有限公司",
+                     "中国中信金融资产管理股份有限公司", "中国华融资产管理股份有限公司",
+                     "中国东方资产管理股份有限公司", "中国证券金融股份有限公司",
+                     "中央汇金投资有限责任公司", "中央汇金资产管理有限责任公司",
+                     "HKSCC NOMINEES LIMITED", "HKSCC Nominees Limited(香港中央结算(代理人)有限公司)",
+                     "香港中央结算(代理人)有限公司(HKSCC NOMINEES LIMITED)",
+                     "BANK OF CHINA NOMINEES PTE LTD", "DBS NOMINEES PTE LTD",
+                     "RAFFLES NOMINEES(PTE)LIMITED", "SHENWAN HONGYUAN NOMINEES (H.K.) LIMITED",
                      "香港中央结算（代理人）有限公司", "香港中央結算有限公司",
                      "某券商客户信用交易担保证券账户", "某某ETF基金"]:
             with self.subTest(name=name):
