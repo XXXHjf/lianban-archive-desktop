@@ -47,7 +47,8 @@ def meta(conn):
     latest_limit_ups = [dict(r) for r in conn.execute(
         "SELECT code,boards FROM events WHERE date=? AND NOT is_st_name(name) ORDER BY code", (dates[-1],))] if dates else []
     examples = [dict(r) for r in conn.execute("SELECT e.code,(SELECT e2.name FROM events e2 WHERE e2.code=e.code AND e2.date BETWEEN ? AND ? AND NOT is_st_name(e2.name) ORDER BY e2.date DESC LIMIT 1) name,MAX(e.boards) highest,COUNT(*) observations FROM events e WHERE e.date BETWEEN ? AND ? AND NOT is_st_name(e.name) GROUP BY e.code ORDER BY highest DESC,observations DESC LIMIT 6", (start, end, start, end))]
-    return {**settings, "latest_date": dates[-1] if dates else None, "dates": dates,
+    node_updated = conn.execute('SELECT MAX(checked_at) FROM node_checks').fetchone()[0]
+    return {**settings, "node_updated_at": node_updated, "latest_date": dates[-1] if dates else None, "dates": dates,
             "suspension_updating": conn.execute("SELECT COUNT(*) FROM suspension_days WHERE status='updating'").fetchone()[0],
             "available_start": dates[0] if dates else None, "available_end": dates[-1] if dates else None,
             "coverage": {"days": len(dates), "stocks": counts["stocks"], "records": counts["records"],
@@ -102,6 +103,8 @@ def date_view(conn, day, min_boards=1, market="all", query="", exclude_st=False,
         row["blacklisted"] = row["code"] in blacklist_codes
         row["initials"] = stock_initials(row["name"])
     suspension_day = conn.execute("SELECT * FROM suspension_days WHERE date=?", (day,)).fetchone()
+    from lianban.nodes.service import decorate
+    node_data = decorate(conn, day, rows) if not snapshot else {"nodes": [], "check": None}
     groups = Counter(r["boards"] for r in rows)
     note = settings["scope_note"]
     if not coverage:
@@ -113,7 +116,8 @@ def date_view(conn, day, min_boards=1, market="all", query="", exclude_st=False,
     return {"date": day, "coverage_note": note, "data_status": coverage["status"] if coverage else "missing",
             "provisional": bool(snapshot), "fetched_at": snapshot["fetched_at"] if snapshot else coverage["fetched_at"] if coverage else None,
             "source": coverage["source"] if coverage else None,
-            "rows": rows, "selected_boards": boards, "available_total": available_total,
+            "rows": rows, "nodes": node_data['nodes'], "node_check": node_data['check'],
+            "selected_boards": boards, "available_total": available_total,
             "tag_board_counts": tag_board_counts,
             "suspended_rows": suspended,
             "suspension_status": suspension_day["status"] if suspension_day else "unknown",

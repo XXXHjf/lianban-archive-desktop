@@ -99,7 +99,30 @@ SHAREHOLDER_SCHEMA = """
     );
     CREATE INDEX IF NOT EXISTS shareholders_holder ON stock_shareholders(holder_key,code);
 """
-SCHEMA_VERSION = 2
+NODE_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS cycle_nodes (
+        id TEXT PRIMARY KEY, date TEXT NOT NULL, boards INTEGER NOT NULL,
+        name TEXT NOT NULL, kind TEXT NOT NULL, anchor TEXT NOT NULL DEFAULT '',
+        evidence TEXT NOT NULL DEFAULT '', deleted_from TEXT, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS cycle_node_members (
+        node_id TEXT NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL,
+        PRIMARY KEY(node_id,code)
+    );
+    CREATE TABLE IF NOT EXISTS cycle_node_exclusions (
+        node_id TEXT NOT NULL, code TEXT NOT NULL, date TEXT NOT NULL,
+        PRIMARY KEY(node_id,code)
+    );
+    CREATE TABLE IF NOT EXISTS node_openings (
+        date TEXT NOT NULL, code TEXT NOT NULL, opening REAL NOT NULL,
+        previous_close REAL NOT NULL, source TEXT NOT NULL, raw_path TEXT NOT NULL,
+        PRIMARY KEY(date,code)
+    );
+    CREATE TABLE IF NOT EXISTS node_checks (
+        date TEXT PRIMARY KEY, status TEXT NOT NULL, note TEXT NOT NULL, checked_at TEXT NOT NULL
+    );
+"""
+SCHEMA_VERSION = 3
 
 
 def initialize_connection(conn):
@@ -117,6 +140,11 @@ def initialize_connection(conn):
                 if statement.strip():
                     conn.execute(statement)
             conn.execute("PRAGMA user_version=2")
+        if version < 3:
+            for statement in NODE_SCHEMA.split(";"):
+                if statement.strip():
+                    conn.execute(statement)
+            conn.execute("PRAGMA user_version=3")
     return conn
 
 

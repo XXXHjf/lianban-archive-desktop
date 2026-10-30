@@ -41,6 +41,9 @@ const latest = computed(
       <span>{{ stock.suspension_reason }}</span>
     </div>
     <div class="stock-tags">
+      <el-tag v-for="node in stock.nodes || []" :key="node.id" size="small" type="warning"
+        >{{ node.name }}节点</el-tag
+      >
       <el-tag v-for="tag in tags" :key="tag" size="small" type="info">{{ tag }}</el-tag
       ><span v-if="!tags.length" class="muted">暂无标签</span>
     </div>

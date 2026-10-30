@@ -36,7 +36,7 @@ class ShareholderUpgradeTests(unittest.TestCase):
         with patch.object(migrations, '_initialize_legacy', side_effect=AssertionError('v1 must not rerun legacy migrations')):
             initialize_connection(conn)
             initialize_connection(conn)
-        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 2)
+        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], migrations.SCHEMA_VERSION)
         self.assertEqual({table: [tuple(row) for row in conn.execute(f'SELECT * FROM {table}')] for table in tables}, before)
         self.assertEqual(conn.execute('SELECT COUNT(*) FROM stock_shareholders').fetchone()[0], 0)
         self.assertFalse(conn.in_transaction)
@@ -49,11 +49,11 @@ class ShareholderUpgradeTests(unittest.TestCase):
         self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 1)
         self.assertIsNone(conn.execute("SELECT name FROM sqlite_master WHERE name='shareholder_profiles'").fetchone())
         initialize_connection(conn)
-        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 2)
-        conn.execute('PRAGMA user_version=3')
+        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], migrations.SCHEMA_VERSION)
+        conn.execute(f'PRAGMA user_version={migrations.SCHEMA_VERSION + 1}')
         with self.assertRaisesRegex(ValueError, 'newer'):
             initialize_connection(conn)
-        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 3)
+        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], migrations.SCHEMA_VERSION + 1)
 
     def test_save_batch_joins_outer_transaction_instead_of_committing_it(self):
         with closing(initialize(':memory:')) as conn:

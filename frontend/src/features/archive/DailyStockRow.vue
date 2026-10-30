@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   preview: [stock: Stock, trigger: HTMLElement];
   topic: [label: string];
+  node: [id: string];
 }>();
 const ws = useWorkspace();
 const tagsOpen = ref(false),
@@ -91,19 +92,38 @@ function chooseTopic(label: string) {
           >
         </div>
       </el-popover>
+      <button
+        v-for="node in stock.nodes || []"
+        :key="node.id"
+        class="ladder-node"
+        :title="`${node.date} 起始 · 查看节点成员`"
+        @click="emit('node', node.id)"
+      >
+        {{ node.name }}节点
+      </button>
       <span v-if="stock.note" class="daily-meta">有备注</span>
     </div>
     <span v-if="showBoards" class="matching-stock-boards">{{
       stock.boards === 1 ? '首板' : stock.boards ? `${stock.boards}板` : '—'
     }}</span>
-    <el-button
-      class="preview-stock"
-      :type="active ? 'primary' : 'default'"
-      :plain="active"
-      :aria-label="`预览${stock.name}周期`"
-      :aria-pressed="active"
-      @click="preview"
-      >预览</el-button
-    >
+    <div class="daily-stock-actions">
+      <el-button
+        class="preview-stock"
+        :type="active ? 'primary' : 'default'"
+        :plain="active"
+        :aria-label="`预览${stock.name}周期`"
+        :aria-pressed="active"
+        @click="preview"
+        >预览</el-button
+      >
+      <el-button
+        v-if="/^(60|00)\d{4}$/.test(stock.code) && stock.date"
+        link
+        type="primary"
+        :aria-label="`查看${stock.name}当日分时`"
+        @click="ws.openIntraday(stock.code, stock.date)"
+        >分时</el-button
+      >
+    </div>
   </article>
 </template>

@@ -8,6 +8,7 @@ import ArchiveCard from './ArchiveCard.vue';
 import DailyStockRow from './DailyStockRow.vue';
 import DailyCyclePreview from './DailyCyclePreview.vue';
 import DailyMatrix from './DailyMatrix.vue';
+import LadderNodes from './LadderNodes.vue';
 import { dailyGroups, hierarchy } from './helpers';
 import {
   dailyScope,
@@ -19,6 +20,7 @@ import {
 } from './dailyPresentation';
 import type { DailyData, Stock } from './models';
 const emit = defineEmits<{ explain: [] }>();
+const nodePanel = ref<InstanceType<typeof LadderNodes> | null>(null);
 const workspace = useWorkspace(),
   route = workspace.route;
 const archive = ref<DailyData | null>(null),
@@ -191,6 +193,7 @@ watch(
     () => route.value.excludeGEM,
     () => workspace.revision.value,
     () => workspace.meta.value?.archive_updated_at,
+    () => workspace.meta.value?.node_updated_at,
     () => workspace.meta.value?.live?.fetched_at,
     () => workspace.meta.value?.suspension_revision,
   ],
@@ -494,6 +497,7 @@ function clearFilters() {
             />
           </div>
         </details>
+        <LadderNodes v-if="data" ref="nodePanel" :data="data" @changed="load" />
         <section class="daily-ladder" aria-label="当日梯队股票" :aria-busy="loading">
           <div v-if="loading && !data" class="daily-loading" role="status">
             <el-skeleton :rows="8" />
@@ -546,6 +550,7 @@ function clearFilters() {
                   :highlight="!data?.provisional"
                   :show-boards="true"
                   @preview="select"
+                  @node="(id) => nodePanel?.open(id)"
                 />
                 <el-button
                   v-if="group.stocks.length > limit(0, group.labels, [])"
@@ -568,7 +573,12 @@ function clearFilters() {
               v-for="band in bands"
               :key="band.height"
               class="ladder-band"
-              :class="{ 'topic-band': industryMode }"
+              :class="{
+                'topic-band': industryMode,
+                'has-nodes': data?.nodes?.some(
+                  (n) => n.status === 'active' && n.height === band.height,
+                ),
+              }"
               :aria-label="`${band.height}板梯队`"
             >
               <header class="ladder-height">
@@ -577,6 +587,22 @@ function clearFilters() {
                   }}<small v-if="band.height !== 1">板</small>
                 </h2>
                 <span>{{ band.count }}只</span>
+                <div class="ladder-node-list">
+                  <button
+                    v-for="node in data?.nodes?.filter(
+                      (n) =>
+                        n.status === 'active' &&
+                        n.height === band.height &&
+                        n.codes.some((code) => data?.rows.some((row) => row.code === code)),
+                    ) || []"
+                    :key="node.id"
+                    class="ladder-node"
+                    :title="`${node.date} · ${node.name}节点`"
+                    @click="nodePanel?.open(node.id)"
+                  >
+                    {{ node.name }}
+                  </button>
+                </div>
               </header>
               <div class="ladder-band-groups">
                 <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
@@ -604,6 +630,7 @@ function clearFilters() {
                       :highlight="!data?.provisional"
                       :topic-filter="topicFilterVisible && industryMode"
                       @preview="select"
+                      @node="(id) => nodePanel?.open(id)"
                       @topic="chooseTopic"
                     /><el-button
                       v-if="sub.stocks.length > limit(band.height, group.labels, sub.labels)"

@@ -13,6 +13,7 @@ from lianban.profiles import suspension
 from lianban.profiles import shareholders, shareholder_seed
 from lianban.runtime.archive_task import ArchiveRefresher
 from lianban.ingestion import live_pool
+from lianban.nodes.collection import Refresher as NodeRefresher
 
 
 class DisabledTask:
@@ -41,6 +42,7 @@ class ApplicationServer(ThreadingHTTPServer):
         self.live_refresher.start()
 
     def after_archive_update(self):
+        self.node_refresher.maybe_refresh()
         self.registration_refresher.maybe_refresh()
         self.shareholder_refresher.maybe_refresh()
         self.concept_refresher.maybe_refresh()
@@ -51,7 +53,7 @@ class ApplicationServer(ThreadingHTTPServer):
         # Stop producers first, so their completion cannot enqueue profile work.
         for task in (self.archive_refresher, self.live_refresher, self.suspension_refresher,
                      self.industry_refresher, self.registration_refresher, self.concept_refresher,
-                     self.shareholder_refresher):
+                     self.shareholder_refresher, self.node_refresher):
             task.stop()
 
 
@@ -75,4 +77,5 @@ def create_server(db_path=DEFAULT_DB, port=8765, *, handler_class, include_conce
     server.suspension_refresher = task(suspension.Refresher)
     server.archive_refresher = DisabledTask() if no_updates else ArchiveRefresher(db_path, on_update=server.after_archive_update)
     server.live_refresher = task(live_pool.Refresher)
+    server.node_refresher = task(NodeRefresher)
     return server

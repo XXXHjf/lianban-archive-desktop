@@ -15,6 +15,7 @@ export interface Metadata {
   range_end?: string;
   scope_note?: string;
   archive_updated_at?: string;
+  node_updated_at?: string;
   updated_at?: string;
   industry_fetched_at?: string;
   registration_fetched_at?: string;
@@ -154,6 +155,9 @@ export function createWorkspace() {
   function openDate(day: string) {
     patchRoute({ view: 'date', date: day, boards: '' });
   }
+  function openIntraday(code: string, day: string) {
+    patchRoute({ view: 'intraday', date: day, minuteCode: code, minuteCompare: [] });
+  }
   async function refreshMeta() {
     const next = await request<Metadata>('/api/meta', 'metadata');
     if (!next) return;
@@ -180,6 +184,7 @@ export function createWorkspace() {
     navigate,
     openStock,
     openDate,
+    openIntraday,
     patchRoute,
     refreshMeta,
     changed,

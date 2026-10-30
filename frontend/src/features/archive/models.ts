@@ -5,6 +5,7 @@ export interface Stock {
   initials?: string;
   industry?: string;
   tags?: string[];
+  nodes?: NodeLabel[];
   tags_customized?: boolean;
   registered_province?: string;
   blacklisted?: boolean;
@@ -103,6 +104,8 @@ export interface Comparison {
   segments: ComparisonSegment[];
 }
 export interface DailyData {
+  nodes?: LadderNode[];
+  node_check?: { status: string; note: string } | null;
   date: string;
   rows: Stock[];
   suspended_rows: Stock[];
@@ -117,6 +120,22 @@ export interface DailyData {
   board_counts: { boards: number; count: number }[];
   tag_board_counts: Record<string, Record<string, number>>;
   stats: { total: number; consecutive: number; max_boards: number; first_boards: number };
+}
+export interface NodeLabel {
+  id: string;
+  name: string;
+  date: string;
+  kind: string;
+}
+export interface LadderNode extends NodeLabel {
+  boards: number;
+  height: number;
+  anchor: string;
+  evidence: string;
+  status: string;
+  codes: string[];
+  deleted_from: string | null;
+  members: { code: string; name: string; active: boolean; excluded_from?: string }[];
 }
 export interface TagNode {
   name: string;

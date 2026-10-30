@@ -540,6 +540,41 @@
   color: var(--la-text-muted);
   font-size: 13px;
 }
+.ladder-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-right: 4px;
+}
+.ladder-band.has-nodes {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+.ladder-node {
+  max-width: 100%;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #92400e;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 2px 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  text-align: left;
+}
+.ladder-node:hover {
+  border-color: #92400e;
+}
+.daily-stock-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .ladder-band:last-of-type .ladder-height h2 {
   font-size: 24px;
 }
@@ -1083,7 +1118,7 @@
     grid-column: 2;
     grid-row: 1;
   }
-  .matching-group .ladder-stock.has-boards .preview-stock {
+  .matching-group .ladder-stock.has-boards .daily-stock-actions {
     grid-column: 3;
   }
   .ladder-height {
@@ -1131,9 +1166,12 @@
     grid-column: 1/-1;
     grid-row: 2;
   }
-  .preview-stock.el-button {
+  .daily-stock-actions {
     grid-column: 2;
     grid-row: 1;
+  }
+  .ladder-band.has-nodes {
+    grid-template-columns: 80px minmax(0, 1fr);
   }
   .daily-stock-link {
     min-height: 44px;

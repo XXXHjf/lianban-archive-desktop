@@ -14,6 +14,7 @@ LEGACY_MODULES = {
 PURE_MODULES = {
     "lianban.archive.cycles", "lianban.archive.relationships", "lianban.intraday.rules",
     "lianban.intraday.timeline_rules",
+    "lianban.nodes.rules",
 }
 IMPURE_PREFIXES = (
     "sqlite3", "requests", "http", "urllib", "threading", "concurrent", "socket",

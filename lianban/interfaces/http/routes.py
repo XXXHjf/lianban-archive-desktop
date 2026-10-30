@@ -65,6 +65,9 @@ def read_api(server, path):
         if hasattr(server, "concept_refresher"):
             server.concept_refresher.maybe_refresh()
     with closing(connect(server.db_path)) as conn:
+        if parsed.path == '/api/ladder-nodes':
+            from lianban.nodes.service import view
+            return view(conn, valid_day(arg('date')))
         if parsed.path == "/api/stock-shareholders":
             return shareholders.stock_view(conn, arg("code"), include_live=editable)
         if parsed.path == "/api/announcement":
@@ -217,7 +220,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/api/stock-tags", "/api/blacklist", "/api/stock-note", "/api/tag-rename", "/api/tag-stocks", "/api/tag-delete", "/api/tag-node", "/api/intraday/collect", "/api/intraday/timeline/times"):
+        if path not in ("/api/ladder-nodes", "/api/ladder-nodes/identify", "/api/stock-tags", "/api/blacklist", "/api/stock-note", "/api/tag-rename", "/api/tag-stocks", "/api/tag-delete", "/api/tag-node", "/api/intraday/collect", "/api/intraday/timeline/times"):
             return self.reply({"error": "接口不存在"}, 404)
         if getattr(self.server, "read_only", False):
             return self.reply({"error": "公开版本仅供查询"}, 403)
@@ -231,6 +234,9 @@ class Handler(SimpleHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError(f"{subject}内容格式无效")
+            if path == '/api/ladder-nodes/identify':
+                from lianban.nodes.collection import sync_day
+                return self.reply(sync_day(self.server.db_path, valid_day(data.get('date'))))
             if path == "/api/intraday/collect":
                 from lianban.intraday import collection as intraday_sources
                 return self.reply(intraday_sources.collect_requested(self.server.db_path, valid_day(data.get("date", "")), data.get("code", ""), force=data.get("force") is True))
@@ -238,7 +244,15 @@ class Handler(SimpleHTTPRequestHandler):
                 from lianban.intraday import timeline as intraday_timeline
                 return self.reply(intraday_timeline.collect_seal_times(self.server.db_path, valid_day(data.get("date", "")), force=data.get("force") is True))
             with closing(connect(self.server.db_path)) as conn:
-                if path == "/api/blacklist":
+                if path == '/api/ladder-nodes':
+                    from lianban.nodes import service as nodes
+                    if data.get('action') == 'create':
+                        result = nodes.create(conn, data.get('date'), data.get('boards'), data.get('name'))
+                    elif data.get('action') == 'remove':
+                        result = nodes.remove(conn, data.get('id'), data.get('date'), data.get('code'))
+                    else:
+                        raise ValueError('节点操作无效')
+                elif path == "/api/blacklist":
                     result = save_blacklist(conn, data.get("code"), data.get("action"))
                 elif path == "/api/stock-note":
                     if data.get("action", "save") == "save":
