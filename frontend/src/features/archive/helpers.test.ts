@@ -59,6 +59,35 @@ describe('daily grouping preserves evidence cohorts', () => {
     expect(pinyin.some((group) => group.labels[0] === 'X' || group.labels[0] === '#')).toBe(false);
     expect(dailyGroups([rows[0]!], 'code', {}, hierarchy())).toEqual([]);
   });
+  it('excludes only the middle two initials of four-character names from pinyin matches', () => {
+    const rows: Stock[] = [
+      { code: '002432', name: '九安药业', boards: 3, initials: 'JAYY' },
+      { code: '002172', name: '澳洋健康', boards: 2, initials: 'AYJK' },
+      { code: '000001', name: '澳洋环保', boards: 1, initials: 'AYHB' },
+      { code: '001287', name: '中电港', boards: 2, initials: 'ZDG' },
+      { code: '000002', name: '电港股份', boards: 1, initials: 'DGGF' },
+      { code: '000003', name: '中电科技', boards: 1, initials: 'ZDKJ' },
+      { code: '000004', name: '安安安安', boards: 1, initials: 'AAAA' },
+      { code: '000005', name: '安安股份', boards: 1, initials: 'AAGF' },
+      { code: '000006', name: '福瑞药业', boards: 1, initials: 'FRYY' },
+    ];
+    const groups = dailyGroups(rows, 'pinyin', {}, hierarchy());
+    const members = (label: string) =>
+      groups.find((group) => group.labels[0] === label)?.stocks.map((row) => row.name);
+    expect(members('AY')).toEqual(['澳洋健康', '澳洋环保']);
+    expect(members('ZD')).toEqual(['中电港', '中电科技']);
+    expect(members('DG')).toEqual(['中电港', '电港股份']);
+    expect(members('AA')).toContain('安安安安');
+    expect(members('YY')).toEqual(['九安药业', '福瑞药业']);
+    expect(
+      dailyGroups(rows.slice(0, 2), 'pinyin', {}, hierarchy()).some(
+        (group) => group.labels[0] === 'AY',
+      ),
+    ).toBe(false);
+    expect(
+      dailyGroups(rows, 'code', {}, hierarchy()).some((group) => group.labels[0] === '000'),
+    ).toBe(true);
+  });
   it('retains parent columns, child leaves and identical child cohort merging', () => {
     const tags = hierarchy([
       { name: '设备', parent: '工业' },

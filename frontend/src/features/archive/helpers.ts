@@ -60,30 +60,35 @@ export function matchingGroups(
   sequence: (s: Stock) => string,
   length: number,
   minLength = 1,
+  acceptMatch: (stock: Stock, token: string, position: number) => boolean = () => true,
 ): Group[] {
-  const matches = new Map<string, Map<string, Stock>>();
+  const matches = new Map<string, Map<string, { stock: Stock; position: number }>>();
   for (const [key, stocks] of groups) {
     if (key === '#') continue;
-    const tokens = new Set<string>();
-    for (let n = Math.min(length, key.length); n >= minLength; n--)
-      for (let i = 0; i <= key.length - n; i++) tokens.add(key.slice(i, i + n));
-    for (const token of tokens) {
-      if (!matches.has(token)) matches.set(token, new Map());
-      stocks.forEach((stock) => matches.get(token)!.set(stock.code, stock));
-    }
+    for (const stock of stocks)
+      for (let n = Math.min(length, key.length); n >= minLength; n--)
+        for (let i = 0; i <= key.length - n; i++) {
+          const token = key.slice(i, i + n);
+          if (!acceptMatch(stock, token, i)) continue;
+          if (!matches.has(token)) matches.set(token, new Map());
+          const members = matches.get(token)!;
+          if (!members.has(stock.code)) members.set(stock.code, { stock, position: i });
+        }
   }
   const result = [...matches]
     .filter(([, stocks]) => stocks.size > 1)
     .sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0], 'en'))
     .map(([token, stocks]) => ({
       labels: [token],
-      stocks: [...stocks.values()].sort(
-        (a, b) =>
-          (b.boards || 0) - (a.boards || 0) ||
-          sequence(a).indexOf(token) - sequence(b).indexOf(token) ||
-          sequence(a).localeCompare(sequence(b), 'en') ||
-          a.code.localeCompare(b.code),
-      ),
+      stocks: [...stocks.values()]
+        .sort(
+          (a, b) =>
+            (b.stock.boards || 0) - (a.stock.boards || 0) ||
+            a.position - b.position ||
+            sequence(a.stock).localeCompare(sequence(b.stock), 'en') ||
+            a.stock.code.localeCompare(b.stock.code),
+        )
+        .map(({ stock }) => stock),
     }));
   return result;
 }
@@ -139,6 +144,15 @@ export function dailyGroups(
       mode === 'pinyin' ? initials : (stock) => stock.code,
       mode === 'pinyin' ? 4 : 6,
       mode === 'code' ? 3 : 1,
+      mode === 'pinyin'
+        ? (stock, token, position) =>
+            !(
+              Array.from(stock.name.normalize('NFKC')).length === 4 &&
+              initials(stock).length === 4 &&
+              token.length === 2 &&
+              position === 1
+            )
+        : undefined,
     );
   function rank(label: string, stocks: Stock[]) {
     const counts = mode === 'industry' && label !== unknown ? tagBoards[label] : undefined;
