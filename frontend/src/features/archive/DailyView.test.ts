@@ -51,6 +51,7 @@ it('keeps three common grouping modes visible and clears selection when the quer
   const { wrapper, workspace, dispose } = setup();
   await flushPromises();
   expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('连板梯队地区拼音代码匹配');
+  expect(wrapper.find('.daily-results-caption').exists()).toBe(false);
   await wrapper.get('[aria-label="预览光洋股份周期"]').trigger('click');
   expect(wrapper.findComponent({ name: 'DailyCyclePreview' }).props('stock')?.code).toBe('002708');
   workspace.openDate('2026-10-28');
@@ -71,6 +72,7 @@ it('offers code matching as a direct grouping button', async () => {
   await button!.trigger('click');
   expect(workspace.route.value.layout).toBe('code');
   expect(button!.attributes('aria-pressed')).toBe('true');
+  expect(wrapper.find('.daily-results-caption').exists()).toBe(false);
   expect(wrapper.get('[aria-label="切换分组"]').text()).toContain('更多');
   dispose();
 });
@@ -86,7 +88,7 @@ it('does not present request failure as an empty market or retain data under a d
   dispose();
 });
 
-it('shows each stock once, filters ancestor topics and updates height counts without fetching a partial day', async () => {
+it('shows each stock once and applies board filters while topic controls are hidden', async () => {
   const data = fixture();
   data.rows = [
     {
@@ -120,19 +122,20 @@ it('shows each stock once, filters ancestor topics and updates height counts wit
   await wrapper.get('[aria-label="预览青岛食品周期"]').trigger('click');
   workspace.patchRoute({ dailyTag: '机器人' });
   await nextTick();
-  expect(wrapper.findAll('.ladder-stock')).toHaveLength(2);
-  expect(wrapper.find('[aria-label="预览青岛食品周期"]').exists()).toBe(false);
-  expect(wrapper.find('.ladder-stock.is-selected').exists()).toBe(false);
-  expect(wrapper.get('.daily-stats').text()).toContain('涨停2只');
+  expect(wrapper.findAll('.ladder-stock')).toHaveLength(3);
+  expect(wrapper.find('[aria-label="预览青岛食品周期"]').exists()).toBe(true);
+  expect(wrapper.get('.daily-stats').text()).toContain('涨停3只');
+  expect(wrapper.get('.daily-topic-filter').isVisible()).toBe(false);
+  expect(wrapper.find('[aria-label="筛选标签：汽车"]').exists()).toBe(false);
   workspace.patchRoute({ boards: '4' });
   await nextTick();
-  expect(wrapper.findAll('.ladder-stock')).toHaveLength(1);
+  expect(wrapper.findAll('.ladder-stock')).toHaveLength(2);
   expect(wrapper.get('.daily-board-bar').text()).toContain('3板 1');
   expect(transport.request).toHaveBeenCalledTimes(1);
-  workspace.patchRoute({ dailyTag: '食品' });
+  workspace.patchRoute({ boards: '3' });
   await nextTick();
-  expect(wrapper.find('[aria-label="预览青岛食品周期"]').exists()).toBe(true);
-  workspace.patchRoute({ dailyTag: '不存在' });
+  expect(wrapper.find('.ladder-stock.is-selected').exists()).toBe(false);
+  workspace.patchRoute({ boards: '5' });
   await nextTick();
   expect(wrapper.get('.daily-empty').text()).toContain('没有匹配记录');
   await wrapper.get('.daily-empty .el-button').trigger('click');
@@ -141,7 +144,7 @@ it('shows each stock once, filters ancestor topics and updates height counts wit
   dispose();
 });
 
-it('keeps topic filters inactive in other grouping modes and disables them while the day loads', async () => {
+it('keeps saved topic filters inactive while the controls are hidden', async () => {
   let resolve!: (data: DailyData) => void;
   transport.request.mockReturnValue(
     new Promise<DailyData>((done) => {
@@ -150,16 +153,17 @@ it('keeps topic filters inactive in other grouping modes and disables them while
   );
   const { wrapper, workspace, dispose } = setup();
   expect(wrapper.find('.daily-loading').exists()).toBe(true);
-  expect(wrapper.get('.daily-topic-pills button').attributes('disabled')).toBeDefined();
+  expect(wrapper.get('.daily-topic-filter').isVisible()).toBe(false);
   resolve(fixture());
   await flushPromises();
   workspace.patchRoute({ dailyTag: '不存在', layout: 'region' });
   await nextTick();
-  expect(wrapper.find('.daily-topic-filter').exists()).toBe(false);
+  expect(wrapper.get('.daily-topic-filter').isVisible()).toBe(false);
   expect(wrapper.find('[aria-label="预览光洋股份周期"]').exists()).toBe(true);
   workspace.patchRoute({ layout: 'industry' });
   await nextTick();
-  expect(wrapper.find('.daily-empty').exists()).toBe(true);
+  expect(wrapper.find('.daily-empty').exists()).toBe(false);
+  expect(wrapper.find('[aria-label="预览光洋股份周期"]').exists()).toBe(true);
   dispose();
 });
 
@@ -193,7 +197,7 @@ it('renders matching groups across board heights and hides groups reduced to one
   workspace.patchRoute({ boards: '5' });
   await nextTick();
   expect(wrapper.get('.daily-empty').text()).toContain('没有符合要求的匹配分组');
-  expect(wrapper.get('.daily-results-caption').text()).toMatch(/0个分组\s*·\s*0只股票/);
+  expect(wrapper.find('.daily-results-caption').exists()).toBe(false);
   const preview = wrapper.findComponent({ name: 'DailyCyclePreview' });
   expect(preview.exists() ? preview.props('stock') : null).toBeNull();
   workspace.patchRoute({ boards: '', layout: 'pinyin' });

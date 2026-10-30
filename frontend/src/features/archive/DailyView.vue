@@ -16,7 +16,6 @@ import {
   isArchiveDate,
   ladderBands,
   topicPath,
-  uniqueCount,
 } from './dailyPresentation';
 import type { DailyData, Stock } from './models';
 const emit = defineEmits<{ explain: [] }>();
@@ -51,7 +50,11 @@ const tags = computed(() =>
 );
 const industryMode = computed(() => route.value.layout === 'industry');
 const matchingMode = computed(() => ['pinyin', 'code'].includes(route.value.layout));
-const activeTopic = computed(() => (industryMode.value ? route.value.dailyTag : ''));
+// The topic controls are temporarily hidden; ignore saved topic filters until restored.
+const topicFilterVisible = false;
+const activeTopic = computed(() =>
+  topicFilterVisible && industryMode.value ? route.value.dailyTag : '',
+);
 const topics = computed(() => dailyTopics(archive.value?.rows || [], tags.value));
 const quickTopics = computed(() =>
   topics.value.filter((topic) => topic.root === topic.label).slice(0, 4),
@@ -407,7 +410,11 @@ function clearFilters() {
             <span>{{ option.count }}</span></button
           ><span v-if="filterCount" class="daily-filter-summary">已剔除 创业板</span>
         </div>
-        <div v-if="industryMode" class="daily-topic-filter" aria-label="行业与标签筛选">
+        <div
+          :hidden="!topicFilterVisible || !industryMode"
+          class="daily-topic-filter"
+          aria-label="行业与标签筛选"
+        >
           <span class="daily-topic-label">行业 / 标签</span>
           <el-select
             :model-value="activeTopic"
@@ -487,16 +494,6 @@ function clearFilters() {
           </div>
         </details>
         <section class="daily-ladder" aria-label="当日梯队股票" :aria-busy="loading">
-          <div class="daily-results-caption">
-            <span
-              ><template v-if="!industryMode">{{ groups.length }}个分组 · </template>
-              {{
-                data
-                  ? uniqueCount(matchingMode ? groups.flatMap((group) => group.stocks) : data.rows)
-                  : '—'
-              }}只股票</span
-            >
-          </div>
           <div v-if="loading && !data" class="daily-loading" role="status">
             <el-skeleton :rows="8" />
             <p>正在读取 {{ workspace.date.value }} 的梯队…</p>
@@ -604,7 +601,7 @@ function clearFilters() {
                       :stock="stock"
                       :active="selectedStock?.code === stock.code"
                       :highlight="!data?.provisional"
-                      :topic-filter="industryMode"
+                      :topic-filter="topicFilterVisible && industryMode"
                       @preview="select"
                       @topic="chooseTopic"
                     /><el-button

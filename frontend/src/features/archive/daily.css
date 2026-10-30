@@ -347,6 +347,9 @@
   gap: 8px 12px;
   margin-bottom: 12px;
 }
+.daily-topic-filter[hidden] {
+  display: none;
+}
 .daily-topic-label {
   font-size: 14px;
   font-weight: 600;
@@ -465,16 +468,6 @@
 }
 .cycle-preview-content .preview-tags {
   margin-top: 16px;
-}
-.daily-results-caption {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 16px;
-  font-size: 12px;
-  color: var(--la-text-muted);
-  padding-bottom: 12px;
-  line-height: 20px;
 }
 .ladder-band {
   display: grid;
@@ -1144,9 +1137,6 @@
   }
   .daily-stock-link {
     min-height: 44px;
-  }
-  .daily-results-caption {
-    font-size: 12px;
   }
   .daily-preview-drawer {
     border-radius: 12px 12px 0 0;
