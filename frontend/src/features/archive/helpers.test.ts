@@ -59,7 +59,7 @@ describe('daily grouping preserves evidence cohorts', () => {
     expect(pinyin.some((group) => group.labels[0] === 'X' || group.labels[0] === '#')).toBe(false);
     expect(dailyGroups([rows[0]!], 'code', {}, hierarchy())).toEqual([]);
   });
-  it('excludes only the middle two initials of four-character names from pinyin matches', () => {
+  it('matches only the first two initials except for three-character names', () => {
     const rows: Stock[] = [
       { code: '002432', name: '九安药业', boards: 3, initials: 'JAYY' },
       { code: '002172', name: '澳洋健康', boards: 2, initials: 'AYJK' },
@@ -81,7 +81,7 @@ describe('daily grouping preserves evidence cohorts', () => {
     expect(members('ZD')).toEqual(['中电港', '智度股份', '中电科技']);
     expect(members('DG')).toEqual(['中电港', '电港股份']);
     expect(members('AA')).toContain('安安安安');
-    expect(members('YY')).toEqual(['九安药业', '福瑞药业']);
+    expect(members('YY')).toBeUndefined();
     expect(groups.every((group) => /^[A-Z]{2}$/.test(group.labels[0]!))).toBe(true);
     expect(members('ZDG')).toBeUndefined();
     expect(members('Z')).toBeUndefined();
@@ -94,6 +94,24 @@ describe('daily grouping preserves evidence cohorts', () => {
     expect(
       dailyGroups(rows, 'code', {}, hierarchy()).some((group) => group.labels[0] === '000'),
     ).toBe(true);
+  });
+  it('omits four-character suffixes while allowing a three-character name to match its last two letters', () => {
+    const rows: Stock[] = [
+      { code: '603029', name: '天鹅股份', initials: 'TEGF' },
+      { code: '000676', name: '智度股份', initials: 'ZDGF' },
+      { code: '000001', name: '广发股份', initials: 'GFGF' },
+      { code: '000002', name: '中广发', initials: 'ZGF' },
+      { code: '000003', name: '东方广发新', initials: 'DFGFX' },
+    ];
+    const groups = dailyGroups(rows, 'pinyin', {}, hierarchy());
+    expect(groups.find((group) => group.labels[0] === 'GF')?.stocks.map((row) => row.name)).toEqual(
+      ['广发股份', '中广发'],
+    );
+    expect(
+      dailyGroups(rows.slice(0, 2), 'pinyin', {}, hierarchy()).some(
+        (group) => group.labels[0] === 'GF',
+      ),
+    ).toBe(false);
   });
   it('retains parent columns, child leaves and identical child cohort merging', () => {
     const tags = hierarchy([

@@ -147,12 +147,9 @@ export function dailyGroups(
       mode === 'pinyin'
         ? (stock, token, position) =>
             /^[A-Z]{2}$/.test(token) &&
-            !(
-              Array.from(stock.name.normalize('NFKC')).length === 4 &&
-              initials(stock).length === 4 &&
-              token.length === 2 &&
-              position === 1
-            )
+            (position === 0 ||
+              (Array.from(stock.name.normalize('NFKC')).length === 3 &&
+                initials(stock).length === 3))
         : undefined,
     );
   function rank(label: string, stocks: Stock[]) {
