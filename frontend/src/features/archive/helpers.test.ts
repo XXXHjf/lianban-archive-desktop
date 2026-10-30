@@ -70,15 +70,22 @@ describe('daily grouping preserves evidence cohorts', () => {
       { code: '000004', name: '安安安安', boards: 1, initials: 'AAAA' },
       { code: '000005', name: '安安股份', boards: 1, initials: 'AAGF' },
       { code: '000006', name: '福瑞药业', boards: 1, initials: 'FRYY' },
+      { code: '000676', name: '智度股份', boards: 1, initials: 'ZDGF' },
+      { code: '000007', name: '甲一科技', boards: 1, initials: 'A1KJ' },
+      { code: '000008', name: '甲一股份', boards: 1, initials: 'A1GF' },
     ];
     const groups = dailyGroups(rows, 'pinyin', {}, hierarchy());
     const members = (label: string) =>
       groups.find((group) => group.labels[0] === label)?.stocks.map((row) => row.name);
     expect(members('AY')).toEqual(['澳洋健康', '澳洋环保']);
-    expect(members('ZD')).toEqual(['中电港', '中电科技']);
+    expect(members('ZD')).toEqual(['中电港', '智度股份', '中电科技']);
     expect(members('DG')).toEqual(['中电港', '电港股份']);
     expect(members('AA')).toContain('安安安安');
     expect(members('YY')).toEqual(['九安药业', '福瑞药业']);
+    expect(groups.every((group) => /^[A-Z]{2}$/.test(group.labels[0]!))).toBe(true);
+    expect(members('ZDG')).toBeUndefined();
+    expect(members('Z')).toBeUndefined();
+    expect(members('A1')).toBeUndefined();
     expect(
       dailyGroups(rows.slice(0, 2), 'pinyin', {}, hierarchy()).some(
         (group) => group.labels[0] === 'AY',

@@ -142,10 +142,11 @@ export function dailyGroups(
     return matchingGroups(
       groups,
       mode === 'pinyin' ? initials : (stock) => stock.code,
-      mode === 'pinyin' ? 4 : 6,
-      mode === 'code' ? 3 : 1,
+      mode === 'pinyin' ? 2 : 6,
+      mode === 'code' ? 3 : 2,
       mode === 'pinyin'
         ? (stock, token, position) =>
+            /^[A-Z]{2}$/.test(token) &&
             !(
               Array.from(stock.name.normalize('NFKC')).length === 4 &&
               initials(stock).length === 4 &&
