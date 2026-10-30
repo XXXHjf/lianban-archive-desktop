@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { topicPath } from './dailyPresentation';
 import { useWorkspace } from '@/shared/workspace';
 import ShareholderPreview from '@/features/research/ShareholderPreview.vue';
-import { shareholderAlertVisible } from '@/features/research/preferences';
+import { typeBlocked } from '@/features/research/preferences';
 import { hierarchy, initials, region } from './helpers';
 import type { Stock } from './models';
 const props = defineProps<{
@@ -23,10 +23,11 @@ const tagsOpen = ref(false),
   moreTags = ref<HTMLButtonElement | null>(null);
 const tags = computed(() => hierarchy(ws.meta.value?.tag_hierarchy, ws.meta.value?.tag_order));
 const labels = computed(() => tags.value.leaves(props.stock));
-const shareholderAlert = computed(() =>
-  shareholderAlertVisible(
-    ws.meta.value?.shareholder_alerts?.rows?.find((row) => row.code === props.stock.code),
-  ),
+const shareholderAlert = computed(
+  () =>
+    ws.meta.value?.shareholder_alerts?.rows
+      ?.find((row) => row.code === props.stock.code)
+      ?.types.some((type) => !typeBlocked(type)) ?? false,
 );
 const latest = computed(
   () =>
@@ -117,11 +118,12 @@ function chooseTopic(label: string) {
       <ShareholderPreview :stock="stock">
         <el-button
           size="small"
-          :type="shareholderAlert ? 'warning' : 'default'"
-          :aria-label="`查看${stock.name}共同股东${shareholderAlert ? '，今日有未屏蔽的共同股东同涨停' : ''}`"
+          class="daily-shareholder-button"
+          :aria-label="`查看${stock.name}共同股东${shareholderAlert ? '，今日有未屏蔽的共同股东股票同涨停' : ''}`"
+          :title="shareholderAlert ? '今日有未屏蔽的共同股东股票同涨停' : undefined"
           @click="ws.openEditor('shareholders', stock)"
-          >股东{{ shareholderAlert ? ' ●' : '' }}</el-button
-        >
+          >股东<span v-if="shareholderAlert" class="shareholder-alert-dot" aria-hidden="true"></span
+        ></el-button>
       </ShareholderPreview>
       <el-button
         v-if="/^(60|00)\d{4}$/.test(stock.code) && stock.date"

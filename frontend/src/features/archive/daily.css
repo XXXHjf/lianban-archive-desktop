@@ -583,6 +583,18 @@
 .daily-stock-actions .el-button + .el-button {
   margin-left: 0;
 }
+.daily-shareholder-button {
+  position: relative;
+}
+.shareholder-alert-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d92d20;
+}
 .ladder-band:last-of-type .ladder-height h2 {
   font-size: 24px;
 }

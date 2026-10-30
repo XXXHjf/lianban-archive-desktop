@@ -5,6 +5,7 @@ import { nextTick } from 'vue';
 import ElementPlus from 'element-plus';
 import { createWorkspace, parseRoute, workspaceKey } from '@/shared/workspace';
 import type { DailyData } from './models';
+import { blockedTypes, excludedAccountsKey } from '@/features/research/preferences';
 const transport = vi.hoisted(() => ({ request: vi.fn(), abort: vi.fn() }));
 vi.mock('@/shared/api', () => ({
   ...transport,
@@ -46,6 +47,26 @@ function setup() {
   };
 }
 afterEach(() => vi.clearAllMocks());
+it('shows a red dot only for a non-excluded, unblocked holder with another stock up today', async () => {
+  transport.request.mockResolvedValue(fixture());
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  workspace.meta.value!.shareholder_alerts = {
+    rows: [{ code: '002708', types: [], excluded_types: ['其他'] }],
+  };
+  blockedTypes.value = { 其他: false, [excludedAccountsKey]: false };
+  await nextTick();
+  expect(wrapper.find('.shareholder-alert-dot').exists()).toBe(false);
+  workspace.meta.value!.shareholder_alerts.rows![0]!.types = ['个人'];
+  await nextTick();
+  expect(wrapper.find('.shareholder-alert-dot').exists()).toBe(true);
+  expect(wrapper.get('.daily-shareholder-button').attributes('aria-label')).toContain('股票同涨停');
+  blockedTypes.value = { 个人: true };
+  await nextTick();
+  expect(wrapper.find('.shareholder-alert-dot').exists()).toBe(false);
+  blockedTypes.value = {};
+  dispose();
+});
 it('puts shareholder, intraday and preview actions on the stock row in order', async () => {
   transport.request.mockResolvedValue(fixture());
   const { wrapper, workspace, dispose } = setup();
