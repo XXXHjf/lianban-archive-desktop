@@ -55,6 +55,7 @@ onBeforeUnmount(() => abort(channel));
   <div class="stock-search">
     <el-autocomplete
       v-model="value"
+      aria-label="股票名称、代码或首字母"
       :disabled="disabled"
       :fetch-suggestions="suggestions"
       :trigger-on-focus="false"

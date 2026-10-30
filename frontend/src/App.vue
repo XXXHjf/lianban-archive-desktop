@@ -19,6 +19,7 @@ import StockSearch from './components/StockSearch.vue';
 import ResearchDialogs from './features/research/ResearchDialogs.vue';
 import UpdateInbox from './components/UpdateInbox.vue';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
+import './features/archive/daily.css';
 const DailyView = defineAsyncComponent(() => import('./features/archive/DailyView.vue'));
 const StockView = defineAsyncComponent(() => import('./features/archive/StockView.vue'));
 const IntradayView = defineAsyncComponent(() => import('./features/intraday/IntradayView.vue'));
@@ -34,6 +35,10 @@ const loading = ref(true),
   announcementOpen = ref(false),
   announcementBusy = ref(false),
   announcementError = ref('');
+const shellWidth = ref(window.innerWidth);
+const syncShellWidth = () => {
+  shellWidth.value = window.innerWidth;
+};
 const search = ref(''),
   recent = ref(recentStocks()),
   notice = ref<{ title?: string; content?: string; enabled?: boolean; updated_at?: string }>({});
@@ -43,7 +48,7 @@ const active = computed(() => (route.value.view === 'stock' ? 'date' : route.val
 const title = computed(
   () =>
     ({
-      date: '连板档案',
+      date: '当日梯队',
       stock: '个股档案',
       intraday: '主板分时',
       tags: '标签管理',
@@ -51,7 +56,7 @@ const title = computed(
     })[route.value.view],
 );
 const navigation = [
-  { view: 'date', name: '历史连板', icon: Calendar },
+  { view: 'date', name: '当日梯队', icon: Calendar },
   { view: 'intraday', name: '主板分时', icon: TrendCharts },
   { view: 'tags', name: '标签管理', icon: CollectionTag },
   { view: 'blacklist', name: '黑名单', icon: CircleClose },
@@ -102,6 +107,7 @@ async function openAnnouncement() {
   }
 }
 onMounted(async () => {
+  window.addEventListener('resize', syncShellWidth);
   await load();
   if (!disposed) poll = setTimeout(refresh, 60000);
   try {
@@ -115,6 +121,7 @@ onMounted(async () => {
   }
 });
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncShellWidth);
   disposed = true;
   clearTimeout(poll);
   ws.dispose();
@@ -122,10 +129,15 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <el-config-provider :locale="zhCn" size="small">
+  <el-config-provider :locale="zhCn" :size="route.view === 'date' ? 'default' : 'small'">
     <a href="#main" class="skip-link">跳到主要内容</a>
-    <div class="workbench">
-      <aside class="app-sidebar" :class="{ 'is-open': menuOpen }" aria-label="主导航">
+    <div class="workbench" :class="{ 'daily-prototype': route.view === 'date' }">
+      <aside
+        class="app-sidebar"
+        :class="{ 'is-open': menuOpen }"
+        :inert="!menuOpen && shellWidth < (route.view === 'date' ? 768 : 760)"
+        aria-label="主导航"
+      >
         <a class="brand" href="/" @click.prevent="navigate('date')"
           ><el-icon :size="25"><DataAnalysis /></el-icon>
           <div>连板档案<small>市场复盘工作台</small></div></a
@@ -135,7 +147,12 @@ onBeforeUnmount(() => {
           class="main-menu"
           @select="(key) => navigate(key as View)"
         >
-          <el-menu-item v-for="item in navigation" :key="item.view" :index="item.view"
+          <el-menu-item
+            v-for="item in navigation"
+            :key="item.view"
+            :index="item.view"
+            :title="item.name"
+            :aria-label="item.name"
             ><el-icon><component :is="item.icon" /></el-icon
             ><span>{{ item.name }}</span></el-menu-item
           >
@@ -163,7 +180,7 @@ onBeforeUnmount(() => {
         aria-label="关闭导航"
         @click="menuOpen = false"
       ></button>
-      <main id="main" class="main-content">
+      <main id="main" class="main-content" tabindex="-1">
         <header class="topbar">
           <div class="row">
             <el-button
@@ -171,7 +188,29 @@ onBeforeUnmount(() => {
               :icon="MenuIcon"
               aria-label="打开导航"
               @click="menuOpen = !menuOpen"
-            /><span class="muted">市场研究 /</span><span>{{ title }}</span>
+            /><template v-if="route.view !== 'date'"
+              ><span class="muted">市场研究 /</span><span>{{ title }}</span></template
+            >
+            <template v-else
+              ><StockSearch v-model="search" @select="selectStock" /><el-popover
+                trigger="click"
+                width="280"
+                ><template #reference
+                  ><el-button text aria-label="最近查看的股票">最近</el-button></template
+                >
+                <div class="daily-recent">
+                  <strong>最近查看</strong
+                  ><el-button
+                    v-for="stock in recent"
+                    :key="stock.code"
+                    link
+                    @click="selectStock(stock)"
+                    >{{ stock.name }} {{ stock.code }}</el-button
+                  >
+                  <p v-if="!recent.length">暂无最近查看记录</p>
+                </div></el-popover
+              ></template
+            >
           </div>
           <div class="topbar-right">
             <UpdateInbox :desktop="desktop" /><el-button text :icon="Bell" @click="openAnnouncement"
@@ -179,7 +218,7 @@ onBeforeUnmount(() => {
             ><el-button text :icon="Refresh" :loading="loading" @click="load">刷新状态</el-button>
           </div>
         </header>
-        <section class="intro">
+        <section v-if="route.view !== 'date'" class="intro">
           <div>
             <h1>{{ title }}</h1>
             <p class="muted">从交易日看市场高度，从个股看连板轨迹。</p>
@@ -197,7 +236,7 @@ onBeforeUnmount(() => {
         <el-alert v-if="error" :title="error" type="error" show-icon :closable="false"
           ><el-button link @click="load">重新连接</el-button></el-alert
         >
-        <section class="disclaimer">
+        <section v-if="route.view !== 'date'" class="disclaimer">
           本人自用网站 ·
           数据可能存在延迟、遗漏或错误，仅供查询、复盘与学习参考，不构成投资建议。<el-button
             link
@@ -205,26 +244,9 @@ onBeforeUnmount(() => {
             >查看说明</el-button
           >
         </section>
-        <section v-if="route.view === 'date'" class="panel global-query">
-          <div class="toolbar">
-            <StockSearch v-model="search" @select="selectStock" /><span class="muted"
-              >按名称、代码或首字母检索全部历史</span
-            >
-          </div>
-          <div v-if="recent.length" class="recent row">
-            <small class="muted">最近查看</small
-            ><el-button
-              v-for="stock in recent"
-              :key="stock.code"
-              link
-              @click="selectStock(stock)"
-              >{{ stock.name }}</el-button
-            >
-          </div>
-        </section>
         <el-skeleton v-if="loading && !meta" :rows="8" animated />
         <template v-else-if="meta">
-          <DailyView v-if="route.view === 'date'" />
+          <DailyView v-if="route.view === 'date'" @explain="methodOpen = true" />
           <StockView v-else-if="route.view === 'stock'" />
           <IntradayView v-else-if="route.view === 'intraday'" />
           <TagsView v-else-if="route.view === 'tags'" />
@@ -259,6 +281,11 @@ onBeforeUnmount(() => {
     >
     <el-dialog v-model="methodOpen" title="数据与统计说明" width="min(700px, 94vw)"
       ><div class="stack">
+        <p>
+          历史数据范围：{{ dateLabel(meta?.available_start) }} —
+          {{ dateLabel(meta?.available_end) }} · {{ number(meta?.coverage?.days) }} 个交易日 ·
+          {{ number(meta?.coverage?.stocks) }} 只股票。
+        </p>
         <p>
           本站仅提供数据查询、历史复盘与学习交流工具，所有数据、统计及相关内容仅供参考，不构成任何投资建议或收益承诺。请以官方披露及实际行情为准。
         </p>
