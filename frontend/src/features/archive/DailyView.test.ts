@@ -206,3 +206,42 @@ it('renders matching groups across board heights and hides groups reduced to one
   expect(wrapper.find('.ladder-band').exists()).toBe(false);
   dispose();
 });
+
+it('groups regions first and orders each region by board height, including single-stock regions', async () => {
+  const data = fixture();
+  data.rows = [
+    { code: '600002', name: '山东乙', boards: 2, registered_province: '山东省' },
+    { code: '600001', name: '山东甲', boards: 5, registered_province: '山东省' },
+    { code: '600003', name: '山东丙', boards: 3, registered_province: '山东省' },
+    { code: '000001', name: '广东甲', boards: 1, registered_province: '广东省' },
+    { code: '000002', name: '地区未知', boards: 1 },
+  ];
+  transport.request.mockResolvedValue(data);
+  const { wrapper, workspace, dispose } = setup();
+  await flushPromises();
+  workspace.patchRoute({ layout: 'region' });
+  await nextTick();
+  const shandong = wrapper.get('[aria-label="地区分组 山东"]');
+  expect(shandong.findAll('.ladder-stock').map((row) => row.text())).toEqual([
+    expect.stringContaining('山东甲'),
+    expect.stringContaining('山东丙'),
+    expect.stringContaining('山东乙'),
+  ]);
+  expect(shandong.findAll('.matching-stock-boards').map((row) => row.text())).toEqual([
+    '5板',
+    '3板',
+    '2板',
+  ]);
+  expect(wrapper.get('[aria-label="地区分组 广东"]').findAll('.ladder-stock')).toHaveLength(1);
+  expect(wrapper.get('[aria-label="地区分组 地区待补充"]').findAll('.ladder-stock')).toHaveLength(
+    1,
+  );
+  expect(wrapper.find('.ladder-band').exists()).toBe(false);
+  await shandong.get('[aria-label="预览山东甲周期"]').trigger('click');
+  expect(wrapper.findComponent({ name: 'DailyCyclePreview' }).props('stock')?.code).toBe('600001');
+  workspace.patchRoute({ boards: '2' });
+  await nextTick();
+  expect(wrapper.get('[aria-label="地区分组 山东"]').findAll('.ladder-stock')).toHaveLength(1);
+  expect(wrapper.find('[aria-label="地区分组 广东"]').exists()).toBe(false);
+  dispose();
+});

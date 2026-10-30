@@ -197,7 +197,15 @@ export function dailyGroups(
     const existing = key ? cohorts.get(key) : undefined;
     if (existing) existing.labels.push(name);
     else {
-      const group = { labels: [name], stocks };
+      const group = {
+        labels: [name],
+        stocks:
+          mode === 'region'
+            ? [...stocks].sort(
+                (a, b) => (b.boards || 0) - (a.boards || 0) || a.code.localeCompare(b.code),
+              )
+            : stocks,
+      };
       result.push(group);
       if (key) cohorts.set(key, group);
     }

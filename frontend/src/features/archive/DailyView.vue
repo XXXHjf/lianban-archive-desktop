@@ -50,6 +50,7 @@ const tags = computed(() =>
 );
 const industryMode = computed(() => route.value.layout === 'industry');
 const matchingMode = computed(() => ['pinyin', 'code'].includes(route.value.layout));
+const groupFirstMode = computed(() => matchingMode.value || route.value.layout === 'region');
 // The topic controls are temporarily hidden; ignore saved topic filters until restored.
 const topicFilterVisible = false;
 const activeTopic = computed(() =>
@@ -499,7 +500,7 @@ function clearFilters() {
             <p>正在读取 {{ workspace.date.value }} 的梯队…</p>
           </div>
           <div
-            v-else-if="!(matchingMode ? groups.length : bands.length) && !error"
+            v-else-if="!(groupFirstMode ? groups.length : bands.length) && !error"
             class="daily-state daily-empty"
           >
             <h2>
@@ -522,12 +523,12 @@ function clearFilters() {
               >返回最新收录日</el-button
             >
           </div>
-          <template v-else-if="matchingMode">
+          <template v-else-if="groupFirstMode">
             <section
               v-for="group in expandedMatches ? groups : groups.slice(0, 6)"
               :key="groupIdentity(group.labels)"
               class="matching-group"
-              :aria-label="`匹配分组 ${group.labels.join(' / ')}`"
+              :aria-label="`${matchingMode ? '匹配分组' : '地区分组'} ${group.labels.join(' / ')}`"
             >
               <header class="matching-group-label">
                 <h2>{{ group.labels.join(' / ') }}</h2>
