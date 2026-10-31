@@ -32,15 +32,21 @@ class ShareholderSeedTests(unittest.TestCase):
     def test_public_resource_contains_only_shareholder_fields_and_complete_profiles(self):
         with gzip.open(shareholder_seed.RESOURCE, 'rt', encoding='utf-8') as handle:
             seed = json.load(handle)
-        self.assertEqual(set(seed), {'source_commit', 'exported_at', 'profiles', 'rows'})
-        profile_fields = {'code', 'scope', 'report_date', 'source', 'fetched_at'}
-        record_fields = {'code', 'scope', 'holder_key', 'holder_name', 'holder_type', 'report_date'}
+        self.assertEqual(set(seed), {'source_commit', 'exported_at', 'profiles', 'rows', 'control_profiles', 'control_rows', 'subsidiaries'})
+        profile_fields = {'code', 'scope', 'report_date', 'source', 'fetched_at', 'ratio_checked'}
+        record_fields = {'code', 'scope', 'holder_key', 'holder_name', 'holder_type', 'report_date', 'holding_ratio'}
         self.assertTrue(all(set(row) == profile_fields for row in seed['profiles']))
         self.assertTrue(all(set(row) == record_fields for row in seed['rows']))
         profiles = {(row['code'], row['scope']): row for row in seed['profiles']}
         self.assertEqual(len(profiles), len(seed['profiles']))
         self.assertGreater(len(seed['rows']), 100000)
         self.assertTrue(all(row['report_date'] == profiles[row['code'], row['scope']]['report_date'] for row in seed['rows']))
+        self.assertTrue(all(row['kind'] in ('controller', 'actual_controller') for row in seed['control_rows']))
+        self.assertTrue(all(set(row) == {'code', 'source', 'fetched_at'} for row in seed['control_profiles']))
+        self.assertTrue(all(set(row) == {'code', 'kind', 'holder_key', 'holder_name', 'holder_type', 'via_name', 'source_url', 'fetched_at'}
+                            for row in seed['control_rows']))
+        self.assertTrue(all(set(row) == {'code', 'disclosure_date', 'companies_json', 'source_url', 'fetched_at', 'attempted_at'}
+                            for row in seed['subsidiaries']))
 
 
 if __name__ == '__main__':

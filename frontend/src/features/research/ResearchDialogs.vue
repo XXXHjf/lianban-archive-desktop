@@ -25,7 +25,7 @@ const target = shallowRef<EditorTarget | null>(null),
   transitioning = ref(false);
 const title = computed(
   () =>
-    `${target.value?.kind === 'note' ? '股票备注' : target.value?.kind === 'tags' ? '股票标签' : '共同股东'} · ${target.value?.stock.name || target.value?.stock.code || ''}`,
+    `${target.value?.kind === 'note' ? '股票备注' : target.value?.kind === 'tags' ? '股票标签' : '股东资料'} · ${target.value?.stock.name || target.value?.stock.code || ''}`,
 );
 let transition = 0;
 function same(a: EditorTarget | null, b: EditorTarget | null) {

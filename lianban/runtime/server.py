@@ -10,7 +10,7 @@ from lianban.profiles import industry
 from lianban.profiles import concepts as concept_tags
 from lianban.profiles import registration
 from lianban.profiles import suspension
-from lianban.profiles import shareholders, shareholder_seed
+from lianban.profiles import shareholders, shareholder_seed, control_owners
 from lianban.runtime.archive_task import ArchiveRefresher
 from lianban.ingestion import live_pool
 from lianban.nodes.collection import Refresher as NodeRefresher
@@ -37,6 +37,7 @@ class ApplicationServer(ThreadingHTTPServer):
         self.concept_refresher.maybe_refresh()
         self.registration_refresher.maybe_refresh()
         self.shareholder_refresher.maybe_refresh()
+        self.control_owner_refresher.maybe_refresh()
         self.after_archive_update()
         self.archive_refresher.start()
         self.live_refresher.start()
@@ -45,6 +46,7 @@ class ApplicationServer(ThreadingHTTPServer):
         self.node_refresher.maybe_refresh()
         self.registration_refresher.maybe_refresh()
         self.shareholder_refresher.maybe_refresh()
+        self.control_owner_refresher.maybe_refresh()
         self.concept_refresher.maybe_refresh()
         with closing(connect(self.db_path)) as conn:
             self.suspension_refresher.maybe_refresh(meta(conn)["latest_date"])
@@ -53,7 +55,7 @@ class ApplicationServer(ThreadingHTTPServer):
         # Stop producers first, so their completion cannot enqueue profile work.
         for task in (self.archive_refresher, self.live_refresher, self.suspension_refresher,
                      self.industry_refresher, self.registration_refresher, self.concept_refresher,
-                     self.shareholder_refresher, self.node_refresher):
+                     self.shareholder_refresher, self.control_owner_refresher, self.node_refresher):
             task.stop()
 
 
@@ -74,6 +76,7 @@ def create_server(db_path=DEFAULT_DB, port=8765, *, handler_class, include_conce
     server.concept_refresher = task(concept_tags.Refresher) if include_concepts else DisabledTask()
     server.registration_refresher = task(registration.Refresher)
     server.shareholder_refresher = task(shareholders.Refresher)
+    server.control_owner_refresher = task(control_owners.Refresher)
     server.suspension_refresher = task(suspension.Refresher)
     server.archive_refresher = DisabledTask() if no_updates else ArchiveRefresher(db_path, on_update=server.after_archive_update)
     server.live_refresher = task(live_pool.Refresher)

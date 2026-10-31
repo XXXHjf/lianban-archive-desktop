@@ -1,11 +1,48 @@
 {
   "repository": "https://github.com/x107108/lianban-archive-desktop",
   "original_base_commit": "3ac5a4d89db8f0c29ae11d7d9acb010f7b7d6aa1",
-  "last_reviewed_commit": "2d26a92eaa46fed89346fdb2a60a8be5dab71b1a",
-  "reviewed_on": "2026-10-29",
+  "last_reviewed_commit": "3f2017969cb2cee6934dbf1a63051f9c713401e9",
+  "reviewed_on": "2026-10-31",
   "local_base_commit": "cc131c6",
-  "upstream_feature_version": "2026.10.29.1",
+  "upstream_feature_version": "2026.10.30",
+  "previous_reviewed_commit": "2d26a92eaa46fed89346fdb2a60a8be5dab71b1a",
+  "local_sync_base_commit": "ca4a525",
+  "review_policy": "每次从 last_reviewed_commit 固定新的目标提交，检查全部增量；同时保留明确跳过项，不能把已检查等同全部功能已采用。原作者代码和安装包不能自动覆盖本地项目。",
+  "reviewed_commits_20261031": [
+    "cde6185d17d6e167d3723891c328bf98fc7603fd",
+    "81b662c102a1b40bc6ac38ad51fedc66cb83f8db",
+    "38bf0fb84d8d5980e0d66beb89261e6759d23d7a",
+    "fcb390905fa73410d4bb8e6a7e9fdeb9e54b85aa",
+    "268ecc9a1694992f697975db2a173b56066b8780",
+    "b723536b5712aedd7e548e163b0c86439ec9b7fd",
+    "3f2017969cb2cee6934dbf1a63051f9c713401e9"
+  ],
+  "user_decisions_20261031": {
+    "adopted_items": [1, 2, 3, 5, 8, 10],
+    "partial_item_11": "只采用启动时重新检查；正常3600秒、失败900秒、手动30秒的原有间隔保持不变",
+    "skipped_items": [4, 6, 7, 9, 12],
+    "skipped_scopes": [
+      "控制关系及特定上层股东不纳入共同股东匹配；不导入青岛硬编码上层边",
+      "不采用全市场及ST竞争口径，保留现有市场分组与ST排除",
+      "不新增香港中央结算独立屏蔽类别，保留现有账户排除与来源分类",
+      "不采用主动更新弹窗、十分钟重复提醒或已读压制规则变更",
+      "不新增页面版本标识"
+    ]
+  },
   "adopted": [
+    {
+      "commit": "b723536b5712aedd7e548e163b0c86439ec9b7fd",
+      "scope": "本股十大股东及十大流通股东名单、按口径持股比例、流通股原值合计、展示用控股股东和实际控制人、子公司公告业务资料、红点与列表分类优先级一致",
+      "adaptation": "Vue四页签；v3到v4原子迁移；独立来源、事务存储及只读投影；控制关系不进入匹配，保留账户排除和最近交易日逻辑；公开资源删除1条被跳过的parent_owner边"
+    },
+    {
+      "commit": "cde6185d17d6e167d3723891c328bf98fc7603fd",
+      "scope": "仅采用启动时不受旧检查时间抑制及公共请求防缓存；保留原检查频率和现有站内信交互"
+    },
+    {
+      "commit": "38bf0fb84d8d5980e0d66beb89261e6759d23d7a",
+      "scope": "Raw与Contents API分别校验，采用较新有效通知；单来源失效保留另一来源，双来源失败保留已有通知"
+    },
     {
       "commit": "7c83c8a2e806300c08624eab8d883c5a8a5c48f5",
       "scope": "共同股东查询、公开缓存、浮窗、分类屏蔽、今日同涨停提示及说明",

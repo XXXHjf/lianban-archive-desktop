@@ -77,7 +77,12 @@ export interface Peer {
 }
 export interface Shareholders {
   rows: Peer[];
-  profiles: { report_date?: string; fetched_at: string }[];
+  name?: string;
+  own_holders?: { float: OwnHolder[]; total: OwnHolder[] };
+  control_owners?: ControlOwner[];
+  control_status?: string;
+  control_checked?: boolean;
+  profiles: { scope?: string; report_date?: string; fetched_at: string }[];
   today: string;
   today_status: string;
   today_stale: boolean;
@@ -87,4 +92,28 @@ export interface Shareholders {
   requested: number;
   status: string;
   scope_note: string;
+}
+
+export interface OwnHolder {
+  name: string;
+  type: string;
+  report_date: string;
+  holding_ratio: number | null;
+}
+export interface ControlOwner {
+  kind: 'controller' | 'actual_controller';
+  name: string;
+  type: string;
+  source_url: string;
+  fetched_at: string;
+}
+export interface Subsidiaries {
+  code: string;
+  name: string;
+  source: string;
+  status: 'error' | 'current' | 'empty';
+  disclosure_date: string;
+  fetched_at: string;
+  source_url: string;
+  rows: { name: string; relation: string; holding_ratio: string; business: string }[];
 }

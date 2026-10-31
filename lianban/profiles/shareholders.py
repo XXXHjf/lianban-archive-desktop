@@ -5,6 +5,7 @@ from contextlib import closing
 from datetime import date, datetime, timedelta
 import gzip
 import json
+import math
 import re
 from pathlib import Path
 import ssl
@@ -23,7 +24,7 @@ from lianban.runtime.metadata import MetadataRefresher
 from lianban.profiles.registration import secucode
 
 
-def normalize_rows(payload, requested, today):
+def normalize_rows(payload, requested, today, scope="total"):
     if (isinstance(payload, dict) and payload.get("success") is False
             and payload.get("code") == 9201 and payload.get("message") == "返回数据为空"):
         return [], 0, 0
@@ -47,8 +48,19 @@ def normalize_rows(payload, requested, today):
             raise ValueError("股东名称无效")
         name = name.strip()
         key = " ".join(unicodedata.normalize("NFKC", name).split()).casefold()
+        ratio_field = "HOLD_RATIO" if scope == "total" else "FREE_HOLDNUM_RATIO"
+        if ratio_field not in row:
+            raise ValueError("股东来源持股比例字段缺失")
+        ratio = row[ratio_field]
+        if ratio is not None:
+            if isinstance(ratio, bool):
+                raise ValueError("股东持股比例无效")
+            ratio = float(ratio)
+            if not math.isfinite(ratio) or not 0 <= ratio <= 100:
+                raise ValueError("股东持股比例无效")
         records.append({"code": code, "holder_name": name, "holder_key": key,
-                        "holder_type": row.get("HOLDER_NEWTYPE") or "未分类", "report_date": report_date})
+                        "holder_type": row.get("HOLDER_NEWTYPE") or "未分类", "report_date": report_date,
+                        "holding_ratio": ratio})
     return records, pages, count
 
 
@@ -59,6 +71,7 @@ def fetch_batch(codes, scope, raw_dir):
     today = datetime.now(TZ).date().isoformat()
     eligible = f"(END_DATE<='{today}')"
     fields = "SECUCODE,SECURITY_CODE,END_DATE,HOLDER_NAME,HOLDER_NEWTYPE,NOTICE_DATE"
+    fields += ",HOLD_RATIO" if scope == "total" else ",FREE_HOLDNUM_RATIO"
     params = {"reportName": REPORTS[scope], "columns": fields,
               "filter": f'(SECUCODE in ({quoted}))(IS_MAX_REPORTDATE="1")' + eligible,
               "pageSize": 1000, "sortColumns": "SECUCODE,END_DATE,HOLDER_NAME", "sortTypes": "1,-1,1",
@@ -70,7 +83,7 @@ def fetch_batch(codes, scope, raw_dir):
         time.sleep(0.3)
         with urlopen(request, timeout=20, context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)) as response:
             payload = json.load(response)
-        rows, total_pages, total_count = normalize_rows(payload, set(codes), today)
+        rows, total_pages, total_count = normalize_rows(payload, set(codes), today, scope)
         if count is not None and (total_pages != pages or total_count != count):
             raise ValueError("股东来源分页发生变化，稍后重试")
         pages, count = total_pages, total_count
@@ -88,7 +101,7 @@ def fetch_batch(codes, scope, raw_dir):
         time.sleep(0.3)
         with urlopen(request, timeout=20, context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)) as response:
             payload = json.load(response)
-        rows, _, total = normalize_rows(payload, {code}, today)
+        rows, _, total = normalize_rows(payload, {code}, today, scope)
         if rows and total > len(rows) and rows[-1]["report_date"] == rows[0]["report_date"]:
             raise ValueError("最新股东快照未完整返回")
         if rows:
@@ -105,8 +118,9 @@ def refresh(path=DEFAULT_DB):
     cutoff = (datetime.now(TZ) - timedelta(hours=24)).isoformat(timespec="seconds")
     with closing(initialize(path)) as conn:
         codes = [r[0] for r in conn.execute("SELECT s.code FROM stocks s LEFT JOIN shareholder_profiles p ON p.code=s.code "
-                "GROUP BY s.code HAVING COUNT(p.scope)<2 OR MIN(p.fetched_at)<? ORDER BY s.code", (cutoff,))]
+                "GROUP BY s.code HAVING COUNT(p.scope)<2 OR MIN(p.fetched_at)<? OR MIN(p.ratio_checked)=0 ORDER BY s.code", (cutoff,))]
         requested = conn.execute("SELECT COUNT(*) FROM stocks").fetchone()[0]
+        set_settings(conn, shareholder_status="updating", shareholder_completed=0, shareholder_pending=len(codes))
     for offset in range(0, len(codes), BATCH_SIZE):
         batch = codes[offset:offset + BATCH_SIZE]
         records = {scope: fetch_batch(batch, scope, Path(path).resolve().parent / "shareholders") for scope in REPORTS}

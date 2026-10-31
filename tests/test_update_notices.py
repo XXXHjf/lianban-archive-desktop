@@ -1,9 +1,13 @@
 from pathlib import Path
+from io import BytesIO
 from threading import Event
+from unittest.mock import patch
 from uuid import uuid4
 import json
 import unittest
-from update_notices import NoticeService, normalize_notice, version_key
+from update_notices import (CHECK_INTERVAL, FAILURE_INTERVAL, MANUAL_INTERVAL,
+                            FEED_URL, FALLBACK_FEED_URL, NoticeService,
+                            fetch_notice, normalize_notice, version_key)
 
 
 def release(version='2026.10.21', **changes):
@@ -12,6 +16,11 @@ def release(version='2026.10.21', **changes):
 
 
 class UpdateNoticeTests(unittest.TestCase):
+    def responses(self, *values):
+        return [value if isinstance(value, Exception) else
+                BytesIO(value if isinstance(value, bytes) else json.dumps(value).encode('utf-8'))
+                for value in values]
+
     def service(self, fetcher=lambda: release(), version='2026.10.20.1'):
         self.now = [1000.0]
         self.path = Path(__file__).parent/'test-data'/('updates-' + uuid4().hex)/'cache.json'
@@ -90,13 +99,84 @@ class UpdateNoticeTests(unittest.TestCase):
         service.refresh()
         self.finish(service)
         restarted = NoticeService(service.current_version, self.path, fetch, clock=lambda: self.now[0])
+        self.assertEqual(restarted.checked_at, 1000.0)
+        self.assertIsNone(restarted.last_attempt)
         self.assertEqual(restarted.snapshot()['notice']['id'], 'release:2026.10.21')
+        self.finish(restarted)
+        self.assertEqual(len(calls), 2)
         restarted.refresh(force=True)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 2)
         self.now[0] += 31
         restarted.refresh(force=True)
         self.finish(restarted)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
+
+    def test_both_public_sources_are_checked_and_newer_version_wins(self):
+        for raw_version, api_version in [('2026.10.21', '2026.10.21.10'),
+                                         ('2026.10.21.10', '2026.10.21.2')]:
+            with self.subTest(raw=raw_version, api=api_version):
+                with patch('update_notices.urllib.request.urlopen',
+                           side_effect=self.responses(release(raw_version), release(api_version))) as opened:
+                    with patch('update_notices.time.time', return_value=1234):
+                        notice = fetch_notice()
+                self.assertEqual(notice['version'], '2026.10.21.10')
+                self.assertEqual(opened.call_count, 2)
+                for call, url in zip(opened.call_args_list, (FEED_URL, FALLBACK_FEED_URL)):
+                    request = call.args[0]
+                    separator = '&' if '?' in url else '?'
+                    self.assertEqual(request.full_url, url + separator + 'check=1234')
+                    headers = {key.lower(): value for key, value in request.header_items()}
+                    self.assertEqual(headers['cache-control'], 'no-cache')
+                    self.assertEqual(headers['accept'], 'application/vnd.github.raw+json')
+                    self.assertNotIn('authorization', headers)
+                    self.assertEqual(call.kwargs['timeout'], 5)
+
+    def test_one_failed_or_invalid_source_does_not_hide_the_valid_notice(self):
+        for invalid in (OSError('offline'), b'not-json', release(title=''), b'x' * 65537):
+            for failed_index in (0, 1):
+                with self.subTest(invalid=type(invalid).__name__, failed_index=failed_index):
+                    values = [release(), release()]
+                    values[failed_index] = invalid
+                    with patch('update_notices.urllib.request.urlopen',
+                               side_effect=self.responses(*values)) as opened:
+                        self.assertEqual(fetch_notice()['version'], '2026.10.21')
+                    self.assertEqual(opened.call_count, 2)
+
+    def test_both_failed_sources_preserve_good_cached_notice_and_timestamp(self):
+        service = self.service()
+        service.refresh()
+        self.finish(service)
+        saved_cache = self.path.read_bytes()
+        self.now[0] += CHECK_INTERVAL
+        service.fetcher = fetch_notice
+        with patch('update_notices.urllib.request.urlopen',
+                   side_effect=self.responses(OSError('offline'), release(title=''))) as opened:
+            service.refresh()
+            self.finish(service)
+        self.assertEqual(opened.call_count, 2)
+        state = service.snapshot()
+        self.assertTrue(state['unavailable'])
+        self.assertEqual(state['checked_at'], 1000.0)
+        self.assertEqual(state['notice']['version'], '2026.10.21')
+        self.assertEqual(self.path.read_bytes(), saved_cache)
+
+    def test_polling_intervals_remain_unchanged(self):
+        self.assertEqual((CHECK_INTERVAL, FAILURE_INTERVAL, MANUAL_INTERVAL), (3600, 900, 30))
+        for force, failed, interval in ((False, False, 3600), (False, True, 900),
+                                        (True, False, 30)):
+            with self.subTest(force=force, failed=failed):
+                calls = []
+                service = self.service(lambda: calls.append(True) or release())
+                service.refresh()
+                self.finish(service)
+                service.error = failed
+                self.now[0] += interval - 1
+                service.refresh(force=force)
+                self.assertEqual(len(calls), 1)
+                self.now[0] += 1
+                service.refresh(force=force)
+                self.finish(service)
+                self.assertEqual(len(calls), 2)
 
     def test_corrupt_or_future_cache_is_not_shown(self):
         for payload in ('broken', json.dumps({'notice': release(), 'checked_at': 9999999})):

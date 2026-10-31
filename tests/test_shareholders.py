@@ -152,7 +152,7 @@ class ShareholderTests(unittest.TestCase):
 
     def test_boundary_normalization_and_future_date_rejection(self):
         row = {"SECUCODE": "000001.SZ", "SECURITY_CODE": "000001", "END_DATE": "2026-09-30 00:00:00",
-               "NOTICE_DATE": "2026-10-24", "HOLDER_NAME": " 某机构（有限合伙） ", "HOLDER_NEWTYPE": "投资公司"}
+               "NOTICE_DATE": "2026-10-24", "HOLDER_NAME": " 某机构（有限合伙） ", "HOLDER_NEWTYPE": "投资公司", "HOLD_RATIO": None}
         payload = {"success": True, "result": {"count": 1, "pages": 1, "data": [row]}}
         rows, _, _ = sh.normalize_rows(payload, {"000001"}, "2026-10-29")
         self.assertEqual(rows[0]["holder_key"], "某机构(有限合伙)")
@@ -186,7 +186,7 @@ class ShareholderTests(unittest.TestCase):
     def test_missing_latest_flag_recovers_eligible_snapshot_and_checks_pagination(self):
         root = Path(__file__).parent / "test-data" / ("shareholder-source-" + uuid4().hex)
         row = {"SECUCODE": "000001.SZ", "SECURITY_CODE": "000001", "END_DATE": "2025-09-30",
-               "HOLDER_NAME": "共同机构", "NOTICE_DATE": "2025-10-24"}
+               "HOLDER_NAME": "共同机构", "NOTICE_DATE": "2025-10-24", "HOLD_RATIO": None}
         no_data = {"success": False, "code": 9201, "message": "返回数据为空", "result": None}
         payload = {"success": True, "result": {"count": 1, "pages": 1, "data": [row]}}
         def response(value):

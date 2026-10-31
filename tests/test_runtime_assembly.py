@@ -19,6 +19,7 @@ from lianban.profiles import industry as industry_impl
 from lianban.profiles import registration as registration_impl
 from lianban.profiles import suspension as suspension_impl
 from lianban.profiles import shareholders as shareholders_impl
+from lianban.profiles import control_owners as controls_impl
 from lianban.runtime.archive_task import ArchiveRefresher
 from lianban.runtime.server import DisabledTask
 
@@ -44,6 +45,8 @@ class RuntimeAssemblyTests(unittest.TestCase):
         self.assertIsInstance(server.concept_refresher, concepts_impl.Refresher)
         self.assertIsInstance(server.shareholder_refresher, shareholders_impl.Refresher)
         self.assertIsNone(server.shareholder_refresher._thread)
+        self.assertIsInstance(server.control_owner_refresher, controls_impl.Refresher)
+        self.assertIsNone(server.control_owner_refresher._thread)
         self.assertFalse(server._tasks_started)
         self.assertIsNone(server.archive_refresher._thread)
         self.assertIsNone(server.live_refresher._thread)
@@ -53,7 +56,7 @@ class RuntimeAssemblyTests(unittest.TestCase):
         server = self.create(no_updates=True)
         tasks = [server.industry_refresher, server.registration_refresher,
                  server.concept_refresher, server.suspension_refresher,
-                 server.archive_refresher, server.live_refresher, server.shareholder_refresher]
+                 server.archive_refresher, server.live_refresher, server.shareholder_refresher, server.control_owner_refresher]
         self.assertTrue(all(isinstance(task, DisabledTask) for task in tasks))
         with patch("threading.Thread") as thread:
             server.start_tasks()

@@ -17,7 +17,7 @@ const visible = computed({
   <el-popover
     v-model:visible="visible"
     :trigger="['hover', 'focus']"
-    width="min(560px, 94vw)"
+    width="min(940px, 94vw)"
     :show-after="300"
     :hide-after="200"
     :persistent="false"

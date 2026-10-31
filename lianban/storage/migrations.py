@@ -122,7 +122,23 @@ NODE_SCHEMA = """
         date TEXT PRIMARY KEY, status TEXT NOT NULL, note TEXT NOT NULL, checked_at TEXT NOT NULL
     );
 """
-SCHEMA_VERSION = 3
+COMPANY_PROFILE_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS stock_control_profiles (
+        code TEXT PRIMARY KEY, source TEXT NOT NULL, fetched_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS stock_control_owners (
+        code TEXT NOT NULL, kind TEXT NOT NULL, holder_key TEXT NOT NULL,
+        holder_name TEXT NOT NULL, holder_type TEXT NOT NULL, via_name TEXT NOT NULL,
+        source_url TEXT NOT NULL, fetched_at TEXT NOT NULL,
+        PRIMARY KEY(code,kind,holder_key)
+    );
+    CREATE TABLE IF NOT EXISTS subsidiary_profiles (
+        code TEXT PRIMARY KEY, disclosure_date TEXT, companies_json TEXT,
+        source_url TEXT NOT NULL DEFAULT '', fetched_at TEXT,
+        attempted_at TEXT NOT NULL, error TEXT NOT NULL DEFAULT ''
+    );
+"""
+SCHEMA_VERSION = 4
 
 
 def initialize_connection(conn):
@@ -145,6 +161,15 @@ def initialize_connection(conn):
                 if statement.strip():
                     conn.execute(statement)
             conn.execute("PRAGMA user_version=3")
+        if version < 4:
+            if 'ratio_checked' not in {row[1] for row in conn.execute('PRAGMA table_info(shareholder_profiles)')}:
+                conn.execute("ALTER TABLE shareholder_profiles ADD COLUMN ratio_checked INTEGER NOT NULL DEFAULT 0")
+            if 'holding_ratio' not in {row[1] for row in conn.execute('PRAGMA table_info(stock_shareholders)')}:
+                conn.execute("ALTER TABLE stock_shareholders ADD COLUMN holding_ratio REAL")
+            for statement in COMPANY_PROFILE_SCHEMA.split(";"):
+                if statement.strip():
+                    conn.execute(statement)
+            conn.execute("PRAGMA user_version=4")
     return conn
 
 

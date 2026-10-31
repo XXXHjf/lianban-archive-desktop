@@ -111,6 +111,13 @@ def run(baseline_ref):
     (baseline / "resources").mkdir(parents=True)
     for name in BASELINE_MODULES:
         (baseline / name).write_bytes(git_bytes("show", f"{commit}:{name}"))
+    # A pre-sync local ref may already use the modular package. Materialize it
+    # so its compatibility facades cannot silently import the current package.
+    for name in git_bytes('ls-tree', '-r', '--name-only', commit, 'lianban').decode().splitlines():
+        if name.endswith('.py'):
+            target = baseline / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(git_bytes('show', f'{commit}:{name}'))
     resources = {}
     for name in PUBLIC_RESOURCES:
         source = ROOT / "resources" / name

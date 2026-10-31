@@ -9,6 +9,7 @@ import urllib.request
 
 REPOSITORY = 'https://github.com/x107108/lianban-archive-desktop'
 FEED_URL = 'https://raw.githubusercontent.com/x107108/lianban-archive-desktop/main/updates/latest.json'
+FALLBACK_FEED_URL = 'https://api.github.com/repos/x107108/lianban-archive-desktop/contents/updates/latest.json?ref=main'
 CHECK_INTERVAL = 3600
 FAILURE_INTERVAL = 900
 MANUAL_INTERVAL = 30
@@ -43,12 +44,26 @@ def normalize_notice(value):
 
 
 def fetch_notice():
-    request = urllib.request.Request(FEED_URL, headers={'User-Agent': 'Lianban-Desktop-Update-Notice/1'})
-    with urllib.request.urlopen(request, timeout=5) as response:
-        raw = response.read(65537)
-    if len(raw) > 65536:
-        raise ValueError('Notice is too large')
-    return json.loads(raw)
+    # Both URLs are public repository data; no credentials or personal records are sent.
+    notices = []
+    last_error = None
+    for url in (FEED_URL, FALLBACK_FEED_URL):
+        separator = '&' if '?' in url else '?'
+        request = urllib.request.Request(url + separator + 'check=' + str(int(time.time())),
+            headers={'User-Agent': 'Lianban-Desktop-Update-Notice/2',
+                     'Accept': 'application/vnd.github.raw+json', 'Cache-Control': 'no-cache'})
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                raw = response.read(65537)
+            if len(raw) > 65536:
+                raise ValueError('Notice is too large')
+            notices.append(normalize_notice(json.loads(raw)))
+        except (OSError, ValueError) as error:
+            last_error = error
+    if not notices:
+        raise last_error
+    # Raw can return an old document with HTTP 200 while Contents already has the new commit.
+    return max(notices, key=lambda notice: version_key(notice['version']))
 
 
 class NoticeService:
@@ -69,7 +84,8 @@ class NoticeService:
             stamp = cache['checked_at']
             if type(stamp) not in (int, float) or not 0 < stamp <= self.clock():
                 raise ValueError('Invalid cache time')
-            self.checked_at = self.last_attempt = stamp
+            # Reuse the message immediately, but always check again after starting the app.
+            self.checked_at = stamp
         except (OSError, ValueError, KeyError, TypeError):
             self.notice = None
 

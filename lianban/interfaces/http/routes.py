@@ -27,6 +27,7 @@ from lianban.profiles import suspension
 from lianban.intraday import api as intraday
 from lianban.research import tag_management
 from lianban.readside import shareholders
+from lianban.profiles import subsidiaries
 
 from lianban.config import ROOT
 
@@ -48,6 +49,8 @@ def read_api(server, path):
     args = parse_qs(parsed.query)
     arg = lambda name, default="": args.get(name, [default])[0]
     editable = not getattr(server, "read_only", False)
+    if parsed.path == "/api/stock-subsidiaries":
+        return subsidiaries.stock_view(server.db_path, arg("code"), refresh=editable)
     if parsed.path == "/api/intraday":
         return intraday.overview(server.db_path, arg("date") or None, include_live=editable)
     if parsed.path == "/api/intraday/stock":
@@ -63,6 +66,8 @@ def read_api(server, path):
         server.registration_refresher.maybe_refresh()
         if hasattr(server, "shareholder_refresher"):
             server.shareholder_refresher.maybe_refresh()
+        if hasattr(server, "control_owner_refresher"):
+            server.control_owner_refresher.maybe_refresh()
         if hasattr(server, "concept_refresher"):
             server.concept_refresher.maybe_refresh()
     with closing(connect(server.db_path)) as conn:
