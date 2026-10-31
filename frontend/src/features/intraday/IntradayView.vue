@@ -628,8 +628,7 @@ onBeforeUnmount(() => {
             :disabled="!dates.some((value) => value > day)"
             aria-label="下一交易日"
             @click="navigateDate('next')"
-          /><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新</el-button
-          ><el-button :loading="overviewLoading" @click="loadOverview">刷新数据</el-button>
+          /><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新</el-button>
         </div>
       </div>
       <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
@@ -940,7 +939,8 @@ p {
   margin-left: auto;
   gap: 8px;
 }
-.page-controls {
+.intraday-view .page-controls {
+  padding-top: 16px;
   padding-bottom: 16px;
 }
 @media (max-width: 1400px) {
