@@ -291,12 +291,7 @@
 .cycle-preview-content .preview-tags {
   margin-top: 16px;
 }
-.ladder-band {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
+.ladder-band,
 .matching-group {
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
@@ -936,10 +931,7 @@
   .daily-main-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .ladder-band {
-    grid-template-columns: 48px minmax(0, 1fr);
-    gap: 8px;
-  }
+  .ladder-band,
   .matching-group {
     grid-template-columns: 64px minmax(0, 1fr);
     gap: 8px;

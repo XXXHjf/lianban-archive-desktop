@@ -35,7 +35,7 @@
     "src/features/archive/PairComparison.vue": "33418711d3f57053088b74c115af283f4ce4621cb36402921bb29f67d45683c4",
     "src/features/archive/StockView.test.ts": "54f4e2f7eb02253fbf176d964417e95089f2d29a2fbc297605d73897c4e9abec",
     "src/features/archive/StockView.vue": "484967e17284cc4dd9f10b0da6306fc4740b04d9d93343af92bef57ce3c837a7",
-    "src/features/archive/daily.css": "cc9fea6345f37cfe1d2827cb755cd8dcbf3d259fc6b152722a367180822bc916",
+    "src/features/archive/daily.css": "1b237c34450a322fbc722b0b994348f633fe574b5d27fee97dbf7fe42cdc4b84",
     "src/features/archive/dailyPresentation.test.ts": "45cb354df76f03aed030f9613411888f9608c8d311ee8b22bf67f8151fbb022b",
     "src/features/archive/dailyPresentation.ts": "6619c8230e8daa2b7e3d11a4e8453b5e822402418ddc7af35769eb6a55d9f622",
     "src/features/archive/helpers.test.ts": "c9e566876e17973ba8f565f2d35d8d2c0d96273dbab95bbee383ad93c15ce94f",
