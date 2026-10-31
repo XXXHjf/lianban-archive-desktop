@@ -716,7 +716,6 @@ onBeforeUnmount(() => {
             ><el-radio-group v-model="sharedVolume" size="small"
               ><el-radio-button :value="true">成交量统一刻度</el-radio-button
               ><el-radio-button :value="false">各自刻度</el-radio-button></el-radio-group
-            ><span class="muted">对比股按昨收涨幅归一到主图价格</span
             ><el-tag v-if="stockLoading">读取中…</el-tag>
           </div>
           <FinancialChart

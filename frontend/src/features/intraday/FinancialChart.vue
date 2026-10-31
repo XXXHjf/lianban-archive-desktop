@@ -331,11 +331,7 @@ onBeforeUnmount(() => {
         >{{ label.name }}</span
       >
     </div>
-    <div class="chart-footer">
-      <span>09:25 竞价 · 09:30—11:30 / 13:00—15:00</span><span>滚轮缩放 · 拖动平移 · 点击定位</span>
-    </div>
-    <details class="chart-attribution">
-      <summary>图表署名</summary>
+    <div class="chart-attribution">
       <span>TradingView Lightweight Charts™ · Copyright (с) 2025 TradingView, Inc. </span
       ><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer"
         >TradingView</a
@@ -343,7 +339,7 @@ onBeforeUnmount(() => {
       ><a href="/assets/third-party-notices.txt" target="_blank" rel="noopener noreferrer"
         >第三方许可</a
       >
-    </details>
+    </div>
   </section>
 </template>
 
@@ -425,26 +421,13 @@ onBeforeUnmount(() => {
   color: #64748b;
   background: #ffffffdf;
 }
-.chart-footer {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 8px 0 0;
-  font-size: 11px;
-  color: #64748b;
-}
 .chart-attribution {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 10px;
-}
-.chart-attribution summary {
-  cursor: pointer;
-  width: fit-content;
-}
-.chart-attribution a {
-  text-decoration: underline;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 @media (max-width: 760px) {
   .quote-strip {
@@ -452,9 +435,6 @@ onBeforeUnmount(() => {
   }
   .quote-stock {
     gap: 6px;
-  }
-  .chart-footer {
-    font-size: 10px;
   }
 }
 </style>
