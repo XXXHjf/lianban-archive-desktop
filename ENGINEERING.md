@@ -1,5 +1,13 @@
 # 工程改造分支
 
+## 统一 A 股交易日历（2026-10-31）
+
+交易日由 `core/trading_calendar.py` 统一判定：周末恒休市，2025/2026 年按上交所年度公告内置离线休市安排；既有指数日线和确认档案提供更早年份的逐日证据。后台每日检查上交所年度休市表并合并缓存，校验失败保留旧日历，未知年份的工作日不自动视作开市。无需新依赖、令牌或数据库迁移。
+
+`meta.trading_calendar` 分开返回自然日、最近交易日、已确认开市日期及年度覆盖。保留 `latest_date` 作为最新已归档日；默认查询、日期导航、最新筛选/高亮、共同股东同涨停、盘中刷新和收盘目标统一按交易日判断。交易日缺数据仍显示缺失，不退回较旧档案冒充最新；真实时间戳、资料发布日及缓存时效继续使用自然时间。
+
+所有五个日期选择器共用禁选规则；节点仍须确认收盘，分时仍校验可查询日期。历史备注原日期不被重写。休市日 URL 在前端归一至此前交易日，直接请求休市日行情接口会被拒绝。来源为上交所 [2025 年](https://www.sse.com.cn/disclosure/announcement/general/c/c_20241223_10767108.shtml)、[2026 年](https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml)公告及[年度休市表](https://www.sse.com.cn/disclosure/dealinstruc/closed/)。
+
 本分支由 XXXHjf 维护，基于上游 `x107108/lianban-archive-desktop` 的 2026.10.28 正式版及其发布通知提交 `3ac5a4d`。`SOURCE_BASELINE.json` 保留上游来源记录；本分支当前运行代码和网页使用 `BUILD_BASELINE.json`，完整分发使用 `BUNDLE.json`。模块职责与开发约束见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 后续上游增量维护从 [UPSTREAM_SYNC.json](UPSTREAM_SYNC.json) 的 `last_reviewed_commit` 开始。固定上游目标提交，按功能及依赖适配到本地模块；审查结果区分采用和跳过，不用原版目录覆盖工程分支。最新一次同步记录见 [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md)。

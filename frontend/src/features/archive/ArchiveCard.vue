@@ -15,7 +15,7 @@ const tags = computed(() =>
 const latest = computed(
   () =>
     props.highlight !== false &&
-    props.stock.date !== workspace.meta.value?.latest_date &&
+    props.stock.date !== workspace.latestTradeDay.value &&
     workspace.meta.value?.latest_limit_ups?.find((row) => row.code === props.stock.code),
 );
 </script>
@@ -32,7 +32,7 @@ const latest = computed(
       {{ stock.code }} · {{ initials(stock) || '—' }} · {{ region(stock) }}
     </div>
     <el-tag v-if="latest" size="small" type="danger"
-      >{{ workspace.meta.value?.latest_date }} 涨停 · {{ latest.boards }} 板</el-tag
+      >{{ workspace.latestTradeDay.value }} 涨停 · {{ latest.boards }} 板</el-tag
     >
     <div v-if="stock.suspended" class="suspension">
       <strong>停牌中</strong>

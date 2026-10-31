@@ -5,12 +5,19 @@ from lianban.core.clock import TZ
 from lianban.core.stock import is_st_name
 from lianban.core.shareholders import SOURCE, SCOPE_NOTE, exclusion_reason
 from lianban.storage.settings import get_settings
+from lianban.storage.trading_calendar import evidence
+from lianban.core.trading_calendar import latest_trading_day
 from lianban.ingestion import live_pool
+
+
+def reference_day(conn, current):
+    known, calendars = evidence(conn)
+    return latest_trading_day(current.date().isoformat(), known_dates=known, calendars=calendars)
 
 
 def today_limit_ups(conn, *, include_live=True, now=None):
     current = (now or datetime.now(TZ)).astimezone(TZ)
-    today = current.date().isoformat()
+    today = reference_day(conn, current)
     confirmed = conn.execute("SELECT fetched_at FROM days WHERE date=? AND status='ok'", (today,)).fetchone()
     pool = live_pool.snapshot(conn, today) if include_live and not confirmed else None
     if confirmed:
@@ -36,7 +43,7 @@ def today_alerts(conn, *, include_live=True, now=None):
                     if peer != code:
                         (excluded_alerts if excluded else alerts).setdefault(code, set()).update(types)
     # Return all qualifying categories once; each browser applies its own blocks.
-    return {"today": current.date().isoformat(),
+    return {"today": reference_day(conn, current),
             "rows": [{"code": code, "types": sorted(alerts.get(code, set())),
                       **({"excluded_types": sorted(excluded_alerts[code])} if code in excluded_alerts else {})}
                      for code in sorted(alerts.keys() | excluded_alerts.keys())]}
@@ -46,7 +53,8 @@ def stock_view(conn, code, *, include_live=True, now=None):
     if not re.fullmatch(r"[0-9]{6}", code):
         raise ValueError("请输入六位股票代码")
     current, confirmed, pool, limit_codes = today_limit_ups(conn, include_live=include_live, now=now)
-    today = current.date().isoformat()
+    today = reference_day(conn, current)
+    known_dates, calendars = evidence(conn)
     profiles = [dict(r) for r in conn.execute("SELECT scope,report_date,fetched_at FROM shareholder_profiles WHERE code=? ORDER BY scope DESC", (code,))]
     settings = get_settings(conn)
     peers = {}
@@ -74,6 +82,8 @@ def stock_view(conn, code, *, include_live=True, now=None):
             "status": settings.get("shareholder_status", "empty"), "source": SOURCE, "scope_note": SCOPE_NOTE,
             "today": today, "today_status": "confirmed" if confirmed else "provisional" if pool else "unavailable",
             "today_fetched_at": confirmed[0] if confirmed else pool["fetched_at"] if pool else None,
-            "today_stale": bool(pool and current - datetime.fromisoformat(pool["fetched_at"]) > timedelta(minutes=3)),
+            "calendar_date": current.date().isoformat(),
+            "today_stale": bool(pool and today == current.date().isoformat() and live_pool.polling_time(current, known_dates=known_dates, calendars=calendars)
+                                and current - datetime.fromisoformat(pool["fetched_at"]) > timedelta(minutes=3)),
             "coverage": conn.execute("SELECT COUNT(DISTINCT p.code) FROM stock_shareholders p JOIN stocks s ON s.code=p.code WHERE NOT is_st_name(s.name)").fetchone()[0],
             "requested": conn.execute("SELECT COUNT(*) FROM stocks WHERE NOT is_st_name(name)").fetchone()[0]}

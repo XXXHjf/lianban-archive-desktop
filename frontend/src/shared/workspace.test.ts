@@ -54,3 +54,42 @@ describe('archive route compatibility', () => {
     expect(host.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
   });
 });
+
+it('follows the latest trading session even when the archive is missing that session', async () => {
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal('location', { pathname: '/', search: '' });
+  vi.stubGlobal('history', { pushState: vi.fn(), replaceState: vi.fn() });
+  const calendar = {
+    dates: ['2026-10-29', '2026-10-30'],
+    start: '2026-01-01',
+    end: '2026-12-31',
+    latest_trade_date: '2026-10-30',
+    calendar_date: '2026-10-31',
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            dates: ['2026-10-29'],
+            query_dates: ['2026-10-29'],
+            latest_date: '2026-10-29',
+            trading_calendar: calendar,
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    ),
+  );
+  const workspace = createWorkspace();
+  await workspace.refreshMeta();
+  expect(workspace.date.value).toBe('2026-10-30');
+  workspace.openDate('2026-10-29');
+  await workspace.refreshMeta();
+  expect(workspace.date.value).toBe('2026-10-29');
+  workspace.openDate('2026-10-31');
+  await workspace.refreshMeta();
+  expect(workspace.date.value).toBe('2026-10-30');
+  workspace.dispose();
+});

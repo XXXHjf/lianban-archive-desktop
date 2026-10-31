@@ -4,10 +4,13 @@ import { ElMessageBox } from 'element-plus';
 import { post, query, request } from '@/shared/api';
 import { errorMessage } from '@/shared/format';
 import { useWorkspace } from '@/shared/workspace';
+import { tradingDateDisabled } from '@/shared/tradingCalendar';
 import type { DailyData, LadderNode } from './models';
 
 const props = defineProps<{ data: DailyData }>();
 const ws = useWorkspace();
+const disabledDate = (value: Date) =>
+  tradingDateDisabled(value, ws.meta.value, ws.meta.value?.dates || []);
 const emit = defineEmits<{ changed: [] }>();
 const recordsOpen = ref(false),
   createOpen = ref(false),
@@ -215,7 +218,12 @@ defineExpose({ open });
   >
     <el-form label-position="top" @submit.prevent="save">
       <el-form-item label="起始交易日"
-        ><el-date-picker v-model="day" type="date" value-format="YYYY-MM-DD" :clearable="false"
+        ><el-date-picker
+          v-model="day"
+          type="date"
+          value-format="YYYY-MM-DD"
+          :clearable="false"
+          :disabled-date="disabledDate"
       /></el-form-item>
       <el-form-item label="起始梯队"
         ><el-select v-model="boards"

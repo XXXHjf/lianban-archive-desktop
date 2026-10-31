@@ -24,6 +24,9 @@ class Clock(datetime):
 
 class LivePoolTests(unittest.TestCase):
     def setUp(self):
+        calendar_refresh = patch("lianban.ingestion.trading_calendar.refresh")
+        calendar_refresh.start()
+        self.addCleanup(calendar_refresh.stop)
         self.root = Path(__file__).parent / "test-data" / ("live-pool-" + uuid4().hex)
         self.root.mkdir(parents=True)
         self.path = self.root / "archive.sqlite3"
@@ -124,7 +127,7 @@ class LivePoolTests(unittest.TestCase):
 
     def test_minute_refresh_uses_cached_calendar_and_has_no_dependency_on_archive_worker(self):
         calendar, fetch = self.run_refresh()
-        calendar.assert_called_once()
+        calendar.assert_not_called()
         fetch.assert_called_once()
         calendar, fetch = self.run_refresh(self.result([{**self.row, "boards": 3}]))
         calendar.assert_not_called()
@@ -133,8 +136,9 @@ class LivePoolTests(unittest.TestCase):
             self.assertEqual(live_pool.snapshot(conn, self.day)["records"][0]["boards"], 3)
 
     def test_holiday_and_outside_session_never_fetch_pool(self):
-        _, fetch = self.run_refresh(dates=[self.previous])
-        fetch.assert_not_called()
+        with patch.object(provider, "fetch_live_day") as fetch:
+            live_pool.refresh(self.path, now=Clock.fromisoformat("2026-10-01T10:00:00+08:00"))
+            fetch.assert_not_called()
         with patch.object(provider, "fetch_live_day") as fetch, patch.object(provider, "trading_dates") as calendar:
             for time in ["08:59:00", "15:30:00", "23:00:00"]:
                 live_pool.refresh(self.path, now=Clock.fromisoformat(f"{self.day}T{time}+08:00"))
@@ -155,21 +159,51 @@ class LivePoolTests(unittest.TestCase):
             self.assertEqual(meta["error"], "offline")
             self.assertEqual(meta["fetched_at"], self.now.isoformat(timespec="seconds"))
 
-    def test_calendar_failure_retries_instead_of_marking_holiday(self):
-        with patch.object(provider, "trading_dates", side_effect=provider.ProviderError("calendar offline")):
+    def test_official_session_does_not_depend_on_index_calendar_availability(self):
+        with patch.object(provider, "trading_dates", side_effect=provider.ProviderError("calendar offline")) as calendar, \
+             patch.object(provider, "fetch_live_day", return_value=self.result()) as fetch:
             live_pool.refresh(self.path, now=self.now)
+        calendar.assert_not_called()
+        fetch.assert_called_once()
         with closing(db.initialize(self.path)) as conn:
-            self.assertNotIn("live_calendar_date", db.get_settings(conn))
+            self.assertTrue(db.get_settings(conn)["live_is_trading_day"])
+
+    def test_not_yet_published_index_bar_does_not_block_official_session(self):
+        _, fetch = self.run_refresh(dates=[self.previous])
+        fetch.assert_called_once()
         calendar, fetch = self.run_refresh()
-        calendar.assert_called_once()
+        calendar.assert_not_called()
         fetch.assert_called_once()
 
-    def test_not_yet_published_index_bar_is_rechecked_next_minute(self):
-        _, fetch = self.run_refresh(dates=[self.previous])
-        fetch.assert_not_called()
-        calendar, fetch = self.run_refresh()
-        calendar.assert_called_once()
-        fetch.assert_called_once()
+    def test_weekend_metadata_uses_latest_session_and_does_not_mark_snapshot_stale(self):
+        self.save()
+        with closing(db.initialize(self.path)) as conn:
+            meta = live_pool.metadata(conn, now=Clock.fromisoformat("2026-10-31T10:00:00+08:00"))
+        self.assertEqual(meta["today"], "2026-10-30")
+        self.assertEqual(meta["calendar_date"], "2026-10-31")
+        self.assertFalse(meta["polling"])
+        self.assertFalse(meta["stale"])
+
+    def test_holiday_weekend_and_unknown_year_never_schedule_minute_collection(self):
+        for day in ["2026-10-01", "2026-10-31", "2027-01-04"]:
+            moment = Clock.fromisoformat(day + "T10:00:00+08:00")
+            self.assertFalse(live_pool.polling_time(moment))
+            self.assertFalse(live_pool.minute_refresh_due(day, None, now=moment))
+
+    def test_unknown_year_requires_positive_source_evidence_before_live_fetch(self):
+        moment = Clock.fromisoformat("2027-01-04T10:00:00+08:00")
+        with patch.object(provider, "trading_dates", return_value=(["2026-12-31"], "calendar.json")), \
+             patch.object(provider, "fetch_live_day") as fetch:
+            live_pool.refresh(self.path, now=moment)
+            fetch.assert_not_called()
+        result = provider.DayResult("2027-01-04", [{**self.row, "date": "2027-01-04"}],
+                                    "ok", "synthetic", "live.json", provider.CLS_SOURCE)
+        with patch.object(provider, "trading_dates", return_value=(["2027-01-04"], "calendar.json")), \
+             patch.object(provider, "fetch_live_day", return_value=result) as fetch:
+            live_pool.refresh(self.path, now=moment)
+            fetch.assert_called_once()
+        with closing(db.initialize(self.path)) as conn:
+            self.assertTrue(live_pool.metadata(conn, now=moment)["polling"])
 
     def test_scheduler_and_minute_refresh_cutoffs_use_shanghai_time(self):
         self.assertEqual(live_pool.next_check_at(Clock.fromisoformat("2026-10-27T01:30:37+00:00")).isoformat(), "2026-10-27T09:31:00+08:00")

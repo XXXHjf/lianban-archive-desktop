@@ -387,7 +387,7 @@ function cycleRounds(cycle: Cycle) {
               }}</el-tag
               ><span v-if="!tags.leaves(data.stock).length" class="muted">暂无标签</span
               ><el-tag v-if="latest.has(data.stock.code)" size="small" type="danger"
-                >{{ workspace.meta.value?.latest_date }} 涨停 ·
+                >{{ workspace.latestTradeDay.value }} 涨停 ·
                 {{ latest.get(data.stock.code) }} 板</el-tag
               >
             </div>
@@ -474,7 +474,7 @@ function cycleRounds(cycle: Cycle) {
         <p class="muted">
           {{
             route.relationExcludeLatest
-              ? '历史数据 · 已剔除 ' + workspace.meta.value?.latest_date
+              ? '历史数据 · 已剔除 ' + workspace.latestTradeDay.value
               : '全部数据'
           }}
           ·
@@ -538,7 +538,7 @@ function cycleRounds(cycle: Cycle) {
               >
                 <strong>{{ peer.name }}</strong> <small>{{ peer.code }}</small>
                 <div v-if="latest.has(peer.code)" class="latest-note">
-                  {{ workspace.meta.value?.latest_date }} 涨停
+                  {{ workspace.latestTradeDay.value }} 涨停
                 </div>
                 <div class="metrics">
                   <span>赢 {{ peer.winCount }}</span

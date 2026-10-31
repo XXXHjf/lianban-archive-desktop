@@ -11,6 +11,7 @@ from lianban.core.clock import TZ
 from lianban.storage import connect
 from lianban.archive.service import save_day
 from lianban.storage.settings import get_settings, set_settings
+from lianban.storage.trading_calendar import context as calendar_context, evidence as calendar_evidence
 
 CHECK_SECONDS = 5 * 60
 from lianban.core.clock import CLOSE_READY, target_day
@@ -25,12 +26,19 @@ def refresh(path=DEFAULT_DB, *, now=None, stop=None):
     from lianban.adapters.providers.pools import (CALENDAR_SOURCE, CALENDAR_URL, SOURCE, SUMMARY_SOURCE, CLS_SOURCE, POOL_URL,
                           METHOD_NOTE, SCOPE_NOTE, ProviderError, fetch_day, trading_dates)
     from lianban.ingestion.backfill import archive_coverage
+    from lianban.ingestion.trading_calendar import refresh as refresh_calendar
 
     current = (now or datetime.now(TZ)).astimezone(TZ)
     checked_at = current.isoformat(timespec="seconds")
-    end = target_day(current)
     raw_dir = Path(path).resolve().parent / "raw"
     with closing(connect(path)) as conn:
+        refresh_calendar(conn, now=current)
+        calendar = calendar_context(conn, now=current)
+        known_dates, calendars = calendar_evidence(conn)
+        end = target_day(current, known_dates=known_dates, calendars=calendars)
+        if end is None:
+            set_settings(conn, auto_update_status="waiting", auto_update_checked_at=checked_at)
+            return
         settings = get_settings(conn)
         last = conn.execute("SELECT MAX(date) FROM days WHERE status='ok' AND date<=?", (end,)).fetchone()[0]
         start = (datetime.fromisoformat(last).date() - timedelta(days=7)).isoformat() if last else settings["range_start"]
@@ -42,22 +50,34 @@ def refresh(path=DEFAULT_DB, *, now=None, stop=None):
 
         # Bound each calendar request below its 1,000-bar response limit, even
         # when a new installation needs to catch up several years.
-        fresh_days, raw_paths = set(), []
+        fresh_days, raw_paths, calendar_errors = set(), [], []
         cursor = datetime.fromisoformat(start).date()
-        finish = datetime.fromisoformat(end).date()
+        finish = current.date() - (timedelta(days=1) if current.time() < CLOSE_READY else timedelta())
         while cursor <= finish:
             if stop and stop.is_set():
                 return
             chunk_end = min(cursor + timedelta(days=365), finish)
-            days, raw = trading_dates(cursor.isoformat(), chunk_end.isoformat(), raw_dir=raw_dir)
-            fresh_days.update(days)
-            raw_paths.append(raw)
+            try:
+                days, raw = trading_dates(cursor.isoformat(), chunk_end.isoformat(), raw_dir=raw_dir)
+                fresh_days.update(days)
+                raw_paths.append(raw)
+            except ProviderError as exc:
+                # An index-calendar outage must not block known archive gaps.
+                calendar_errors.append(str(exc))
             cursor = chunk_end + timedelta(days=1)
-        calendar = sorted(set(settings.get("calendar_dates") or []) | fresh_days)
-        set_settings(conn, range_end=max(settings["range_end"], end),
-                        calendar_dates=calendar, calendar_source=CALENDAR_SOURCE,
-                        calendar_url=CALENDAR_URL, calendar_raw_path=raw_paths[-1],
+        calendar = sorted(set(settings.get("calendar_dates") or []) | fresh_days
+                          | {day for day in calendar["dates"] if settings["range_start"] <= day <= finish.isoformat()})
+        set_settings(conn, calendar_dates=calendar, calendar_source=CALENDAR_SOURCE,
+                        calendar_url=CALENDAR_URL,
+                        **({"calendar_raw_path": raw_paths[-1]} if raw_paths else {}),
                         source=SUMMARY_SOURCE, source_url=POOL_URL, scope_note=SCOPE_NOTE, method_note=METHOD_NOTE)
+        # Source evidence supplements unknown years, while official closures
+        # continue to exclude accidental weekend/holiday source observations.
+        calendar = calendar_context(conn, now=current)["dates"]
+        known_dates, calendars = calendar_evidence(conn)
+        end = target_day(current, known_dates=known_dates, calendars=calendars)
+        set_settings(conn, range_end=max(settings["range_end"], end), auto_update_target=end,
+                     auto_update_calendar_error="；".join(calendar_errors) or None)
         expected = [day for day in calendar if settings["range_start"] <= day <= end]
         statuses = {r["date"]: dict(r) for r in conn.execute("SELECT date,status,fetched_at,source FROM days")}
         # Retry every known gap. Recheck recent successful snapshots hourly for

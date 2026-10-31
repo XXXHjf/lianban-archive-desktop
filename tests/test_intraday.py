@@ -99,7 +99,7 @@ class IntradayTests(unittest.TestCase):
         with patch("requests.get", side_effect=AssertionError("offline")):
             detail = minute.stock_view(self.path, "2026-10-21", "600001")
             self.assertEqual((detail["status"], len(detail["points"])), ("ok", 241))
-            summary = minute.overview(self.path)
+            summary = minute.overview(self.path, "2026-10-21")
             self.assertEqual((summary["date"], summary["ready"]), ("2026-10-21", 1))
         with closing(db.initialize(self.path)) as conn:
             self.assertEqual(before, [tuple(r) for r in conn.execute("SELECT * FROM events ORDER BY date")])
@@ -117,7 +117,10 @@ class IntradayTests(unittest.TestCase):
             minute.save_session(conn, event(), complete_points(), "synthetic", "cached.json")
         with patch("requests.get", side_effect=AssertionError("calendar browsing must stay offline")), patch("lianban.intraday.queries._cached", wraps=minute._cached) as cached:
             result = minute.overview(self.path, "2026-10-19")
-        self.assertEqual(result["dates"], ["2026-10-21", "2026-10-20", "2026-10-19", "2026-10-16"])
+        self.assertTrue({"2026-10-21", "2026-10-20", "2026-10-19", "2026-10-16"}.issubset(result["dates"]))
+        self.assertNotIn("2026-10-18", result["dates"])
+        self.assertNotIn("2026-10-07", result["dates"])
+        self.assertNotIn("2099-01-01", result["dates"])
         self.assertEqual((result["date"], result["ready"], result["missing"]), ("2026-10-19", 0, 1))
         cached.assert_called_once_with(self.path, day="2026-10-19")
         with closing(minute.initialize(minute.store_path(self.path))) as conn:

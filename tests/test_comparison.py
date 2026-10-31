@@ -1,5 +1,6 @@
 """Observed horizontal comparison runs and complete point-in-time cohorts."""
 from pathlib import Path
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
 import sys
@@ -15,6 +16,10 @@ class ComparisonTests(unittest.TestCase):
         self.conn = db.initialize(":memory:")
         self.days = ["2026-10-09", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]
         db.set_settings(self.conn, calendar_dates=self.days, range_start=self.days[0], range_end=self.days[-1])
+        # Pin the latest trading session; archive availability is a separate concept.
+        metadata = patch.object(app, "meta", side_effect=lambda conn: db.meta(conn, now=datetime(2026, 10, 16, 17, tzinfo=db.TZ)))
+        metadata.start()
+        self.addCleanup(metadata.stop)
 
     def tearDown(self):
         self.conn.close()

@@ -17,6 +17,9 @@ from lianban.profiles import registration
 
 class LiveUpdateTests(unittest.TestCase):
     def setUp(self):
+        calendar_refresh = patch("lianban.ingestion.trading_calendar.refresh")
+        calendar_refresh.start()
+        self.addCleanup(calendar_refresh.stop)
         self.conn = db.initialize(":memory:")
         db.set_settings(self.conn, range_start="2026-10-13", range_end="2026-10-13",
                         calendar_dates=["2026-10-13"])
@@ -49,6 +52,11 @@ class LiveUpdateTests(unittest.TestCase):
         for moment in ["2026-10-15T15:10:00+08:00", "2026-10-15T15:29:59+08:00"]:
             self.assertEqual(live_update.target_day(datetime.fromisoformat(moment)), "2026-10-14")
         self.assertEqual(live_update.target_day(datetime.fromisoformat("2026-10-15T07:30:00+00:00")), "2026-10-15")
+        for moment, expected in [("2026-10-31T16:00:00+08:00", "2026-10-30"),
+                                 ("2026-10-08T15:29:59+08:00", "2026-09-30"),
+                                 ("2026-10-08T15:30:00+08:00", "2026-10-08"),
+                                 ("2026-10-05T16:00:00+08:00", "2026-09-30")]:
+            self.assertEqual(live_update.target_day(datetime.fromisoformat(moment)), expected)
 
     def test_checks_align_to_1530_after_restart_and_handle_midnight(self):
         cases = [("2026-10-15T15:26:42+08:00", "2026-10-15T15:30:00+08:00"),
@@ -66,7 +74,8 @@ class LiveUpdateTests(unittest.TestCase):
                         auto_update_day_checks={"2026-10-13": "2026-10-15T15:29:00+08:00",
                                                 day: "2026-10-15T15:15:00+08:00"})
         _, fetch = self.run_refresh(["2026-10-13", day],
-                                   {day: self.result(day, boards=2)}, now="2026-10-15T15:30:00+08:00")
+                                   {day: self.result(day, boards=2), "2026-10-14": self.result("2026-10-14")},
+                                   now="2026-10-15T15:30:00+08:00")
         self.assertEqual(fetch.call_args_list[0].args[0], day)
         self.assertEqual(db.date_view(self.conn, day)["rows"][0]["boards"], 2)
         self.assertEqual(db.meta(self.conn)["auto_update_time"], "15:30")
@@ -113,14 +122,16 @@ class LiveUpdateTests(unittest.TestCase):
 
     def test_unchanged_snapshot_does_not_rewrite_facts_or_check_again_in_five_minutes(self):
         before = db.meta(self.conn)["archive_updated_at"]
-        self.run_refresh(["2026-10-13"], {"2026-10-13": self.result("2026-10-13")})
+        self.run_refresh(["2026-10-13"], {"2026-10-13": self.result("2026-10-13")},
+                         now="2026-10-13T17:00:00+08:00")
         self.assertEqual(db.meta(self.conn)["archive_updated_at"], before)
-        _, fetch = self.run_refresh(["2026-10-13"], {}, now="2026-10-15T16:05:00+08:00")
+        _, fetch = self.run_refresh(["2026-10-13"], {}, now="2026-10-13T17:05:00+08:00")
         fetch.assert_not_called()
 
     def test_source_correction_changes_snapshot_without_changing_custom_tags(self):
         db.save_stock_tags(self.conn, "000001", ["自定义标签"], 0)
-        self.run_refresh(["2026-10-13"], {"2026-10-13": self.result("2026-10-13", boards=2)})
+        self.run_refresh(["2026-10-13"], {"2026-10-13": self.result("2026-10-13", boards=2)},
+                         now="2026-10-13T17:00:00+08:00")
         row = db.date_view(self.conn, "2026-10-13")["rows"][0]
         self.assertEqual(row["boards"], 2)
         self.assertEqual(row["tags"], ["自定义标签"])
@@ -135,6 +146,18 @@ class LiveUpdateTests(unittest.TestCase):
         self.assertEqual(db.meta(self.conn)["auto_update_status"], "error")
         self.assertIn("offline", db.meta(self.conn)["auto_update_error"])
 
+    def test_index_calendar_outage_still_fills_officially_known_archive_gaps(self):
+        with patch.object(archive_update, "connect", return_value=self.conn), \
+             patch.object(archive_update, "closing", side_effect=nullcontext), \
+             patch.object(provider, "trading_dates", side_effect=provider.ProviderError("calendar offline")), \
+             patch.object(provider, "fetch_day", side_effect=lambda day, **kwargs: self.result(day)) as fetch:
+            live_update.refresh(":memory:", now=datetime.fromisoformat("2026-10-15T15:30:00+08:00"), stop=self.stop)
+        self.assertEqual([call.args[0] for call in fetch.call_args_list], ["2026-10-15", "2026-10-14"])
+        settings = db.get_settings(self.conn)
+        self.assertEqual(settings["auto_update_status"], "current")
+        self.assertEqual(settings["auto_update_target"], "2026-10-15")
+        self.assertIn("calendar offline", settings["auto_update_calendar_error"])
+
     def test_new_stocks_refresh_registration_even_if_existing_cache_is_fresh(self):
         db.set_settings(self.conn, registration_fetched_at=db.now_iso(), registration_requested=0)
         refresher = registration.Refresher(":memory:")
@@ -147,7 +170,7 @@ class LiveUpdateTests(unittest.TestCase):
         row = {**self.row, "date": "2026-10-15", "boards": 11, "source": provider.CLS_SOURCE}
         result = provider.DayResult("2026-10-15", [row], "ok", "synthetic", "cls.json", provider.CLS_SOURCE)
         self.run_refresh(["2026-10-13", "2026-10-15"],
-                         {"2026-10-15": result, "2026-10-13": self.result("2026-10-13")},
+                     {"2026-10-15": result, "2026-10-14": self.result("2026-10-14"), "2026-10-13": self.result("2026-10-13")},
                          now="2026-10-15T15:30:00+08:00")
         view = db.date_view(self.conn, "2026-10-15")
         self.assertEqual(view["source"], provider.CLS_SOURCE)
@@ -155,7 +178,7 @@ class LiveUpdateTests(unittest.TestCase):
         self.assertEqual(view["stats"]["max_boards"], 11)
         # An outage must not revise 11 boards into another feed's 1 board.
         self.run_refresh(["2026-10-13", "2026-10-15"],
-                         {"2026-10-15": self.result("2026-10-15", boards=1), "2026-10-13": self.result("2026-10-13")},
+                         {"2026-10-15": self.result("2026-10-15", boards=1), "2026-10-14": self.result("2026-10-14"), "2026-10-13": self.result("2026-10-13")},
                          now="2026-10-15T16:35:00+08:00")
         self.assertEqual(db.date_view(self.conn, "2026-10-15")["stats"]["max_boards"], 11)
 
@@ -163,7 +186,7 @@ class LiveUpdateTests(unittest.TestCase):
         day = "2026-10-15"
         with patch("lianban.archive.service.now_iso", return_value="2026-10-15T15:30:00+08:00"):
             db.save_day(self.conn, day, [{**self.row, "date": day, "boards": 11}], provider.CLS_SOURCE)
-        _, fetch = self.run_refresh(["2026-10-13", day], {"2026-10-13": self.result("2026-10-13")},
+        _, fetch = self.run_refresh(["2026-10-13", day], {"2026-10-13": self.result("2026-10-13"), "2026-10-14": self.result("2026-10-14")},
                                    now="2026-10-16T15:00:00+08:00")
         self.assertNotIn(day, [call.args[0] for call in fetch.call_args_list])
         self.assertEqual(db.date_view(self.conn, day)["stats"]["max_boards"], 11)

@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse, unquote
 from lianban.storage import connect
 from lianban.archive.relationship_queries import stock_pair_comparison
 from lianban.storage.settings import get_announcement, get_settings, get_site_links
+from lianban.storage.trading_calendar import valid_session
 from lianban.research.tags import TagConflictError, get_stock_tags, tag_alias_revision
 from lianban.research.notes import NOTE_DATE_UNSET, NoteConflictError, change_stock_note_entry, get_stock_note, save_stock_note
 from lianban.research.blacklist import get_blacklist, save_blacklist
@@ -112,9 +113,10 @@ def read_api(server, path):
             exclude_latest = arg("exclude_latest", "0")
             if exclude_latest not in ("0", "1"):
                 raise ValueError("最新交易日筛选值应为 0 或 1")
-            if exclude_latest == "1" and metadata["latest_date"]:
-                previous_dates = [day for day in metadata["dates"] if day < metadata["latest_date"]]
-                end = previous_dates[-1] if previous_dates else (date.fromisoformat(metadata["latest_date"]) - timedelta(days=1)).isoformat()
+            reference = metadata["trading_calendar"]["latest_trade_date"]
+            if exclude_latest == "1" and reference:
+                previous_dates = [day for day in metadata["dates"] if day < reference]
+                end = previous_dates[-1] if previous_dates else (date.fromisoformat(reference) - timedelta(days=1)).isoformat()
             if parsed.path == "/api/comparison":
                 peer = arg("peer")
                 if not re.fullmatch(r"[0-9]{6}", peer) or peer == code:
@@ -128,7 +130,9 @@ def read_api(server, path):
             result["range_mode"] = "archive"
         elif parsed.path == "/api/date":
             live = live_pool.metadata(conn) if editable else {}
-            day = valid_day(arg("date", max(filter(None, [live.get("date"), metadata["latest_date"]]), default=metadata["range_end"])))
+            day = valid_day(arg("date") or metadata["trading_calendar"]["latest_trade_date"] or metadata["latest_date"] or metadata["range_end"])
+            if not valid_session(conn, day):
+                raise ValueError("该日期休市或交易日历尚未确认，请选择已确认的交易日")
             if hasattr(server, "suspension_refresher"):
                 server.suspension_refresher.maybe_refresh(day)
             minimum = int(arg("min_boards", "1"))

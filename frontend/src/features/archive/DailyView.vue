@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, Filter, Refresh, MoreFilled, Close } from '@element-plus/icons-vue';
 import { abort, query, request } from '@/shared/api';
 import { useWorkspace } from '@/shared/workspace';
+import { latestTradeDate, tradingDates, tradingDateDisabled } from '@/shared/tradingCalendar';
 import { errorMessage } from '@/shared/format';
 import ArchiveCard from './ArchiveCard.vue';
 import DailyStockRow from './DailyStockRow.vue';
@@ -37,9 +38,9 @@ let pendingTool: { kind: 'note' | 'tags' | 'shareholders'; stock: Stock } | null
 const expandedBands = ref<number[]>([]),
   expandedMatches = ref(false),
   rowLimits = ref<Record<string, number>>({});
-const dates = computed(
-  () => workspace.meta.value?.query_dates || workspace.meta.value?.dates || [],
-);
+const dates = computed(() => tradingDates(workspace.meta.value));
+const latest = computed(() => latestTradeDate(workspace.meta.value));
+const disabledDate = (value: Date) => tradingDateDisabled(value, workspace.meta.value);
 const calendarDate = computed(() =>
   isArchiveDate(workspace.date.value) ? workspace.date.value : '',
 );
@@ -85,7 +86,7 @@ const bands = computed(() =>
     tags.value,
     !!data.value?.provisional,
     new Set(workspace.meta.value?.latest_limit_ups?.map((row) => row.code)),
-    workspace.meta.value?.latest_date || '',
+    workspace.latestTradeDay.value || '',
   ),
 );
 const filterCount = computed(() => Number(route.value.excludeGEM));
@@ -286,7 +287,7 @@ function clearFilters() {
           <el-button
             :icon="ArrowLeft"
             :disabled="!previous"
-            aria-label="上一个有数据的交易日"
+            aria-label="上一交易日"
             @click="previous && workspace.openDate(previous)"
           /><el-date-picker
             class="trading-date-picker"
@@ -295,16 +296,17 @@ function clearFilters() {
             value-format="YYYY-MM-DD"
             type="date"
             aria-label="查询交易日期"
+            :disabled-date="disabledDate"
             :clearable="false"
             @update:model-value="(value: string) => workspace.openDate(value)"
           /><el-button
             :icon="ArrowRight"
             :disabled="!next"
-            aria-label="下一个有数据的交易日"
+            aria-label="下一交易日"
             @click="next && workspace.openDate(next)"
           /><el-button
-            :disabled="!dates.length || workspace.date.value === dates.at(-1)"
-            @click="workspace.openDate(dates.at(-1) || '')"
+            :disabled="!latest || workspace.date.value === latest"
+            @click="workspace.openDate(latest)"
             >最新</el-button
           >
         </div>
@@ -502,9 +504,9 @@ function clearFilters() {
               >查看全部记录</el-button
             ><el-button
               v-else-if="!data?.rows.length"
-              :disabled="!dates.length"
-              @click="workspace.openDate(dates.at(-1) || '')"
-              >返回最新收录日</el-button
+              :disabled="!latest"
+              @click="workspace.openDate(latest)"
+              >返回最新交易日</el-button
             >
           </div>
           <template v-else-if="groupFirstMode">

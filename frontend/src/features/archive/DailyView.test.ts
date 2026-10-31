@@ -74,7 +74,9 @@ it('shows a red dot only for a non-excluded, unblocked holder with another stock
   workspace.meta.value!.shareholder_alerts.rows![0]!.types = ['个人'];
   await nextTick();
   expect(wrapper.find('.shareholder-alert-dot').exists()).toBe(true);
-  expect(wrapper.get('.daily-shareholder-button').attributes('aria-label')).toContain('股票同涨停');
+  expect(wrapper.get('.daily-shareholder-button').attributes('aria-label')).toContain(
+    '最近交易日同涨停',
+  );
   blockedTypes.value = { 个人: true };
   await nextTick();
   expect(wrapper.find('.shareholder-alert-dot').exists()).toBe(false);
@@ -292,5 +294,31 @@ it('groups regions first and orders each region by board height, including singl
   await nextTick();
   expect(wrapper.get('[aria-label="地区分组 山东"]').findAll('.ladder-stock')).toHaveLength(1);
   expect(wrapper.find('[aria-label="地区分组 广东"]').exists()).toBe(false);
+  dispose();
+});
+
+it('uses the shared calendar and opens the latest trading day even without an archive row', async () => {
+  transport.request.mockResolvedValue(fixture());
+  const { wrapper, workspace, dispose } = setup();
+  workspace.meta.value!.trading_calendar = {
+    dates: ['2026-10-29', '2026-10-30', '2026-11-02'],
+    start: '2026-01-01',
+    end: '2026-12-31',
+    latest_trade_date: '2026-10-30',
+    calendar_date: '2026-10-31',
+  };
+  await flushPromises();
+  const disabled = wrapper.findComponent({ name: 'ElDatePicker' }).props('disabledDate') as (
+    day: Date,
+  ) => boolean;
+  expect(disabled(new Date('2026-10-01T12:00:00'))).toBe(true);
+  expect(disabled(new Date('2026-10-31T12:00:00'))).toBe(true);
+  expect(disabled(new Date('2026-11-02T12:00:00'))).toBe(true);
+  expect(disabled(new Date('2026-10-30T12:00:00'))).toBe(false);
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === '最新')!
+    .trigger('click');
+  expect(workspace.date.value).toBe('2026-10-30');
   dispose();
 });

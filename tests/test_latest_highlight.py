@@ -1,5 +1,6 @@
 """Latest-day presentation metadata must not change historical facts."""
 from pathlib import Path
+from datetime import datetime
 import sys
 import unittest
 
@@ -18,21 +19,22 @@ class LatestHighlightTests(unittest.TestCase):
     def save(self, day, code="600001", boards=1, **kwargs):
         db.save_day(self.conn, day, [{"code": code, "name": "历史名称", "boards": boards}], "synthetic", **kwargs)
 
-    def test_latest_confirmed_day_ignores_failed_dates_and_outside_archive(self):
+    def test_missing_latest_session_does_not_highlight_an_older_archive(self):
         self.save("2026-07-22", "000001")
         self.save("2026-07-23")
         self.save("2026-07-29", "600002", 3)
         db.save_day(self.conn, "2026-07-30", [], "synthetic", status="failed")
         self.save("2026-07-31", "600003", 4)
-        meta = db.meta(self.conn)
+        meta = db.meta(self.conn, now=datetime(2026, 7, 30, 17, tzinfo=db.TZ))
         self.assertEqual(meta["latest_date"], "2026-07-29")
-        self.assertEqual(meta["latest_limit_ups"], [{"code": "600002", "boards": 3}])
+        self.assertEqual(meta["latest_limit_ups"], [])
+        self.assertEqual(meta["trading_calendar"]["latest_trade_date"], "2026-07-30")
 
     def test_historical_query_keeps_name_and_board_height(self):
         self.save("2026-07-23", boards=2)
         self.save("2026-07-24", boards=3)
         before = db.date_view(self.conn, "2026-07-23")
-        meta = db.meta(self.conn)
+        meta = db.meta(self.conn, now=datetime(2026, 7, 25, 10, tzinfo=db.TZ))
         after = db.date_view(self.conn, "2026-07-23")
         self.assertEqual(before, after)
         self.assertEqual(after["rows"][0]["boards"], 2)
@@ -41,7 +43,7 @@ class LatestHighlightTests(unittest.TestCase):
     def test_same_count_source_correction_replaces_latest_membership(self):
         self.save("2026-07-29", "000001")
         self.save("2026-07-29", "000002")
-        self.assertEqual(db.meta(self.conn)["latest_limit_ups"], [{"code": "000002", "boards": 1}])
+        self.assertEqual(db.meta(self.conn, now=datetime(2026, 7, 29, 17, tzinfo=db.TZ))["latest_limit_ups"], [{"code": "000002", "boards": 1}])
 
     def test_empty_archive_has_no_latest_highlights(self):
         self.assertEqual(db.meta(self.conn)["latest_limit_ups"], [])

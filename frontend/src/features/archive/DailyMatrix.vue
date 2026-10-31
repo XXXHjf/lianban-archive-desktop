@@ -19,8 +19,8 @@ function selected(stocks: Stock[], height: number) {
   const latest = new Set(workspace.meta.value?.latest_limit_ups?.map((row) => row.code));
   return rows.sort(
     (a, b) =>
-      Number(latest.has(b.code) && b.date !== workspace.meta.value?.latest_date) -
-        Number(latest.has(a.code) && a.date !== workspace.meta.value?.latest_date) ||
+      Number(latest.has(b.code) && b.date !== workspace.latestTradeDay.value) -
+        Number(latest.has(a.code) && a.date !== workspace.latestTradeDay.value) ||
       a.code.localeCompare(b.code),
   );
 }

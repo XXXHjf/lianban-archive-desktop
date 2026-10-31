@@ -32,7 +32,7 @@ const shareholderAlert = computed(
 const latest = computed(
   () =>
     props.highlight &&
-    props.stock.date !== ws.meta.value?.latest_date &&
+    props.stock.date !== ws.latestTradeDay.value &&
     ws.meta.value?.latest_limit_ups?.find((row) => row.code === props.stock.code),
 );
 function preview(event: MouseEvent) {
@@ -67,7 +67,7 @@ function chooseTopic(label: string) {
       </button>
       <span v-if="stock.blacklisted" class="daily-badge warning">黑名单</span>
       <span v-if="latest" class="daily-badge warning"
-        >{{ ws.meta.value?.latest_date }} · {{ latest.boards }}板涨停</span
+        >{{ ws.latestTradeDay.value }} · {{ latest.boards }}板涨停</span
       >
       <template v-for="label in labels.slice(0, 4)" :key="label">
         <button
@@ -119,8 +119,12 @@ function chooseTopic(label: string) {
         <el-button
           size="small"
           class="daily-shareholder-button"
-          :aria-label="`查看${stock.name}共同股东${shareholderAlert ? '，今日有未屏蔽的共同股东股票同涨停' : ''}`"
-          :title="shareholderAlert ? '今日有未屏蔽的共同股东股票同涨停' : undefined"
+          :aria-label="`查看${stock.name}共同股东${shareholderAlert ? `，${ws.meta.value?.shareholder_alerts?.today || ''} 最近交易日同涨停（共同股东未屏蔽）` : ''}`"
+          :title="
+            shareholderAlert
+              ? `${ws.meta.value?.shareholder_alerts?.today || ''} 最近交易日同涨停（共同股东未屏蔽）`
+              : undefined
+          "
           @click="ws.openEditor('shareholders', stock)"
           >股东<span v-if="shareholderAlert" class="shareholder-alert-dot" aria-hidden="true"></span
         ></el-button>

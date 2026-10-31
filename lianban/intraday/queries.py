@@ -6,6 +6,7 @@ import re
 import sqlite3
 import lianban.storage.api as db
 from lianban.core.clock import TZ
+from lianban.storage.trading_calendar import context as trading_calendar_context, evidence as calendar_evidence
 from lianban.ingestion import live_pool
 from .rules import validate_day, is_mainboard
 from .store import store_path, _cached, catalog, auction_view
@@ -14,12 +15,12 @@ SCOPE = '当前沪深 A 股主板目录（已剔除 ST、*ST，不含创业板�
 
 def trading_dates(conn, *, include_live=False):
     """Reuse the project's verified calendar without fetching any minute data."""
-    known = set(db.get_settings(conn).get("calendar_dates") or [])
-    known.update(row[0] for row in conn.execute("SELECT date FROM days WHERE status='ok'"))
+    calendar = trading_calendar_context(conn)
+    known = set(calendar["dates"])
     if include_live:
         known.update(live_pool.metadata(conn)["dates"])
     today = datetime.now(TZ).date().isoformat()
-    return sorted((day for day in known if isinstance(day, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) and day <= today), reverse=True)
+    return sorted((day for day in known if day <= today), reverse=True)
 
 
 def overview(archive_path, day=None, *, include_live=False):
@@ -65,6 +66,7 @@ def stock_view(archive_path, day, code, *, include_live=False):
     with closing(db.connect(archive_path)) as conn:
         if day not in trading_dates(conn, include_live=include_live):
             raise ValueError("该日期不在项目已知交易日历中，请选择交易日")
+        known_dates, calendars = calendar_evidence(conn)
         row = conn.execute("SELECT date,code,name,boards,close,pct_change,first_time,last_time,industry FROM events WHERE date=? AND code=?", (day, code)).fetchone()
         snapshot = live_pool.snapshot(conn, day) if include_live else None
         if snapshot:
@@ -100,8 +102,9 @@ def stock_view(archive_path, day, code, *, include_live=False):
     result["auction"] = auction_view(archive_path, day, code)
     result["needs_collection"] = not result["points"] or result["auction"]["status"] == "unchecked"
     result["refresh_error"] = errors.get((day, code))
-    result["needs_refresh"] = include_live and live_pool.minute_refresh_due(day, result.get("refresh_checked_at"))
+    result["needs_refresh"] = include_live and live_pool.minute_refresh_due(
+        day, result.get("refresh_checked_at"), known_dates=known_dates, calendars=calendars)
     result["provisional"] = bool(snapshot)
-    if include_live and day == datetime.now(TZ).date().isoformat() and live_pool.polling_time() and result["points"]:
+    if include_live and day == datetime.now(TZ).date().isoformat() and live_pool.polling_time(known_dates=known_dates, calendars=calendars) and result["points"]:
         result["note"] = f"盘中分钟数据，当前已缓存 {len(result['points'])} 个交易分钟；尚未收盘。"
     return result

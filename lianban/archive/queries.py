@@ -5,6 +5,7 @@ from lianban.core.clock import TZ, now_iso
 from lianban.storage.transaction import transaction
 from collections import Counter
 from lianban.storage.settings import get_settings
+from lianban.storage.trading_calendar import context as trading_calendar_context
 from lianban.core.stock import market_for, is_st_name
 from lianban.readside.stock_profiles import enrich_stock_profiles
 from lianban.research.presentation import stock_initials
@@ -34,7 +35,7 @@ def suspended_leaders(conn, day):
     return sorted(result, key=lambda row: (-row["boards"], row["code"]))
 
 
-def meta(conn):
+def meta(conn, *, now=None):
     settings = get_settings(conn)
     settings.pop("site_links", None)  # Link configuration has its own public, filtered response.
     start, end = settings["range_start"], settings["range_end"]
@@ -44,11 +45,13 @@ def meta(conn):
     attempts = Counter(r["status"] for r in conn.execute("SELECT status FROM days WHERE date BETWEEN ? AND ?", (start, end)))
     last = conn.execute("SELECT MAX(fetched_at) FROM days").fetchone()[0]
     archive_updated = conn.execute("SELECT MAX(fetched_at) FROM days WHERE status='ok'").fetchone()[0]
+    calendar = trading_calendar_context(conn, now=now)
     latest_limit_ups = [dict(r) for r in conn.execute(
-        "SELECT code,boards FROM events WHERE date=? AND NOT is_st_name(name) ORDER BY code", (dates[-1],))] if dates else []
+        "SELECT code,boards FROM events WHERE date=? AND NOT is_st_name(name) ORDER BY code", (calendar["latest_trade_date"],))]
     examples = [dict(r) for r in conn.execute("SELECT e.code,(SELECT e2.name FROM events e2 WHERE e2.code=e.code AND e2.date BETWEEN ? AND ? AND NOT is_st_name(e2.name) ORDER BY e2.date DESC LIMIT 1) name,MAX(e.boards) highest,COUNT(*) observations FROM events e WHERE e.date BETWEEN ? AND ? AND NOT is_st_name(e.name) GROUP BY e.code ORDER BY highest DESC,observations DESC LIMIT 6", (start, end, start, end))]
     node_updated = conn.execute('SELECT MAX(checked_at) FROM node_checks').fetchone()[0]
-    return {**settings, "node_updated_at": node_updated, "latest_date": dates[-1] if dates else None, "dates": dates,
+    return {**settings, "trading_calendar": calendar,
+            "node_updated_at": node_updated, "latest_date": dates[-1] if dates else None, "dates": dates,
             "suspension_updating": conn.execute("SELECT COUNT(*) FROM suspension_days WHERE status='updating'").fetchone()[0],
             "available_start": dates[0] if dates else None, "available_end": dates[-1] if dates else None,
             "coverage": {"days": len(dates), "stocks": counts["stocks"], "records": counts["records"],

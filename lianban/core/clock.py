@@ -9,9 +9,11 @@ def now_iso():
     return datetime.now(TZ).isoformat(timespec="seconds")
 
 
-def target_day(now=None):
+def target_day(now=None, *, known_dates=(), calendars=None):
+    from lianban.core.trading_calendar import latest_trading_day
+
     current = (now or datetime.now(TZ)).astimezone(TZ)
     day = current.date()
     if current.time() < CLOSE_READY:
         day -= timedelta(days=1)
-    return day.isoformat()
+    return latest_trading_day(day.isoformat(), known_dates=known_dates, calendars=calendars)

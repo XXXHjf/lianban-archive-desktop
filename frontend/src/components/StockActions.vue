@@ -32,7 +32,11 @@ const alert = computed(() =>
         size="small"
         text
         :type="alert ? 'warning' : 'default'"
-        :aria-label="alert ? '共同股东：今日有未屏蔽的共同股东同涨停' : '查看共同股东'"
+        :aria-label="
+          alert
+            ? `共同股东：${workspace.meta.value?.shareholder_alerts?.today || ''} 最近交易日同涨停（共同股东未屏蔽）`
+            : '查看共同股东'
+        "
         @click="workspace.openEditor('shareholders', stock)"
         >股东{{ alert ? ' ●' : '' }}</el-button
       ></ShareholderPreview

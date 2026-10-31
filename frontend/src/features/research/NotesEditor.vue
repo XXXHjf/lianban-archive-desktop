@@ -3,11 +3,13 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { request, post, query, abort, ApiError } from '@/shared/api';
 import { useWorkspace } from '@/shared/workspace';
+import { tradingDateDisabled } from '@/shared/tradingCalendar';
 import { errorMessage } from '@/shared/format';
 import type { NoteData, NoteEntry, Stock } from './types';
 import { flushNotes, noteModified, reconcileNotes } from './noteDrafts';
 const props = defineProps<{ stock: Stock }>();
 const workspace = useWorkspace();
+const disabledDate = (value: Date) => tradingDateDisabled(value, workspace.meta.value);
 const data = ref<NoteData | null>(null),
   entries = ref<NoteEntry[]>([]),
   content = ref(''),
@@ -272,6 +274,7 @@ defineExpose({ finish, discard, dirty, saving: closingBlocked, busy: saving });
         v-model="date"
         type="date"
         value-format="YYYY-MM-DD"
+        :disabled-date="disabledDate"
         clearable
         placeholder="可选日期（默认无日期）"
         :disabled="lockInputs"
@@ -338,6 +341,7 @@ defineExpose({ finish, discard, dirty, saving: closingBlocked, busy: saving });
             v-model="entry.note_date"
             type="date"
             value-format="YYYY-MM-DD"
+            :disabled-date="disabledDate"
             clearable
             placeholder="无日期"
             :disabled="lockInputs"

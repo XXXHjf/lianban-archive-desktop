@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { abort, post, query, request } from '@/shared/api';
 import { useWorkspace } from '@/shared/workspace';
+import { tradingDates, tradingDateDisabled } from '@/shared/tradingCalendar';
 import { errorMessage, number } from '@/shared/format';
 import FinancialChart from './FinancialChart.vue';
 import StockActions from '@/components/StockActions.vue';
@@ -63,7 +64,9 @@ const day = computed(() => workspace.route.value.date),
 const compareCodes = computed(() => workspace.route.value.minuteCompare);
 const editable = computed(() => workspace.meta.value?.capabilities?.edit_tags === true);
 const busy = computed(() => collecting.value || liveRefreshing.value);
-const dates = computed(() => [...new Set(overview.value?.dates || [])].sort());
+const dates = computed(() =>
+  tradingDates(workspace.meta.value).filter((day) => overview.value?.dates.includes(day)),
+);
 const timelinePool = computed(() => timeline.value?.pool || []);
 const latestCodes = computed(
   () => new Set(workspace.meta.value?.latest_limit_ups?.map((stock) => stock.code) || []),
@@ -73,7 +76,7 @@ const rows = computed(() =>
     overview.value?.rows || [],
     search.value,
     latestCodes.value,
-    workspace.meta.value?.latest_date,
+    workspace.latestTradeDay.value,
   ),
 );
 const visibleRows = computed(() => {
@@ -96,7 +99,7 @@ const compareRows = computed(() =>
     ],
     compareSearch.value,
     latestCodes.value,
-    workspace.meta.value?.latest_date,
+    workspace.latestTradeDay.value,
   ),
 );
 const visibleCompareRows = computed(() =>
@@ -524,8 +527,7 @@ function changeDate() {
   }
 }
 function disabledDate(value: Date) {
-  const candidate = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-  return !dates.value.includes(candidate);
+  return tradingDateDisabled(value, workspace.meta.value, dates.value);
 }
 function changeScope(exclude: boolean) {
   workspace.patchRoute({ timelineGEM: !exclude });

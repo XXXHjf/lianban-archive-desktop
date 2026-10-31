@@ -31,8 +31,8 @@ const today = computed(() =>
   !data.value
     ? ''
     : data.value.today_status === 'unavailable'
-      ? `${data.value.today} 暂无涨停数据，暂不标记今日同涨停；历史档案及股东资料仍可查看`
-      : `${data.value.today} · ${data.value.today_status === 'provisional' ? '盘中暂定' : '收盘确认'}${data.value.today_stale ? ' · 涨停快照延迟' : ''}${data.value.today_fetched_at ? ` · ${data.value.today_fetched_at.slice(11, 16)} 获取` : ''}`,
+      ? `${data.value.today} 暂无涨停数据，暂不标记最近交易日同涨停；历史档案及股东资料仍可查看`
+      : `${data.value.today} 最近交易日 · ${data.value.today_status === 'provisional' ? '盘中暂定' : '收盘确认'}${data.value.today_stale ? ' · 涨停快照延迟' : ''}${data.value.today_fetched_at ? ` · ${data.value.today_fetched_at.slice(11, 16)} 获取` : ''}`,
 );
 const empty = computed(() => {
   if (!data.value) return '';
@@ -162,14 +162,14 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
               :name="row.name"
               @click="workspace.editor.value = null" /></template></el-table-column
         ><el-table-column label="共同股东" width="105" prop="shared_count" /><el-table-column
-          label="今日涨停状态"
+          :label="`最近交易日同涨停${data.today ? ` · ${data.today}` : ''}`"
           min-width="140"
           ><template #default="{ row }"
             ><el-tag
               v-if="row.today_together && data.today_status !== 'unavailable'"
               type="warning"
               size="small"
-              >今日同涨停</el-tag
+              >最近交易日同涨停</el-tag
             ><span v-else class="muted">—</span></template
           ></el-table-column
         ></el-table

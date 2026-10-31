@@ -1,5 +1,6 @@
 import { computed, inject, ref, type InjectionKey } from 'vue';
 import { request } from './api';
+import { latestTradeDate, tradingDates, type TradingCalendar } from './tradingCalendar';
 import { rememberStock } from './preferences';
 export interface StockIdentity {
   code: string;
@@ -7,6 +8,7 @@ export interface StockIdentity {
 }
 export interface Metadata {
   dates: string[];
+  trading_calendar?: TradingCalendar;
   query_dates?: string[];
   latest_date?: string;
   available_start?: string;
@@ -158,14 +160,22 @@ export function createWorkspace() {
   function openIntraday(code: string, day: string) {
     patchRoute({ view: 'intraday', date: day, minuteCode: code, minuteCompare: [] });
   }
+  const latestTradeDay = computed(() => latestTradeDate(meta.value));
   async function refreshMeta() {
     const next = await request<Metadata>('/api/meta', 'metadata');
     if (!next) return;
-    const previousLatest = meta.value?.query_dates?.at(-1) || meta.value?.latest_date;
+    const previousLatest = latestTradeDate(meta.value);
     const following = !date.value || date.value === previousLatest;
     meta.value = next;
-    const latest = next.query_dates?.at(-1) || next.latest_date || '';
+    const latest = latestTradeDate(next);
     if (following && latest && latest !== date.value) patchRoute({ date: latest }, true);
+    else if (next.trading_calendar && date.value) {
+      const sessions = tradingDates(next);
+      if (!sessions.includes(date.value)) {
+        const previous = sessions.filter((day) => day <= date.value).at(-1);
+        if (previous) patchRoute({ date: previous }, true);
+      }
+    }
   }
   async function changed() {
     revision.value++;
@@ -177,6 +187,7 @@ export function createWorkspace() {
   window.addEventListener('popstate', onPopState);
   return {
     meta,
+    latestTradeDay,
     route,
     date,
     revision,
