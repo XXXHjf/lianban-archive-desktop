@@ -1,5 +1,5 @@
 {
-  "id": "2630db6fe515c604",
+  "id": "60baed1b6ec7180f",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -24,7 +24,7 @@
   "seed": "resources/archive-seed.sqlite3.gz",
   "seed_database_sha256": "3609a9850a808c1473fffe85ead105665c0c22c9048b92e4cffb76b045aae4e3",
   "sha256": {
-    "BUILD_BASELINE.json": "a920b19b51b3b7c60932cd283ae7387904dd1172e83910303d2772ce6e74cdfa",
+    "BUILD_BASELINE.json": "0ddf6515cc93c94e972b7ed571540b3866c08aa1489403b30ea46437721f1750",
     "SOURCE_BASELINE.json": "e0c72f68c79c666dcacdf7fa0b4c5096b4ad2ada53de1bef51d0aa9e06e60272",
     "VERSION.json": "6c1c984b01c3b636014551b53010732248a424f84085463c3af61316162b1d10",
     "app.py": "eaab5c82924b086ad5a7ff3034640827e89284d17bd70f72db397fbbad842d35",
@@ -156,8 +156,8 @@
     "web/assets/ChartPanel.js": "41a9a97e83560aade932484f00499b33fc3e41c1ee5d6022967d97d23852e4ca",
     "web/assets/DailyView.css": "2a3963f998de81e8eb30c62bd26d35438a86a8754ed5db4bd98739d2c9b61b72",
     "web/assets/DailyView.js": "d4b1137cc96c767658006854860556ae395639f5058648c50844a10a7825a427",
-    "web/assets/IntradayView.css": "1e104253dc24af557cf0a63a53d38ed5d8091a953c69133a6b45a16ba1593401",
-    "web/assets/IntradayView.js": "db4540a48ce67b2674ebfbc4e57c78bfbdae27fac102851bdac9a5bcae38808d",
+    "web/assets/IntradayView.css": "8aa9d215cac0a453246a11372174272530ecaf1bec8e78d20ea8f0a95077b6af",
+    "web/assets/IntradayView.js": "bd2d1fcd735e740ccf04daa14ef8e10b56fceda752b305284e5dda478528d510",
     "web/assets/NotesEditor.css": "c5a8c6783f5dbf3af58a0fd94067fbe687a669025b8b5c6bf759f17ba8bdbd87",
     "web/assets/NotesEditor.js": "d78397919f86b08bd5704fec4ff0463cf8273e6af6a6ad7a7ee58c33b5b542bc",
     "web/assets/ShareholdersPanel.css": "3bdf8574fff27e29888b01b3ffe56a3242bf8a8c10b754afb629add575d8691b",
@@ -172,7 +172,7 @@
     "web/assets/TagsView.js": "376d78e95c2f33c2db04aeba3d68a421d6a2ab58fc0ebfdc863c7dc278e0fb3b",
     "web/assets/_plugin-vue_export-helper.css": "8a1ea7643526a011c47e844644e0014b213304bc275f95052c2d13b2fd867e11",
     "web/assets/_plugin-vue_export-helper.js": "aa16fcd576e3039b84a42e74bd9df1a6a5cf4d48ae58b4712c7564c55328ed03",
-    "web/assets/build-info.json": "2eb80e6d7b305b7a3334c68149cc7422b9dafb32bc7ce62a5d04dc1c54bcd18e",
+    "web/assets/build-info.json": "640cf4ad02f3fc5d5b9c8ca5f164a2f6148cc667cc9e43c0bb1e5c4f81f898b6",
     "web/assets/chart-controls.js": "2e8b0147a8fd44ab0c5a84e3deb3611e2b01ff32c57f8e88c4dc6099b974bbf4",
     "web/assets/chart-core.js": "fa6d61ef2919ca50936f87388c41a2c2bbfcea97af46cf302b87389af60ceb19",
     "web/assets/chart-renderer.js": "ebe0a89ab0180d55632bdc16fdbe9001d988addb0f95b6c2dec8dcd393a2cb2b",

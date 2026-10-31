@@ -341,9 +341,13 @@ onBeforeUnmount(() => {
     <div class="chart-stage">
       <div ref="host" class="financial-canvas" :style="{ height: `${height}px` }"></div>
       <div class="price-captions"><span>涨幅</span><span>价格 / 元</span></div>
-      <template v-if="bounds.previous && paneLabels.length && hoverSlot === null">
+      <template v-if="bounds.previous && paneLabels.length">
         <span
           v-for="fraction in [1, -1]"
+          v-show="
+            !hoverPosition ||
+            Math.abs(hoverPosition.y - 12 - (paneLabels[0]!.top - 8) * (0.5 - fraction * 0.47)) > 16
+          "
           :key="fraction"
           class="bound-caption"
           :style="{ top: `${(paneLabels[0]!.top - 8) * (0.5 - fraction * 0.47)}px` }"
@@ -467,7 +471,7 @@ onBeforeUnmount(() => {
   width: 66px;
   padding-right: 5px;
   text-align: right;
-  background: #fff;
+  background: transparent;
   color: #64748b;
   font-size: 11px;
   pointer-events: none;
