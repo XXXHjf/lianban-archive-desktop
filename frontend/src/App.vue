@@ -254,6 +254,16 @@ onBeforeUnmount(() => {
           {{ dateLabel(meta?.available_end) }} · {{ number(meta?.coverage?.days) }} 个交易日 ·
           {{ number(meta?.coverage?.stocks) }} 只股票。
         </p>
+        <p>
+          TradingView Lightweight Charts™ · Copyright (с) 2025 TradingView, Inc.
+          <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer"
+            >TradingView</a
+          >
+          ·
+          <a href="/assets/third-party-notices.txt" target="_blank" rel="noopener noreferrer"
+            >第三方许可</a
+          >
+        </p>
       </div></el-dialog
     >
     <el-backtop :right="24" :bottom="24" />

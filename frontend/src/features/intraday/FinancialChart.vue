@@ -104,7 +104,7 @@ function draw() {
       textColor: '#64748b',
       fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif',
       fontSize: 11,
-      attributionLogo: true,
+      attributionLogo: false,
       panes: { separatorColor: '#e2e8f0', separatorHoverColor: '#cbd5e1', enableResize: false },
     },
     grid: { vertLines: { color: '#f1f5f9' }, horzLines: { color: '#edf0f4' } },
@@ -331,15 +331,6 @@ onBeforeUnmount(() => {
         >{{ label.name }}</span
       >
     </div>
-    <div class="chart-attribution">
-      <span>TradingView Lightweight Charts™ · Copyright (с) 2025 TradingView, Inc. </span
-      ><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer"
-        >TradingView</a
-      ><span> · Apache-2.0；完整许可见 </span
-      ><a href="/assets/third-party-notices.txt" target="_blank" rel="noopener noreferrer"
-        >第三方许可</a
-      >
-    </div>
   </section>
 </template>
 
@@ -420,14 +411,6 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: #64748b;
   background: #ffffffdf;
-}
-.chart-attribution {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 @media (max-width: 760px) {
   .quote-strip {
