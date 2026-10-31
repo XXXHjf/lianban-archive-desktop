@@ -289,6 +289,7 @@ function clearFilters() {
             aria-label="上一个有数据的交易日"
             @click="previous && workspace.openDate(previous)"
           /><el-date-picker
+            class="trading-date-picker"
             :model-value="calendarDate"
             placeholder="重新选择日期"
             value-format="YYYY-MM-DD"
@@ -304,7 +305,7 @@ function clearFilters() {
           /><el-button
             :disabled="!dates.length || workspace.date.value === dates.at(-1)"
             @click="workspace.openDate(dates.at(-1) || '')"
-            >最新日期</el-button
+            >最新</el-button
           >
         </div>
       </div>

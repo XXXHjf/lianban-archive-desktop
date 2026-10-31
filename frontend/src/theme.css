@@ -4,6 +4,30 @@
   font-display: swap;
   font-weight: 100 900;
 }
+.el-date-editor.el-input.trading-date-picker {
+  width: 144px;
+  flex: 0 0 auto;
+}
+.trading-date-picker .el-input__wrapper {
+  justify-content: center;
+  gap: 8px;
+}
+.trading-date-picker .el-input__prefix,
+.trading-date-picker .el-input__prefix-inner {
+  align-items: center;
+}
+.trading-date-picker .el-input__prefix .el-input__icon {
+  margin: 0;
+}
+.trading-date-picker .el-input__suffix {
+  display: none;
+}
+.trading-date-picker .el-input__inner {
+  flex: 0 0 10ch;
+  width: 10ch;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
 :root {
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 13px;

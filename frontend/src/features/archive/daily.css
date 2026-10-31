@@ -45,9 +45,6 @@
 .daily-date-controls {
   gap: 8px;
 }
-.workspace-theme .daily-date-controls .el-date-editor {
-  width: 152px;
-}
 .daily-date-controls .el-button + .el-button {
   margin-left: 0;
 }

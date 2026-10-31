@@ -616,6 +616,7 @@ onBeforeUnmount(() => {
             @click="navigateDate('previous')"
           /><el-date-picker
             v-model="dateInput"
+            class="trading-date-picker"
             type="date"
             value-format="YYYY-MM-DD"
             format="YYYY-MM-DD"
@@ -627,7 +628,7 @@ onBeforeUnmount(() => {
             :disabled="!dates.some((value) => value > day)"
             aria-label="下一交易日"
             @click="navigateDate('next')"
-          /><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新日期</el-button
+          /><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新</el-button
           ><el-button :loading="overviewLoading" @click="loadOverview">刷新数据</el-button>
         </div>
       </div>
@@ -938,9 +939,6 @@ p {
 .page-controls .toolbar {
   margin-left: auto;
   gap: 8px;
-}
-.toolbar :deep(.el-date-editor) {
-  width: 152px;
 }
 .page-controls {
   padding-bottom: 16px;
