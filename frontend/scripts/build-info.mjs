@@ -55,6 +55,13 @@ for (const [path, item] of Object.entries(lock.packages).sort(([a], [b]) => a.lo
       `License: ${typeof metadata.license === 'string' ? metadata.license : 'See license below'}`,
       '',
     );
+    // The npm package omits NOTICE; retain the notice from upstream v5.2.1.
+    if (metadata.name === 'lightweight-charts')
+      notices.push(
+        'TradingView Lightweight Charts™',
+        'Copyright (с) 2025 TradingView, Inc. https://www.tradingview.com/',
+        '',
+      );
     const names = (await readdir(directory)).filter((name) =>
       /^(?:licen[cs]e|copying|notice)(?:\.|$)/i.test(name),
     );

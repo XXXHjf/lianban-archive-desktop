@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { financialModel, minuteTime } from './financialModel';
 import {
   acceptsRefresh,
   chartClock,
@@ -7,13 +8,11 @@ import {
   daySlot,
   displayPoint,
   nearestChartSlot,
-  priceOption,
   regularTime,
   slotClock,
   stockRows,
   timelineRows,
   visibleTags,
-  volumeOption,
 } from './helpers';
 import type { MinuteDetail, MinuteStock, TimelineData, TimelineEvent } from './types';
 
@@ -107,8 +106,10 @@ describe('intraday exact API display semantics', () => {
     expect(chartClock(122)).toBe('13:00');
     expect(chartPointAt(lunchDetail, chartSlot('13:01'))).toBeUndefined();
     expect(nearestChartSlot(lunchDetail, chartSlot('13:00:10'))).toBe(122);
-    expect(priceOption([lunchDetail], false)).toHaveProperty('series.0.data.121', 11);
-    expect(priceOption([lunchDetail], false)).toHaveProperty('series.0.data.122', 12);
+    expect(financialModel([lunchDetail], false).stocks[0]?.price).toEqual([
+      { time: minuteTime(lunchDetail.date, 121), value: 11 },
+      { time: minuteTime(lunchDetail.date, 122), value: 12 },
+    ]);
   });
   it('keeps source first and last seals, deduplicates minute-equivalent source nodes and rejects lunch observations', () => {
     const rows = timelineRows(
@@ -158,27 +159,6 @@ describe('intraday exact API display semantics', () => {
     expect(acceptsRefresh(current, { ...current, fetched_at: '2026-10-23T10:06:00+08:00' })).toBe(
       true,
     );
-  });
-  it('normalizes comparison prices using each previous close, leaves missing observations null, and supports exact volume scales', () => {
-    const primary = {
-      ...detail,
-      auction: { points: [] },
-      points: [{ time: '09:30', slot: 0, price: 11, average: 10.5, volume: 10000, amount: 110000 }],
-    };
-    const peer = {
-      ...primary,
-      stock: { ...stock, code: '000002' },
-      previous_close: 20,
-      points: [{ time: '09:30', slot: 0, price: 22, volume: 20000, amount: 440000 }],
-    };
-    const chart = priceOption([primary, peer], false);
-    expect(chart).toHaveProperty('series.0.data.1', 11);
-    expect(chart).toHaveProperty('series.1.data.1', 11);
-    expect(chart).toHaveProperty('series.0.data.2', null);
-    expect(chart).toHaveProperty('series.0.connectNulls', false);
-    expect(volumeOption([primary, peer], true)).toHaveProperty('yAxis.0.max', 200);
-    expect(volumeOption([primary, peer], false)).toHaveProperty('yAxis.0.max', 100);
-    expect(volumeOption([primary, peer], true)).toHaveProperty('series.1.data.1', 200);
   });
   it('shows leaf tags with an industry fallback and bounds malformed hierarchy cycles', () => {
     expect(visibleTags({ ...stock, industry: '汽车' })).toEqual(['汽车']);

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class FrontendBuildTests(unittest.TestCase):
     def test_current_build_matches_maintained_sources_and_versions(self):
         info = verify_frontend_build()
-        self.assertEqual(set(info['dependencies']), {'vue', 'element-plus', '@element-plus/icons-vue', 'echarts'})
+        self.assertEqual(set(info['dependencies']), {'vue', 'element-plus', '@element-plus/icons-vue', 'echarts', 'lightweight-charts'})
         self.assertIn('src/features/archive/DailyView.vue', info['source_sha256'])
         self.assertIn('src/features/intraday/IntradayView.vue', info['source_sha256'])
         self.assertIn('src/features/research/ResearchDialogs.vue', info['source_sha256'])

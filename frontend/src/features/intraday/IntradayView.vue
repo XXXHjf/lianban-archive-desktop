@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { abort, post, query, request } from '@/shared/api';
 import { useWorkspace } from '@/shared/workspace';
 import { errorMessage, number } from '@/shared/format';
-import ChartPanel from '@/components/ChartPanel.vue';
+import FinancialChart from './FinancialChart.vue';
 import StockActions from '@/components/StockActions.vue';
 import TimelinePanel from './TimelinePanel.vue';
 import {
@@ -13,10 +13,8 @@ import {
   chartSlot,
   displayPoint,
   nearestChartSlot,
-  priceOption,
   stockRows,
   visibleTags,
-  volumeOption,
 } from './helpers';
 import type {
   Comparison,
@@ -117,8 +115,6 @@ const chartDetails = computed(() =>
       ]
     : [],
 );
-const prices = computed(() => priceOption(chartDetails.value, showAverage.value));
-const volumes = computed(() => volumeOption(chartDetails.value, sharedVolume.value));
 const readings = computed(() =>
   chartDetails.value.map((data) => {
     const raw = chartPointAt(data, pointSlot.value);
@@ -542,16 +538,6 @@ function openEvent(event: TimelineEvent) {
   pendingPoint = { date: day.value, code: event.code, slot: chartSlot(event.time) };
   selectStock(event.code);
 }
-function chartClick(value: unknown) {
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'name' in value &&
-    typeof value.name === 'string' &&
-    /^\d{2}:\d{2}$/.test(value.name)
-  )
-    pointSlot.value = chartSlot(value.name);
-}
 function catalogKey(event: KeyboardEvent) {
   if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || !rows.value.length) return;
   event.preventDefault();
@@ -733,25 +719,17 @@ onBeforeUnmount(() => {
             ><span class="muted">对比股按昨收涨幅归一到主图价格</span
             ><el-tag v-if="stockLoading">读取中…</el-tag>
           </div>
-          <ChartPanel
+          <FinancialChart
             v-if="detail.points.length"
-            :option="prices"
-            :height="360"
-            :group="`intraday-${day}-${code}`"
+            :details="chartDetails"
+            :average="showAverage"
+            :shared-volume="sharedVolume"
+            :selected-slot="pointSlot"
             :reset-key="`${day}-${code}`"
-            label="分时价格与均价，可平移缩放"
-            @click="chartClick"
+            @select="pointSlot = $event"
           />
           <el-empty v-else :description="detail.note || '该日暂无可用分时'" />
           <template v-if="detail.points.length">
-            <ChartPanel
-              :option="volumes"
-              :height="chartDetails.length * 110 + 48"
-              :group="`intraday-${day}-${code}`"
-              :reset-key="`${day}-${code}`"
-              label="各股票分钟成交量（手），09:25撮合量独立展示"
-              @click="chartClick"
-            />
             <div class="minute-scrubber">
               <span class="mono">{{ chartClock(pointSlot) }}</span
               ><el-slider

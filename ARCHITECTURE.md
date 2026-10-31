@@ -55,7 +55,7 @@ HTTP v1 的现有返回字段继续兼容，包括元数据中的既有设置字
 | `features/intraday/` | 目录、分时采集和对比、时间轴；纯时间/数据模型与组件分开 |
 | `features/research/` | 标签层级/成员/批量、备注历史/草稿/冲突、黑名单、共同股东和分类偏好 |
 
-Element Plus 负责表单、表格、滚动容器、滑块、弹窗和反馈，避免各页面重新实现同一交互。ECharts 负责图表缩放、拖动、图例和提示；`ChartPanel` 统一延迟初始化、自动调整尺寸、图表联动、保留查看范围及释放资源。明确的定位/缩放命令可以覆盖原范围，切换主票或日期可通过 `resetKey` 复位。
+Element Plus 负责表单、表格、滚动容器、滑块、弹窗和反馈，避免各页面重新实现同一交互。分时价格和成交量由 `features/intraday/FinancialChart` 使用 TradingView Lightweight Charts 原生多窗格绘制，共用时间轴、十字光标及缩放；`financialModel` 仅适配数据和交易时段，不自写绘图引擎。其他图表由 ECharts 和 `ChartPanel` 负责。两类组件均处理自动尺寸、保留查看范围及释放资源，切换主票或日期通过 `resetKey` 复位。
 
 各特性在自己的 Composition API 状态中管理请求、编辑和展示；跨特性通过 workspace 公开动作及组件 props/emits 协作。旧原生 renderer 原样移动至 `tests/legacy_frontend/`，仅作历史行为参考，不由 Vue 导入、不通过 HTTP 暴露、不进入分发。历史 Node 测试不能证明新 Vue 页面正确，必须同时运行 `frontend/src/**/*.test.ts`、类型/规范检查、构建与实际浏览器路径。
 

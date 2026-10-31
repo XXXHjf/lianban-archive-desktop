@@ -1,6 +1,6 @@
 # 连板档案前端
 
-Vue 3 + TypeScript + Element Plus + ECharts + Vite。用于本地复盘工作台，优先清晰、紧凑、可检索的数据展示。后端仍是原来的 Python + SQLite，v1 接口、个人数据与来源口径保持兼容。
+Vue 3 + TypeScript + Element Plus + Vite。分时量价图使用 TradingView Lightweight Charts 5.2.1，节点时间轴及其他统计图使用 ECharts。用于本地复盘工作台，优先清晰、紧凑、可检索的数据展示。后端仍是原来的 Python + SQLite，v1 接口、个人数据与来源口径保持兼容。
 
 ## 开发
 
@@ -33,7 +33,7 @@ python tools/check_all.py
 - 特性目录拥有业务状态和组件；数据转换、分组和时间模型放在纯 TypeScript helper，与 Vue/DOM 分开测试。公共状态只放导航、元数据、编辑入口和变更通知。
 - 使用 Composition API 和明确的类型。外部 JSON 在 HTTP 边界处理，复杂数据的真实字段由特性接口表达；不使用 `any` 或类型/规范抑制注释绕过问题。
 - 基础交互优先 Element Plus：表单、选择器、表格、Dialog、Popover、Scrollbar、Slider、反馈及空状态。业务结构如股票矩阵可用语义 HTML + 小型组件，避免硬套通用表格损失信息层次。
-- 图表统一通过 `ChartPanel` 使用 ECharts。组件负责创建、观察大小、可见性、联动、缩放状态及销毁。图表只消费真实 API 数据，缺失留空，禁止插值伪造市场事实。
+- 分时量价图通过 `FinancialChart` 使用 Lightweight Charts 原生多窗格，共用时间轴、缩放和十字光标；`financialModel` 适配上海时区、午休、竞价、分钟量及对比股归一化。缺失价格分段绘制，09:25 撮合独立显示；量柱按相邻有效价格涨跌着色，各股保留独立量窗格与统一/独立刻度。其他图表通过 `ChartPanel` 使用 ECharts。组件负责创建、观察大小、缩放状态及销毁。图表只消费真实 API 数据，缺失留空，禁止插值伪造市场事实。
 - 异步查询使用独立通道取消，并在特性中核对请求代次/当前日期和股票。写入使用原 revision/CAS 协议，409 保留输入并提示重新核对。
 - 标签/备注未保存时保护关闭与页面退出。保存中继续输入的草稿不能被旧响应覆盖。批量操作先解析预览再提交；删除、合并保留明确确认。
 - API 文本只用 Vue 插值或安全属性，不用 `v-html`。图表提示使用 `richText`；配置外链校验协议、主机和凭据。不要把个人数据、服务 token 或原始响应打进静态文件。
