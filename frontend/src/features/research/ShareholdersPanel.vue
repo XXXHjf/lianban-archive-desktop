@@ -58,13 +58,6 @@ function safeSource(value?: string) {
     return undefined;
   }
 }
-const controlSources = computed(() => [
-  ...new Set(
-    data.value?.control_owners
-      ?.map((owner) => safeSource(owner.source_url))
-      .filter((url): url is string => !!url) ?? [],
-  ),
-]);
 const ownScope = computed(() => (activeTab.value === 'total' ? 'total' : 'float'));
 const ownRows = computed(() => data.value?.own_holders?.[ownScope.value] ?? []);
 const disclosedFloat = computed(() =>
@@ -114,13 +107,6 @@ const types = computed(() =>
   ].sort((a, b) => a.localeCompare(b, 'zh-CN')),
 );
 const rows = computed(() => filterShareholders(data.value?.rows ?? [], !accountsBlocked()));
-const today = computed(() =>
-  !data.value
-    ? ''
-    : data.value.today_status === 'unavailable'
-      ? `${data.value.today} 暂无涨停数据，暂不标记最近交易日同涨停；历史档案及股东资料仍可查看`
-      : `${data.value.today} 最近交易日 · ${data.value.today_status === 'provisional' ? '盘中暂定' : '收盘确认'}${data.value.today_stale ? ' · 涨停快照延迟' : ''}${data.value.today_fetched_at ? ` · ${data.value.today_fetched_at.slice(11, 16)} 获取` : ''}`,
-);
 const empty = computed(() => {
   if (!data.value) return '';
   if (!data.value.profiles.some((profile) => profile.report_date))
@@ -191,7 +177,6 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-tabs v-model="activeTab" aria-label="股东资料页签">
       <el-tab-pane label="共同股东" name="common">
-        <p class="muted">{{ today }}</p>
         <template v-if="data">
           <div class="toolbar">
             <strong>屏蔽分类</strong
@@ -362,38 +347,6 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
         </div>
       </el-tab-pane>
     </el-tabs>
-    <el-collapse v-if="data"
-      ><el-collapse-item title="数据详情与来源" name="info"
-        ><p>
-          {{ data.source }} · 已取得 {{ data.coverage }} / {{ data.requested }} 只股票{{
-            data.status === 'updating'
-              ? ' · 正在更新'
-              : data.status === 'error'
-                ? ' · 更新失败'
-                : ''
-          }}
-        </p>
-        <p v-if="data.profiles.some((profile) => profile.report_date)">
-          本股资料获取于
-          {{
-            data.profiles
-              .filter((profile) => profile.report_date)
-              .map((profile) => profile.fetched_at)
-              .sort()[0]
-              ?.slice(0, 16)
-              .replace('T', ' ')
-          }}
-        </p>
-        <p>{{ data.scope_note }}</p>
-        <p>控制关系仅展示，不参与共同股东匹配；资料不代表实时持仓。</p>
-        <p v-for="source in controlSources" :key="source">
-          <a :href="source" target="_blank" rel="noopener noreferrer">控制关系来源</a>
-        </p>
-        <p>
-          “排除账户”包括结算代持、客户汇总账户、指数基金/ETF，以及指定金融资产管理和政策性长期机构；分类屏蔽同时生效。具体原因见展开明细。
-        </p>
-      </el-collapse-item></el-collapse
-    >
   </div>
 </template>
 <style scoped>

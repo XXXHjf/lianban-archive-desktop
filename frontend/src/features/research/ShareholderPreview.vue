@@ -24,7 +24,6 @@ const visible = computed({
     ><template #reference><slot /></template>
     <div class="shareholder-preview">
       <ShareholdersPanel v-if="visible" :stock="stock" />
-      <p class="muted">点击股东按钮可固定打开。</p>
     </div></el-popover
   >
 </template>
