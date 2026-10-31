@@ -23,13 +23,16 @@ const visible = computed({
     :persistent="false"
     ><template #reference><slot /></template>
     <div class="shareholder-preview">
-      <ShareholdersPanel v-if="visible" :stock="stock" />
-    </div></el-popover
-  >
+      <ShareholdersPanel v-if="visible" :stock="stock" /></div
+  ></el-popover>
 </template>
 <style scoped>
 .shareholder-preview {
-  max-height: min(520px, 75vh);
+  /* Fit on either side of the trigger without changing size between tabs. */
+  height: min(520px, calc(50dvh - 64px));
   overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
 }
 </style>

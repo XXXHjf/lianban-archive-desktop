@@ -73,6 +73,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     :model-value="!!target"
     :title="title"
     width="min(940px, 96vw)"
+    :modal-class="target?.kind === 'shareholders' ? 'shareholder-dialog-overlay' : undefined"
     :close-on-click-modal="target?.kind === 'shareholders'"
     :close-on-press-escape="!transitioning && !editor?.saving"
     :show-close="!transitioning && !editor?.saving"
@@ -115,3 +116,11 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     >
   </el-dialog>
 </template>
+<style>
+/* Tab heights must not change the dialog's centering or its mobile body width. */
+.shareholder-dialog-overlay .el-overlay-dialog,
+.shareholder-dialog-overlay .el-dialog__body {
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+}
+</style>
