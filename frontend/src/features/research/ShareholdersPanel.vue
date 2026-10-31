@@ -31,7 +31,7 @@ const today = computed(() =>
   !data.value
     ? ''
     : data.value.today_status === 'unavailable'
-      ? '今天的涨停数据尚未取得，暂不标记同涨停'
+      ? `${data.value.today} 暂无涨停数据，暂不标记今日同涨停；历史档案及股东资料仍可查看`
       : `${data.value.today} · ${data.value.today_status === 'provisional' ? '盘中暂定' : '收盘确认'}${data.value.today_stale ? ' · 涨停快照延迟' : ''}${data.value.today_fetched_at ? ` · ${data.value.today_fetched_at.slice(11, 16)} 获取` : ''}`,
 );
 const empty = computed(() => {
@@ -162,7 +162,7 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
               :name="row.name"
               @click="workspace.editor.value = null" /></template></el-table-column
         ><el-table-column label="共同股东" width="105" prop="shared_count" /><el-table-column
-          label="最新涨停状态"
+          label="今日涨停状态"
           min-width="140"
           ><template #default="{ row }"
             ><el-tag

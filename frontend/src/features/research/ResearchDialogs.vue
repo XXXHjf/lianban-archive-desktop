@@ -73,7 +73,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     :model-value="!!target"
     :title="title"
     width="min(940px, 96vw)"
-    :close-on-click-modal="false"
+    :close-on-click-modal="target?.kind === 'shareholders'"
     :close-on-press-escape="!transitioning && !editor?.saving"
     :show-close="!transitioning && !editor?.saving"
     @update:model-value="
@@ -98,7 +98,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         ref="editor"
         :stock="target.stock"
     /></template>
-    <template #footer
+    <template v-if="target?.kind !== 'shareholders'" #footer
       ><el-button
         v-if="target?.kind === 'note' && editor?.dirty"
         type="danger"
