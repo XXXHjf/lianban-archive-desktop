@@ -118,13 +118,14 @@ function draw() {
       visible: true,
       minimumWidth: 66,
       borderVisible: false,
-      scaleMargins: { top: 0, bottom: 0 },
+      textColor: 'transparent',
+      scaleMargins: { top: 0.03, bottom: 0.03 },
     },
     rightPriceScale: {
       visible: true,
       minimumWidth: 68,
       borderVisible: false,
-      scaleMargins: { top: 0, bottom: 0 },
+      scaleMargins: { top: 0.03, bottom: 0.03 },
     },
     timeScale: {
       timeVisible: true,
@@ -332,15 +333,20 @@ onBeforeUnmount(() => {
     <div class="chart-stage">
       <div ref="host" class="financial-canvas" :style="{ height: `${height}px` }"></div>
       <div class="price-captions"><span>涨幅</span><span>价格 / 元</span></div>
-      <span v-if="bounds.previous" class="bound-caption bound-top">{{
-        percentPrice(bounds.range.maxValue, bounds.previous)
-      }}</span>
-      <span
-        v-if="bounds.previous && paneLabels.length"
-        class="bound-caption"
-        :style="{ top: `${paneLabels[0]!.top - 26}px` }"
-        >{{ percentPrice(bounds.range.minValue, bounds.previous) }}</span
-      >
+      <template v-if="bounds.previous && paneLabels.length">
+        <span
+          v-for="fraction in [1, 0.5, -0.5, -1]"
+          :key="fraction"
+          class="bound-caption"
+          :style="{ top: `${(paneLabels[0]!.top - 8) * (0.5 - fraction * 0.47)}px` }"
+          >{{
+            percentPrice(
+              bounds.previous + (bounds.range.maxValue - bounds.previous) * fraction,
+              bounds.previous,
+            )
+          }}</span
+        >
+      </template>
       <span
         v-for="label in paneLabels"
         :key="label.name"
@@ -441,9 +447,7 @@ onBeforeUnmount(() => {
   color: #64748b;
   font-size: 11px;
   pointer-events: none;
-}
-.bound-top {
-  top: 0;
+  transform: translateY(-50%);
 }
 @media (max-width: 760px) {
   .quote-strip {

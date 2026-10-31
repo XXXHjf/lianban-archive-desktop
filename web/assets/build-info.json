@@ -44,7 +44,7 @@
     "src/features/archive/pagination.test.ts": "c346caf102533cfabe551434a65e66583bd4a72e952491e82e80d67fb0f8f5b6",
     "src/features/archive/pagination.ts": "d432009b297aed2263413196c1cf16c898ca12c3486edd7b6e479a0bd4d884de",
     "src/features/intraday/FinancialChart.test.ts": "94877ba906852b1998966435194a81bfcf533ea4e461e6ed4f732538cb52aba2",
-    "src/features/intraday/FinancialChart.vue": "e126abee7a987a99b797537b4e8d50cf0376d4edb97508fcf92cf5fbab0bb96a",
+    "src/features/intraday/FinancialChart.vue": "acd625ad3b0df3f1e5a1c13245939edca41d249441623706e36dbcde2675d56f",
     "src/features/intraday/IntradayView.vue": "418c0ba0a9493fb5114855a3667e311f2bf209fe73b94ae2a55d5478312dd752",
     "src/features/intraday/TimelinePanel.vue": "d6e034f5c2afeb2584060ab3814048a40ebe1f529e85907622fbac59271d9fc1",
     "src/features/intraday/financialModel.test.ts": "a413acbb9c7528c58529fab63dc0a1a270db3b82b47c696b8c71c6e13d78494c",
