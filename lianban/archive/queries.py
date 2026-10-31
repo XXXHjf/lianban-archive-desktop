@@ -7,7 +7,7 @@ from collections import Counter
 from lianban.storage.settings import get_settings
 from lianban.storage.trading_calendar import context as trading_calendar_context
 from lianban.core.stock import market_for, is_st_name
-from lianban.readside.stock_profiles import enrich_stock_profiles
+from lianban.readside.stock_profiles import enrich_stock_profiles, enrich_float_holding_ratios
 from lianban.research.presentation import stock_initials
 from lianban.archive.relationship_queries import stock_relationships, stock_pair_comparison
 from lianban.archive.cycles import observed_cycles
@@ -102,6 +102,7 @@ def date_view(conn, day, min_boards=1, market="all", query="", exclude_st=False,
                  and not is_st_name(r["name"])
                  and (not exclude_gem or market_for(r["code"]) != "创业板")]
     blacklist_codes = {r[0] for r in conn.execute("SELECT code FROM stock_blacklist")}
+    enrich_float_holding_ratios(conn, [*rows, *suspended])
     for row in [*rows, *suspended]:
         row["blacklisted"] = row["code"] in blacklist_codes
         row["initials"] = stock_initials(row["name"])

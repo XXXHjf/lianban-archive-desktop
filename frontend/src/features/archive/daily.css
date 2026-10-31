@@ -212,7 +212,7 @@
 }
 .ladder-column-headings {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 160px;
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 144px 160px;
   gap: 12px;
   padding: 10px 12px;
   background: var(--la-bg-subtle);
@@ -220,7 +220,7 @@
   font-size: 13px;
 }
 .topic-band .ladder-stock {
-  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 160px;
+  grid-template-columns: minmax(160px, 1fr) minmax(100px, 1.2fr) 144px 160px;
   gap: 12px;
   padding: 12px;
   min-height: 76px;
@@ -326,7 +326,7 @@
 .matching-column-headings,
 .matching-group .ladder-stock.has-boards {
   display: grid;
-  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) 52px 160px;
+  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) 52px 144px 160px;
   align-items: center;
   gap: 8px;
 }
@@ -459,7 +459,7 @@
 }
 .ladder-stock {
   display: grid;
-  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) auto;
+  grid-template-columns: minmax(128px, 1fr) minmax(64px, 1fr) 144px auto;
   align-items: center;
   gap: 8px;
   min-height: 64px;
@@ -469,6 +469,13 @@
 }
 .ladder-stock:hover {
   background: var(--la-bg-subtle);
+}
+.daily-float-holding {
+  font-variant-numeric: tabular-nums;
+  color: var(--la-text-secondary);
+}
+.daily-float-label {
+  display: none;
 }
 .ladder-stock.is-selected {
   background: var(--la-bg-selected);
@@ -1005,6 +1012,15 @@
   .daily-stock-actions {
     grid-column: 2;
     grid-row: 1;
+  }
+  .daily-float-holding {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    font-size: 13px;
+  }
+  .daily-float-label {
+    display: inline;
+    color: var(--la-text-muted);
   }
   .ladder-node-list {
     padding: 8px;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { request, query, abort } from '@/shared/api';
-import { errorMessage } from '@/shared/format';
+import { errorMessage, holdingRatio } from '@/shared/format';
 import { useWorkspace } from '@/shared/workspace';
 import StockLink from '@/components/StockLink.vue';
 import {
@@ -75,7 +75,7 @@ const reportDate = computed(
     '未披露',
 );
 function ratio(value: number | null) {
-  return value === null || !Number.isFinite(value) ? '未披露' : `${value.toFixed(4)}%`;
+  return holdingRatio(value);
 }
 async function loadSubsidiaries() {
   const current = ++subsidiaryGeneration;
@@ -171,9 +171,6 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
         <div>{{ controlNames(item.kind) }}</div>
       </div>
     </section>
-    <div class="toolbar">
-      <el-button size="small" :disabled="loading" @click="load">刷新</el-button>
-    </div>
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-tabs v-model="activeTab" aria-label="股东资料页签">
       <el-tab-pane label="共同股东" name="common">
@@ -270,7 +267,7 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
             </div>
           </div>
           <strong class="holding-total">{{
-            disclosedFloat.length ? `${floatTotal.toFixed(4)}%` : '未披露'
+            disclosedFloat.length ? holdingRatio(floatTotal) : '未披露'
           }}</strong>
         </div>
         <el-table
@@ -322,7 +319,8 @@ defineExpose({ finish: async () => true, dirty: false, saving: false });
               ><template #default="{ row }"
                 ><div>{{ row.name }}</div>
                 <div class="muted">
-                  {{ row.relation || '参控关系未披露' }} · 持股 {{ row.holding_ratio || '未披露' }}
+                  {{ row.relation || '参控关系未披露' }} · 持股
+                  {{ row.holding_ratio ? holdingRatio(parseFloat(row.holding_ratio)) : '未披露' }}
                 </div></template
               ></el-table-column
             >

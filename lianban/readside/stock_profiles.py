@@ -3,6 +3,19 @@ import json
 from lianban.storage.settings import get_settings
 from lianban.research.tags import default_tag_map, get_tag_aliases, get_deleted_tag_keys, named_stock_tags, effective_stock_tags
 
+
+def enrich_float_holding_ratios(conn, rows):
+    """Batch current disclosed float-holder totals; unknown is distinct from zero."""
+    codes = sorted({row['code'] for row in rows})
+    totals = {}
+    if codes:
+        totals = {row['code']: row['ratio'] for row in conn.execute(
+            "SELECT code,SUM(holding_ratio) AS ratio FROM stock_shareholders "
+            "WHERE scope='float' AND code IN (" + ','.join('?' for _ in codes) + ') GROUP BY code', codes)}
+    for row in rows:
+        row['float_holding_ratio'] = totals.get(row['code'])
+    return rows
+
 def enrich_stock_profiles(conn, rows):
     codes = list({row["code"] for row in rows})
     if not codes:

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { topicPath } from './dailyPresentation';
+import { holdingRatio } from '@/shared/format';
 import { useWorkspace } from '@/shared/workspace';
 import ShareholderPreview from '@/features/research/ShareholderPreview.vue';
 import { typeBlocked } from '@/features/research/preferences';
@@ -114,6 +115,10 @@ function chooseTopic(label: string) {
     <span v-if="showBoards" class="matching-stock-boards">{{
       stock.boards === 1 ? '首板' : stock.boards ? `${stock.boards}板` : '—'
     }}</span>
+    <span class="daily-float-holding" aria-label="十大流通股东持股比">
+      <span class="daily-float-label">十大流通股东持股比 </span
+      >{{ holdingRatio(stock.float_holding_ratio, '—') }}
+    </span>
     <div class="daily-stock-actions">
       <ShareholderPreview :stock="stock">
         <el-button

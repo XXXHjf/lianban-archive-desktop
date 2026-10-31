@@ -84,10 +84,14 @@ it('shows a red dot only for a non-excluded, unblocked holder with another stock
   dispose();
 });
 it('puts shareholder, intraday and preview actions on the stock row in order', async () => {
-  transport.request.mockResolvedValue(fixture());
+  const data = fixture();
+  data.rows[0]!.float_holding_ratio = 55.6291;
+  transport.request.mockResolvedValue(data);
   const { wrapper, workspace, dispose } = setup();
   await flushPromises();
   const row = wrapper.get('.ladder-stock');
+  expect(wrapper.get('.ladder-column-headings').text()).toContain('十大流通股东持股比');
+  expect(row.get('.daily-float-holding').text()).toContain('55.6%');
   expect(row.get('.daily-stock-actions').text()).toBe('股东分时预览');
   await row.get('[aria-label="查看光洋股份共同股东"]').trigger('click');
   expect(workspace.editor.value?.kind).toBe('shareholders');

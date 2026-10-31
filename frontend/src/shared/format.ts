@@ -7,6 +7,9 @@ export function number(value: unknown, digits = 0) {
 export function dateLabel(value: unknown) {
   return typeof value === 'string' && value ? value.slice(0, 10) : '—';
 }
+export function holdingRatio(value: number | null | undefined, missing = '未披露') {
+  return value == null || !Number.isFinite(value) ? missing : `${number(value, 1)}%`;
+}
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error || '操作未完成，请重试。');
 }

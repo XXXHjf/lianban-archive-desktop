@@ -522,7 +522,8 @@ function clearFilters() {
               </header>
               <div class="matching-group-content">
                 <div class="matching-column-headings" aria-hidden="true">
-                  <span>股票</span><span>行业与标签</span><span>板数</span><span>操作</span>
+                  <span>股票</span><span>行业与标签</span><span>板数</span
+                  ><span>十大流通股东持股比</span><span>操作</span>
                 </div>
                 <DailyStockRow
                   v-for="stock in group.stocks.slice(0, limit(0, group.labels, []))"
@@ -589,7 +590,8 @@ function clearFilters() {
                   </button>
                 </div>
                 <div v-if="industryMode" class="ladder-column-headings" aria-hidden="true">
-                  <span>股票</span><span>行业与标签</span><span>操作</span>
+                  <span>股票</span><span>行业与标签</span><span>十大流通股东持股比</span
+                  ><span>操作</span>
                 </div>
                 <section
                   v-for="group in expandedBands.includes(band.height)

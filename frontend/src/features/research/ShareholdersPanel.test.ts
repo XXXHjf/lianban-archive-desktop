@@ -147,10 +147,10 @@ it('shows permanent control details, unfiltered own holders, raw float sum and d
   const panel = wrapper.get('[role="tabpanel"]:not([style*="display: none"])');
   expect(panel.text()).toContain('账户甲');
   expect(panel.text()).toContain('账户乙');
-  expect(panel.text()).toContain('0.0000%');
+  expect(panel.text()).toContain('0.0%');
   expect(panel.text()).toContain('未披露');
   expect(panel.text()).toContain('3 / 4 位披露占比');
-  expect(panel.get('.holding-total').text()).toBe('2.4689%');
+  expect(panel.get('.holding-total').text()).toBe('2.5%');
   expect(panel.text()).toContain('占总流通股本');
   await tab(wrapper, '十大股东');
   const total = wrapper.get('[role="tabpanel"]:not([style*="display: none"])');

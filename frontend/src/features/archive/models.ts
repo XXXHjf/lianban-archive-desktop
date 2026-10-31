@@ -16,6 +16,7 @@ export interface Stock {
   board_date?: string;
   resume_date?: string;
   suspension_reason?: string;
+  float_holding_ratio?: number | null;
 }
 export interface Observation {
   date: string;
