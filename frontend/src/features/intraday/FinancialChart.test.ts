@@ -114,7 +114,6 @@ it('maps chart clicks into the same minute index used by the reading table and s
   charts[0]?.click((Date.parse('2026-10-30T13:00:00+08:00') / 1000) as Time);
   expect(wrapper.emitted('select')).toEqual([[122]]);
   await wrapper.setProps({ selectedSlot: 0 });
-  expect(wrapper.text()).toContain('集合竞价');
-  expect(wrapper.text()).toContain('—');
+  expect(charts[0]?.clearCrosshairPosition).toHaveBeenCalled();
   wrapper.unmount();
 });

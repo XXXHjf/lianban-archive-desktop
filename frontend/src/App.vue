@@ -208,7 +208,10 @@ onBeforeUnmount(() => {
             ><el-button text :icon="Refresh" :loading="loading" @click="load">刷新状态</el-button>
           </div>
         </header>
-        <section v-if="route.view !== 'date'" class="intro workspace-intro">
+        <section
+          v-if="route.view !== 'date' && route.view !== 'intraday'"
+          class="intro workspace-intro"
+        >
           <div>
             <h1>{{ title }}</h1>
           </div>

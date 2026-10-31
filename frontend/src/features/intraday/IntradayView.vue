@@ -33,8 +33,7 @@ const search = ref(''),
   compareSearch = ref(''),
   listLimit = ref(150),
   compareLimit = ref(150),
-  showAverage = ref(false),
-  sharedVolume = ref(true);
+  showAverage = ref(false);
 const overviewLoading = ref(false),
   stockLoading = ref(false),
   timelineLoading = ref(false),
@@ -608,7 +607,6 @@ onBeforeUnmount(() => {
   <div class="stack intraday-view">
     <section class="panel stack page-controls">
       <div class="panel-header">
-        <h2>分时工作台</h2>
         <div class="toolbar">
           <el-button
             :disabled="!dates.some((value) => value < day)"
@@ -628,10 +626,6 @@ onBeforeUnmount(() => {
           ><el-button :loading="overviewLoading" @click="loadOverview">刷新数据</el-button>
         </div>
       </div>
-      <p class="muted">
-        主板 {{ overview?.total || 0 }} 只 · 完整缓存 {{ overview?.ready || 0 }} 只 · 部分数据
-        {{ overview?.partial || 0 }} 只 · 未缓存按需采集
-      </p>
       <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
     </section>
     <div class="minute-workspace">
@@ -710,19 +704,16 @@ onBeforeUnmount(() => {
               size="small"
               >{{ tag }}</el-tag
             ><span v-if="detail.stock.note" class="muted">{{ detail.stock.note }}</span>
-          </div>
-          <div class="toolbar">
-            <el-checkbox v-model="showAverage" :disabled="stockLoading">显示主图均价</el-checkbox
-            ><el-radio-group v-model="sharedVolume" size="small"
-              ><el-radio-button :value="true">成交量统一刻度</el-radio-button
-              ><el-radio-button :value="false">各自刻度</el-radio-button></el-radio-group
-            ><el-tag v-if="stockLoading">读取中…</el-tag>
+            <el-checkbox v-model="showAverage" :disabled="stockLoading" class="average-toggle"
+              >显示主图均价</el-checkbox
+            >
+            <el-tag v-if="stockLoading">读取中…</el-tag>
           </div>
           <FinancialChart
             v-if="detail.points.length"
             :details="chartDetails"
             :average="showAverage"
-            :shared-volume="sharedVolume"
+            :shared-volume="true"
             :selected-slot="pointSlot"
             :reset-key="`${day}-${code}`"
             @select="pointSlot = $event"
@@ -935,6 +926,12 @@ p {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+.average-toggle {
+  margin-left: auto;
+}
+.page-controls .toolbar {
+  margin-left: auto;
 }
 .toolbar :deep(.el-date-editor) {
   width: 145px;

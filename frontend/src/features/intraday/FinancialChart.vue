@@ -305,40 +305,8 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="financial-chart" aria-label="分时价格与成交量，共用时间轴和十字光标">
-    <div class="quote-strip">
-      <span class="quote-time"
-        >{{ chartClock(activeSlot) }}<small v-if="activeSlot === 0">集合竞价</small></span
-      >
-      <span
-        v-for="(reading, index) in readings"
-        :key="reading.detail.stock.code"
-        class="quote-stock"
-      >
-        <i :style="{ background: reading.color }"></i>{{ reading.detail.stock.name }}
-        <b
-          :style="{
-            color:
-              reading.point &&
-              reading.detail.previous_close &&
-              reading.point.price < reading.detail.previous_close
-                ? marketDown
-                : reading.color,
-          }"
-          >{{ reading.point?.price.toFixed(2) ?? '—' }}</b
-        >
-        <span v-if="reading.point && reading.detail.previous_close">{{
-          percentPrice(reading.point.price, reading.detail.previous_close)
-        }}</span>
-        <span v-if="!index && average" class="mean-quote"
-          >均价 {{ reading.point?.average?.toFixed(2) ?? '—' }}</span
-        >
-        <span v-if="!index"
-          >量 {{ reading.point ? formatVolume(reading.point.volume / 100) : '—' }} 手</span
-        >
-      </span>
-      <el-button link size="small" class="fit-session" @click="fit">全日</el-button>
-    </div>
     <div class="chart-stage">
+      <el-button link size="small" class="fit-session" @click="fit">全日</el-button>
       <div ref="host" class="financial-canvas" :style="{ height: `${height}px` }"></div>
       <div class="price-captions"><span>涨幅</span><span>价格 / 元</span></div>
       <template v-if="bounds.previous && paneLabels.length">
@@ -431,7 +399,10 @@ onBeforeUnmount(() => {
   color: #b58c2e;
 }
 .fit-session {
-  margin-left: auto;
+  position: absolute;
+  right: 0;
+  top: -34px;
+  z-index: 4;
 }
 .chart-stage {
   position: relative;
