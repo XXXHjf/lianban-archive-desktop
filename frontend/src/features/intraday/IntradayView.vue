@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { abort, post, query, request } from '@/shared/api';
 import { useWorkspace } from '@/shared/workspace';
 import { errorMessage, number } from '@/shared/format';
@@ -609,10 +610,11 @@ onBeforeUnmount(() => {
       <div class="panel-header">
         <div class="toolbar">
           <el-button
+            :icon="ArrowLeft"
             :disabled="!dates.some((value) => value < day)"
+            aria-label="上一交易日"
             @click="navigateDate('previous')"
-            >上一交易日</el-button
-          ><el-date-picker
+          /><el-date-picker
             v-model="dateInput"
             type="date"
             value-format="YYYY-MM-DD"
@@ -620,9 +622,12 @@ onBeforeUnmount(() => {
             :clearable="false"
             :disabled-date="disabledDate"
             @change="changeDate"
-          /><el-button :disabled="!dates.some((value) => value > day)" @click="navigateDate('next')"
-            >下一交易日</el-button
-          ><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新</el-button
+          /><el-button
+            :icon="ArrowRight"
+            :disabled="!dates.some((value) => value > day)"
+            aria-label="下一交易日"
+            @click="navigateDate('next')"
+          /><el-button :disabled="!dates.length" @click="navigateDate('latest')">最新日期</el-button
           ><el-button :loading="overviewLoading" @click="loadOverview">刷新数据</el-button>
         </div>
       </div>
@@ -932,9 +937,13 @@ p {
 }
 .page-controls .toolbar {
   margin-left: auto;
+  gap: 8px;
 }
 .toolbar :deep(.el-date-editor) {
-  width: 145px;
+  width: 152px;
+}
+.page-controls {
+  padding-bottom: 16px;
 }
 @media (max-width: 1400px) {
   .minute-workspace {
