@@ -62,11 +62,17 @@ describe('financial market data adapter', () => {
     expect(percentPrice(11, 10)).toBe('+10.00%');
   });
   it('includes enabled average in the shared price range, and keeps unavailable average empty', () => {
-    const input = { ...detail, points: [{ ...point('10:00', 10.1), average: 9 }] };
-    expect(financialModel([input], true).range.minValue).toBeLessThan(9);
-    expect(financialModel([input], false).range.minValue).toBeGreaterThan(9);
+    const input = { ...detail, points: [{ ...point('10:00', 10.1), average: 8.8 }] };
+    expect(financialModel([input], true).range.minValue).toBeCloseTo(8.8);
+    expect(financialModel([input], false).range.minValue).toBeCloseTo(9);
     expect(financialModel([{ ...detail, points: [point('10:00')] }], true).stocks[0]?.mean).toEqual(
       [],
     );
+  });
+  it('uses rounded main-board limit prices and keeps the range centered on yesterday close', () => {
+    const input = { ...detail, previous_close: 5.37, points: [point('09:30', 5.91)] };
+    const range = financialModel([input], false).range;
+    expect(range.maxValue).toBeCloseTo(5.91);
+    expect(range.minValue).toBeCloseTo(4.83);
   });
 });

@@ -41,6 +41,7 @@ const host = ref<HTMLDivElement>();
 const hoverSlot = ref<number | null>(null);
 const paneLabels = ref<{ name: string; top: number }[]>([]);
 const activeSlot = computed(() => hoverSlot.value ?? props.selectedSlot);
+const bounds = computed(() => financialModel(props.details, props.average));
 const height = computed(() => 330 + props.details.length * 140 + 30);
 const readings = computed(() =>
   props.details.map((detail, index) => {
@@ -117,13 +118,13 @@ function draw() {
       visible: true,
       minimumWidth: 66,
       borderVisible: false,
-      scaleMargins: { top: 0.08, bottom: 0.08 },
+      scaleMargins: { top: 0, bottom: 0 },
     },
     rightPriceScale: {
       visible: true,
       minimumWidth: 68,
       borderVisible: false,
-      scaleMargins: { top: 0.08, bottom: 0.08 },
+      scaleMargins: { top: 0, bottom: 0 },
     },
     timeScale: {
       timeVisible: true,
@@ -209,6 +210,14 @@ function draw() {
         },
       });
       percent.setData(stock.price);
+      percent.createPriceLine({
+        price: model.previous,
+        color: '#94a3b8',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: '',
+      });
       if (props.average)
         for (const run of priceRuns(stock.mean)) {
           const mean = chart!.addSeries(LineSeries, {
@@ -323,6 +332,15 @@ onBeforeUnmount(() => {
     <div class="chart-stage">
       <div ref="host" class="financial-canvas" :style="{ height: `${height}px` }"></div>
       <div class="price-captions"><span>涨幅</span><span>价格 / 元</span></div>
+      <span v-if="bounds.previous" class="bound-caption bound-top">{{
+        percentPrice(bounds.range.maxValue, bounds.previous)
+      }}</span>
+      <span
+        v-if="bounds.previous && paneLabels.length"
+        class="bound-caption"
+        :style="{ top: `${paneLabels[0]!.top - 26}px` }"
+        >{{ percentPrice(bounds.range.minValue, bounds.previous) }}</span
+      >
       <span
         v-for="label in paneLabels"
         :key="label.name"
@@ -411,6 +429,21 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: #64748b;
   background: #ffffffdf;
+}
+.bound-caption {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  width: 66px;
+  padding-right: 5px;
+  text-align: right;
+  background: #fff;
+  color: #64748b;
+  font-size: 11px;
+  pointer-events: none;
+}
+.bound-top {
+  top: 0;
 }
 @media (max-width: 760px) {
   .quote-strip {

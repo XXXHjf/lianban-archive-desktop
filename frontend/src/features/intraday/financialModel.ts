@@ -29,7 +29,15 @@ export function financialModel(details: MinuteDetail[], average: boolean) {
   const grid: WhitespaceData<UTCTimestamp>[] = Array.from({ length: 243 }, (_, slot) => ({
     time: minuteTime(date, slot),
   }));
-  let extent = previous * 0.01;
+  // Main-board A shares normally have a 10% limit. Growth-board comparisons
+  // use their own price data; an out-of-range observation expands the view.
+  const code = primary?.stock.code || '';
+  const limitRate = /^(300|301|688)/.test(code) ? 0.2 : /^(4|8)/.test(code) ? 0.3 : 0.1;
+  const roundedLimit = (factor: number) => Math.floor(previous * factor * 100 + 0.5000001) / 100;
+  let extent = Math.max(
+    roundedLimit(1 + limitRate) - previous,
+    previous - roundedLimit(1 - limitRate),
+  );
   const stocks = details.map((detail, index) => {
     const close = detail.previous_close || 0;
     const bySlot = new Map(
@@ -73,7 +81,7 @@ export function financialModel(details: MinuteDetail[], average: boolean) {
       maximum: Math.max(1, ...volume.map((point) => point.value)),
     };
   });
-  const padding = extent * 1.06;
+  const padding = extent;
   return {
     date,
     previous,
