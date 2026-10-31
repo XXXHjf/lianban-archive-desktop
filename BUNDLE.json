@@ -1,5 +1,5 @@
 {
-  "id": "44da945b53464dd3",
+  "id": "7ae4ea259baacaa4",
   "runtime": "vendor/python-3.13.16-embed-amd64.zip",
   "wheels": [
     "vendor/wheels/certifi-2026.7.22-py3-none-any.whl",
@@ -24,7 +24,7 @@
   "seed": "resources/archive-seed.sqlite3.gz",
   "seed_database_sha256": "3609a9850a808c1473fffe85ead105665c0c22c9048b92e4cffb76b045aae4e3",
   "sha256": {
-    "BUILD_BASELINE.json": "3a7875f492d6466e26d5f391d175f2931495748a135d0284f4029d8556aa8f94",
+    "BUILD_BASELINE.json": "d0f1935fa0579b76a35e4ff8f8cab4c234cc52a423d41227dc84ca6ab029ca81",
     "SOURCE_BASELINE.json": "e0c72f68c79c666dcacdf7fa0b4c5096b4ad2ada53de1bef51d0aa9e06e60272",
     "VERSION.json": "6c1c984b01c3b636014551b53010732248a424f84085463c3af61316162b1d10",
     "app.py": "eaab5c82924b086ad5a7ff3034640827e89284d17bd70f72db397fbbad842d35",
@@ -172,7 +172,7 @@
     "web/assets/TagsView.js": "c5d950586d06f9ac510c94182ffc94112817c9cf500e98404afd50c3dcac6686",
     "web/assets/_plugin-vue_export-helper.css": "8a1ea7643526a011c47e844644e0014b213304bc275f95052c2d13b2fd867e11",
     "web/assets/_plugin-vue_export-helper.js": "3a80719f2a7794410aff4d6456a74184fb9a41044a99b6ff868cc99fd6727aed",
-    "web/assets/build-info.json": "c5e8fb8839c95870e678793deeec8e356d2176193698a5b3362430d23d5ec9c3",
+    "web/assets/build-info.json": "e502231f19d787230f3ddf3b8783c80e6b34a79874cda322c3ae2e8b9ec8d438",
     "web/assets/chart-controls.js": "2e8b0147a8fd44ab0c5a84e3deb3611e2b01ff32c57f8e88c4dc6099b974bbf4",
     "web/assets/chart-core.js": "fa6d61ef2919ca50936f87388c41a2c2bbfcea97af46cf302b87389af60ceb19",
     "web/assets/chart-renderer.js": "ebe0a89ab0180d55632bdc16fdbe9001d988addb0f95b6c2dec8dcd393a2cb2b",
@@ -190,7 +190,7 @@
     "web/assets/css6.css": "7b867275c1c189796947bc8bc834718b65cd59af9825b439a0f46d84273810ad",
     "web/assets/css6.js": "2481aa54599bfe78a4b6cfe45df0b0e6c16c189f5f2908083af1e2047c28aa87",
     "web/assets/debounce.js": "19194ad8301b5a68c4d5cd053265eff84bf103af024b0046fe791c7dadb3af1a",
-    "web/assets/frontend.css": "f55b1f48943c5efc0a5deeb58800eba7ff2237ba76c062f2590c4d06605cab7c",
+    "web/assets/frontend.css": "39968af0feb58bee8bbb2946a068fd2de22f0381a7b6dfc17036e78496f14e6b",
     "web/assets/frontend.js": "8c108db9977c424b6c0d7457ca8b7c9818909b10f6c860f142d1c8bfb7b27e7d",
     "web/assets/helpers.js": "16fabec0d0d7ebb9ee8d451be3b7b34f878dae0a02468048079a56f5c17558b6",
     "web/assets/input.css": "5c1332148663146ad250803befe2077c194b7198a2c45008902547915c4b712a",

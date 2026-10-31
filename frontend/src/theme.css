@@ -50,6 +50,12 @@
 html {
   scrollbar-gutter: stable;
 }
+@supports (scrollbar-gutter: stable) {
+  /* The root gutter already reserves the scrollbar width during modal scroll locking. */
+  body.el-popup-parent--hidden {
+    width: 100% !important;
+  }
+}
 body {
   margin: 0;
 }

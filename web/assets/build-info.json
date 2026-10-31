@@ -76,7 +76,7 @@
     "src/shared/preferences.ts": "f33bb4cb8a12420e5abcfcf8dfcdf857491ba9d85e870d2e1b428facc30987d7",
     "src/shared/workspace.test.ts": "f5b11a010e2afba22d4fb6c5640773d5d554f18d36efcd82af4eb2ab20485a3a",
     "src/shared/workspace.ts": "f6e70d6fccbbddec49009968d3f6dd0cf209609735d66b2a9a29fda9d8250511",
-    "src/theme.css": "1746f708fb26d11369a0e53dce361542a81c8b5f1b513e41a519d474767ca5e3",
+    "src/theme.css": "a1dae15436c7164c2b8c04f945702afb14aae53845bb9f3354ebfddac303acb0",
     "tsconfig.json": "5e25de5e72de877480189ff55b768c639e748e34cd79f02e476324a50300bcac",
     "vite.config.ts": "de598ba9756dcb0ef1c3b382f94f00c6a6aec129b6b354c171e9c68e1e5282d9"
   }
