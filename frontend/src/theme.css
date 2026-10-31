@@ -28,6 +28,12 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+.el-picker-panel .el-date-table td.disabled .el-date-table-cell,
+.el-picker-panel .el-date-table td.disabled .el-date-table-cell__text {
+  background-color: transparent;
+  color: #b5bdc9;
+  font-weight: 400;
+}
 :root {
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 13px;

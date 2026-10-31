@@ -78,7 +78,7 @@
     "src/shared/tradingCalendar.ts": "e620fefacba318606050db72d468f3cc43803b5b2a6d4ab0ec434368b02af025",
     "src/shared/workspace.test.ts": "324b5848e74edf076b2ff450430b6d6773b5f7e94792c891b37e2e34d0b3fc0e",
     "src/shared/workspace.ts": "dccfab0fa5ca6a2966a72c9d1e895fad47e38aa06e5e2d96a0358d548b09f7bc",
-    "src/theme.css": "a1dae15436c7164c2b8c04f945702afb14aae53845bb9f3354ebfddac303acb0",
+    "src/theme.css": "8cd84680eaf17aa24a49d0dec29f92ee625273c38aebc777b375342aec1b09b1",
     "tsconfig.json": "5e25de5e72de877480189ff55b768c639e748e34cd79f02e476324a50300bcac",
     "vite.config.ts": "de598ba9756dcb0ef1c3b382f94f00c6a6aec129b6b354c171e9c68e1e5282d9"
   }
