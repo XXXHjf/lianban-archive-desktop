@@ -39,6 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [number] }>();
 const host = ref<HTMLDivElement>();
 const hoverSlot = ref<number | null>(null);
+const hoverPosition = ref<{ x: number; y: number } | null>(null);
 const paneLabels = ref<{ name: string; top: number }[]>([]);
 const activeSlot = computed(() => hoverSlot.value ?? props.selectedSlot);
 const bounds = computed(() => financialModel(props.details, props.average));
@@ -83,9 +84,16 @@ function setCursor() {
   suppressHover = false;
 }
 function onHover(event: MouseEventParams<Time>) {
-  if (suppressHover) return;
+  if (suppressHover || !event.sourceEvent) return;
   hoverSlot.value =
     typeof event.time === 'number' && event.point ? chartSlot(timeClock(event.time)) : null;
+  hoverPosition.value =
+    hoverSlot.value !== null && event.point
+      ? {
+          x: Math.max(70, Math.min((host.value?.clientWidth || 250) - 180, event.point.x + 78)),
+          y: Math.max(8, event.point.y + 12),
+        }
+      : null;
 }
 function fit() {
   chart?.timeScale().setVisibleLogicalRange({ from: -2, to: 244 });
@@ -333,9 +341,9 @@ onBeforeUnmount(() => {
     <div class="chart-stage">
       <div ref="host" class="financial-canvas" :style="{ height: `${height}px` }"></div>
       <div class="price-captions"><span>涨幅</span><span>价格 / 元</span></div>
-      <template v-if="bounds.previous && paneLabels.length">
+      <template v-if="bounds.previous && paneLabels.length && hoverSlot === null">
         <span
-          v-for="fraction in [1, 0.5, -0.5, -1]"
+          v-for="fraction in [1, -1]"
           :key="fraction"
           class="bound-caption"
           :style="{ top: `${(paneLabels[0]!.top - 8) * (0.5 - fraction * 0.47)}px` }"
@@ -347,6 +355,22 @@ onBeforeUnmount(() => {
           }}</span
         >
       </template>
+      <div
+        v-if="hoverPosition && hoverSlot !== null"
+        class="chart-tooltip"
+        :style="{ left: `${hoverPosition.x}px`, top: `${hoverPosition.y}px` }"
+      >
+        <strong>{{ chartClock(hoverSlot) }}</strong>
+        <div v-for="reading in readings" :key="reading.detail.stock.code">
+          {{ reading.detail.stock.name }}：{{ reading.point?.price.toFixed(2) ?? '—' }}
+          <span v-if="reading.point && reading.detail.previous_close">{{
+            percentPrice(reading.point.price, reading.detail.previous_close)
+          }}</span>
+        </div>
+        <div>
+          成交量：{{ readings[0]?.point ? formatVolume(readings[0].point.volume / 100) : '—' }} 手
+        </div>
+      </div>
       <span
         v-for="label in paneLabels"
         :key="label.name"
@@ -448,6 +472,19 @@ onBeforeUnmount(() => {
   font-size: 11px;
   pointer-events: none;
   transform: translateY(-50%);
+}
+.chart-tooltip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  padding: 8px 10px;
+  border: 1px solid #dbe2ea;
+  border-radius: 4px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.7;
+  box-shadow: 0 3px 12px #0f172a1a;
 }
 @media (max-width: 760px) {
   .quote-strip {
